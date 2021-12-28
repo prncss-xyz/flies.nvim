@@ -65,7 +65,6 @@ function M:textobject_inner_plain(_)
 		return
 	end
 	local row_e = inner_ending() or vim.api.nvim_buf_line_count(0)
-  print(row_s, row_e)
 	select_line_range(row_s, row_e)
 end
 
