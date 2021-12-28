@@ -33,49 +33,102 @@ function M.textobject(command_name, query_map, mode)
 end
 
 local function query_obj()
+	local t = require("flies.utils").t
 	local qualifier
 	while true do
 		local char = vim.fn.getchar()
 		char = vim.fn.nr2char(char)
+		if char == t("<esc>") then
+			return nil
+		end
 		if not qualifier and qualifiers[char] then
 			qualifier = qualifiers[char]
-		elseif queries[char] then
+		else
 			qualifier = qualifier or qualifiers[""]
 			if qualifier then
-				M.cache = { query = queries[char], qualifier = qualifier }
-				return true
+				return qualifier, char
 			else
-				return false
+				return nil
 			end
-		else
-			return false
 		end
 	end
 end
 
-function M.move(domain, start, mode)
-	local name = require("flies").utils.name
-	if not query_obj() then
+local function jump(target, backward, till, n_times)
+	local flags = backward and "Wb" or "W"
+	if till then
+		if backward then
+			target = target .. "."
+		else
+			target = "." .. target
+		end
+	end
+	if backward and till then
+		flags = flags .. "e"
+	end
+
+	for _ = 1, n_times do
+		vim.fn.search(target, flags)
+	end
+
+	-- Open enough folds to show jump
+	vim.cmd("normal! zv")
+end
+
+function M.move(query_char, qualifier, domain, start, mode)
+	local name = require("flies.utils").name
+	local query = queries[query_char]
+	if query then
+		local command_name = name("move", domain, qualifier)
+		if query[command_name] then
+			query[command_name](query, start, mode)
+			return
+		end
+		domain = domain == "inner" and "outer" or "inner"
+		command_name = name("move", domain, qualifier)
+		if query[command_name] then
+			query[command_name](query, start, mode)
+			return
+		end
 		return
 	end
-	local query = M.cache.query
-	if domain == "plain" then
-		domain = "next"
-	end
-	local command_name = name("move", M.cache.qualifier)
-	if not query[command_name] then
+	jump("[" .. query_char .. "]", qualifier == "previous", domain == "inner", vim.v.count1)
+end
+
+function M.mapped_move(domain, start, mode)
+	local qualifier, char = query_obj()
+	if not qualifier then
 		return
 	end
-	local prev = name("move", domain, "previous")
-	if query[prev] then
-		local next = name("move", domain, "next")
-		M.repeat_register(function(mode0)
-			query[prev](query, start, mode0)
-		end, function(mode0)
-			query[next](query, start, mode0)
-		end)
+	M.repeat_register(function(mode0)
+		M.move(char, "previous", domain, start, mode0)
+	end, function(mode0)
+		M.move(char, "next", domain, start, mode0)
+	end)
+	if qualifier == "plain" then
+		qualifier = "next"
 	end
-	query[command_name](query, start, mode)
+	M.move(char, qualifier, domain, start, mode)
+end
+
+local function map_move()
+	if conf.maps then
+		for lhs, v in pairs(conf.maps) do
+			for _, mode in ipairs({ "n", "x", "o" }) do
+				vim.api.nvim_set_keymap(
+					mode,
+					lhs,
+					string.format(
+						'<cmd>lua require"flies".mapped_move(%q, %s, %q)<cr>',
+						v.domain,
+						v.start and 'true' or 'false',
+						mode
+					),
+					{}
+				)
+			end
+		end
+	end
 end
 
 local function map_texobjects()
@@ -117,6 +170,7 @@ function M.setup(user_conf)
 		qualifiers[t(k)] = v
 	end
 	map_texobjects()
+  map_move()
 end
 
 return M
