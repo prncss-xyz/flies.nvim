@@ -1,5 +1,11 @@
 local M = {}
 
+function M.count()
+	if vim.v.count == vim.v.count1 then
+		return vim.v.count
+	end
+end
+
 function M.to_pos(row, col)
   col = col and col - 1
   return { row, col }
@@ -33,6 +39,22 @@ end
 function M.move_cursor(pos, wiseness)
   vim.api.nvim_win_set_cursor(0, pos)
 end
+
+function M.line_bounds(domain, row)
+  local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
+  if line == '' then
+    return 1, 1
+  end
+  if domain == 'inner' then
+    local col_s = string.find(line, '[%S]')
+    local col_e = string.find(line, '.[%s]*$')
+    return col_s, col_e
+  end
+  if domain == 'outer' then
+    return 1, line:len()
+  end
+end
+
 
 function M.line_ending_col(row)
   local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]

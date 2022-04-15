@@ -7,19 +7,34 @@ local select_line_range = require('flies.utils').select_line_range
 local M = require('flies.objects.base').new()
 
 -- FIXME: previous object when already on valid object
+-- TODO: hijack komment.outer to komment.inner on move
 
-function M.new(query)
-  return setmetatable({ query = query }, { __index = M })
+function M.new(query, query2)
+  return setmetatable({ query = query, query2 = query2 }, { __index = M })
 end
 
-local function query_string(query, domain)
-  return string.format('@%s.%s', query, domain)
+function M:name()
+  if self.query2 then
+    return string.format('@%s @%s', self.query, self.query2)
+  else
+    return string.format('@%s inner/outer', self.query)
+  end
+end
+
+function M:query_string(domain)
+  if self.query2 then
+    local q = domain == 'inner' and self.query or self.query2
+    return '@' .. q
+  else
+    return string.format('@%s.%s', self.query, domain)
+  end
 end
 
 for _, domain in ipairs { 'inner', 'outer' } do
   M[name('textobject', domain, 'plain')] = function(self, mode)
+    print(self:query_string(domain))
     require('nvim-treesitter.textobjects.select').select_textobject(
-      query_string(self.query, domain),
+      self:query_string(domain),
       mode
     )
   end
@@ -38,7 +53,7 @@ for _, domain in ipairs { 'inner', 'outer' } do
         start and 'start' or 'end'
       )]
       for _ = 1, vim.v.count1 do
-        method(query_string(self.query, domain))
+        method(self:query_string(domain))
       end
     end
   end

@@ -2,6 +2,7 @@ local move_cursor = require('flies.utils').move_cursor
 local to_pos = require('flies.utils').to_pos
 local line_ending_pos = require('flies.utils').line_ending_pos
 local select_line_range = require('flies.utils').select_line_range
+local count = require('flies.utils').count
 
 local function inner_start()
   local max = vim.api.nvim_buf_line_count(0)
@@ -38,28 +39,48 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
+function M:name()
+  return 'buffer'
+end
+
 function M:textobject_outer_plain(_)
   local max = vim.api.nvim_buf_line_count(0)
   select_line_range(1, max)
 end
 
-function M:move_outer_plain(start)
-  if start then
-    move_cursor(to_pos(1, 1), 'V')
+function M:move_outer_next(_, _)
+  local lines = vim.api.nvim_buf_line_count(0)
+  local c = count()
+  local line
+  if c then
+    line = math.min(c, lines)
   else
-    move_cursor(line_ending_pos(vim.api.nvim_buf_line_count(0)), 'V')
+    line = lines
   end
+  move_cursor(line_ending_pos(line), 'V')
 end
 
-function M:move_inner_plain(start)
-  if start then
-    move_cursor(to_pos(inner_start(), 1), 'V')
+function M:move_inner_next(_, _)
+  local lines = vim.api.nvim_buf_line_count(0)
+  local c = count()
+  local line
+  if c then
+    line = math.min(c, lines)
   else
-    move_cursor(line_ending_pos(inner_ending()), 'V')
+    line = line_ending_pos(inner_ending())
   end
+  move_cursor(line, 'V')
 end
 
-function M:textobject_inner_plain(_)
+function M:move_inner_previous(_, _)
+  move_cursor(to_pos(inner_start(), 1), 'V')
+end
+
+function M:move_outer_previous(_, _)
+  move_cursor({ 1, 0 }, 'V')
+end
+
+function M:textobject_inner_plain(_, _)
   local row_s = inner_start()
   if not row_s then
     return

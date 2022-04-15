@@ -2,6 +2,7 @@ local name = require('flies.utils').name
 local set_selection = require('flies.utils').set_selection
 local move_cursor = require('flies.utils').move_cursor
 local to_pos = require('flies.utils').to_pos
+local line_bounds = require('flies.utils').line_bounds
 
 local function select_line(row, start, ending, wiseness)
   if row then
@@ -35,25 +36,25 @@ local function get_row(qualifier)
   return row
 end
 
-local function line_bounds(domain, row)
-  local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
-  if line == '' then
-    return 1, 1
-  end
-  if domain == 'inner' then
-    local col_s = string.find(line, '[%S]')
-    local col_e = string.find(line, '.[%s]*$')
-    return col_s, col_e
-  end
-  if domain == 'outer' then
-    return 1, line:len()
-  end
-end
-
 local M = require('flies.objects.base').new()
 
 function M.new()
   return setmetatable({}, { __index = M })
+end
+
+function M:name()
+  return 'line'
+end
+
+M.blank_text_object = true
+M.normal_dir = true
+
+M[name('move', 'outer', 'hint')] = function(_, start, mode)
+  require('hop').hint_lines()
+end
+
+M[name('move', 'inner', 'hint')] = function(_, start, mode)
+  require('hop').hint_lines_skip_whitespace()
 end
 
 for _, domain in ipairs { 'inner', 'outer' } do
@@ -67,13 +68,31 @@ for _, domain in ipairs { 'inner', 'outer' } do
       local col_s, col_e = line_bounds(domain, row)
       select_line(row, col_s, col_e, wiseness)
     end
-    M[name('move', domain, qualifier)] = function(_, start, _)
-      local row = get_row(qualifier)
-      if not row then
-        return
-      end
+    M[name('move', domain, qualifier)] = function(_, start, mode)
+      print(domain, mode)
+      local row, col = unpack(vim.api.nvim_win_get_cursor(0))
       local col_s, col_e = line_bounds(domain, row)
-      move_cursor(to_pos(row, start and col_s or col_e), wiseness)
+      local bound = start and col_s or col_e
+      if qualifier == 'previous' then
+        if col + 1 <= bound then
+          if row == 1 then
+            return
+          end
+          row = row - 1
+          col_s, col_e = line_bounds(domain, row)
+        end
+      else
+        if col + 1 >= bound then
+          local max = vim.api.nvim_buf_line_count(0)
+          if row == max then
+            return
+          end
+          row = row + 1
+          col_s, col_e = line_bounds(domain, row)
+        end
+      end
+      bound = start and col_s or col_e
+      move_cursor(to_pos(row, bound), wiseness)
     end
   end
 end
