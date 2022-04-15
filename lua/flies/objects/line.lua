@@ -64,12 +64,10 @@ function M:textobject_inner_np(qualifier, _)
 end
 
 function M:textobject_outer_plain(_)
-  print(2)
   textobject('outer', 'plain')
 end
 
 function M:textobject_inner_plain(_)
-  print(1)
   textobject('inner', 'plain')
 end
 

@@ -1,6 +1,16 @@
 local M = {}
 
-local default_conf = {}
+local default_conf = {
+  qualifiers = {
+    p = 'previous',
+    n = 'next',
+    h = 'hint',
+  },
+  domains = {
+    i = 'inner',
+    a = 'outer',
+  },
+}
 
 local t = require('flies.utils').t
 local name = require('flies.utils').name

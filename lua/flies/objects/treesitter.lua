@@ -28,7 +28,6 @@ end
 -- M:texobject_domain_np(qualifier, mode)
 
 function M:textobject_outer_plain(mode)
-  print(self, mode)
   require('nvim-treesitter.textobjects.select').select_textobject(
     self:query_string 'outer',
     mode

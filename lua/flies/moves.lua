@@ -131,7 +131,6 @@ function M.append_insert()
       vim.api.nvim_feedkeys('a', 'n', false)
     end
   else
-    print('x', qualifier)
     if qualifier == 'previous' then
       vim.api.nvim_feedkeys('i', 'n', false)
     else
