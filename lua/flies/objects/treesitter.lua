@@ -1,8 +1,4 @@
-local move_cursor = require('flies.utils').move_cursor
 local name = require('flies.utils').name
-local to_pos = require('flies.utils').to_pos
-local line_ending_pos = require('flies.utils').line_ending_pos
-local select_line_range = require('flies.utils').select_line_range
 
 local M = require('flies.objects.base').new()
 
@@ -10,15 +6,13 @@ local M = require('flies.objects.base').new()
 -- TODO: hijack komment.outer to komment.inner on move
 
 function M.new(query, query2)
-  return setmetatable({ query = query, query2 = query2 }, { __index = M })
-end
-
-function M:name()
-  if self.query2 then
-    return string.format('@%s @%s', self.query, self.query2)
+  local o = setmetatable({ query = query, query2 = query2 }, { __index = M })
+  if o.query2 then
+    o.name = string.format('@%s @%s', o.query, o.query2)
   else
-    return string.format('@%s inner/outer', self.query)
+    o.name = string.format('@%s inner/outer', o.query)
   end
+  return o
 end
 
 function M:query_string(domain)
@@ -30,37 +24,62 @@ function M:query_string(domain)
   end
 end
 
-for _, domain in ipairs { 'inner', 'outer' } do
-  M[name('textobject', domain, 'plain')] = function(self, mode)
-    print(self:query_string(domain))
-    require('nvim-treesitter.textobjects.select').select_textobject(
-      self:query_string(domain),
-      mode
-    )
-  end
-  M[name('move', domain, 'hint')] = function(self, _, _)
+-- M:texobject_domain_qualifier(mode)
+-- M:texobject_domain_np(qualifier, mode)
+
+function M:textobject_outer_plain(mode)
+  print(self, mode)
+  require('nvim-treesitter.textobjects.select').select_textobject(
+    self:query_string 'outer',
+    mode
+  )
+end
+
+function M:textobject_inner_plain(mode)
+  require('nvim-treesitter.textobjects.select').select_textobject(
+    self:query_string 'inner',
+    mode
+  )
+end
+
+function M:textobject_outer_hint(mode)
+  self:move('outer', 'hint', true, mode)
+  self:textobject_outer_plain(mode)
+end
+
+function M:textobject_inner_hint(mode)
+  self:move('inner', 'hint', true, mode)
+  self:textobject_inner_plain(mode)
+end
+
+function M:textobject_outer_np(domain, mode)
+  self:move('outer', domain, true, mode)
+  self:textobject_inner_plain(mode)
+end
+
+function M:textobject_inner_np(domain, mode)
+  self:move('inner', domain, true, mode)
+  self:textobject_inner_plain(mode)
+end
+
+function M:move(domain, qualifier, start, _)
+  if qualifier == 'hint' then
     require 'nvim-treesitter.textobjects.select'
     require('hop-extensions').hint_textobjects(
       string.format('%s.%s', self.query, domain)
+      -- TODO: start = false
     )
-    -- TODO: start = false
   end
-  for _, qualifier in ipairs { 'next', 'previous' } do
-    M[name('move', domain, qualifier)] = function(self, start, _)
-      local method = require('nvim-treesitter.textobjects.move')[name(
+  if qualifier == 'next' or qualifier == 'previous' then
+    local function method()
+      require('nvim-treesitter.textobjects.move')[name(
         'goto',
         qualifier,
         start and 'start' or 'end'
-      )]
-      for _ = 1, vim.v.count1 do
-        method(self:query_string(domain))
-      end
+      )](self:query_string(domain))
     end
-  end
-  for _, qualifier in ipairs { 'hint', 'next', 'previous' } do
-    M[name('textobject', domain, qualifier)] = function(self, mode)
-      M[name('move', domain, qualifier)](self, true, mode)
-      M[name('textobject', domain, 'plain')](self, mode)
+    for _ = 1, vim.v.count1 do
+      method()
     end
   end
 end

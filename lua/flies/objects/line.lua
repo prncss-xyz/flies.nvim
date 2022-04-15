@@ -1,8 +1,7 @@
-local name = require('flies.utils').name
-local set_selection = require('flies.utils').set_selection
-local move_cursor = require('flies.utils').move_cursor
-local to_pos = require('flies.utils').to_pos
-local line_bounds = require('flies.utils').line_bounds
+local set_selection = require('flies.objects.utils').set_selection
+local move_cursor = require('flies.objects.utils').move_cursor
+local to_pos = require('flies.objects.utils').to_pos
+local line_bounds = require('flies.objects.utils').line_bounds
 
 local function select_line(row, start, ending, wiseness)
   if row then
@@ -42,58 +41,73 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
-function M:name()
-  return 'line'
-end
-
+M.name = 'line'
 M.blank_text_object = true
 M.normal_dir = true
 
-M[name('move', 'outer', 'hint')] = function(_, start, mode)
-  require('hop').hint_lines()
+local function textobject(domain, qualifier)
+  local wiseness = domain == 'inner' and 'v' or 'V'
+  local row = get_row(qualifier)
+  if not row then
+    return
+  end
+  local col_s, col_e = line_bounds(domain, row)
+  select_line(row, col_s, col_e, wiseness)
 end
 
-M[name('move', 'inner', 'hint')] = function(_, start, mode)
-  require('hop').hint_lines_skip_whitespace()
+function M:textobject_outer_np(qualifier, _)
+  textobject('outer', qualifier)
 end
 
-for _, domain in ipairs { 'inner', 'outer' } do
-  for _, qualifier in ipairs { 'plain', 'next', 'previous' } do
+function M:textobject_inner_np(qualifier, _)
+  textobject('inner', qualifier)
+end
+
+function M:textobject_outer_plain(_)
+  print(2)
+  textobject('outer', 'plain')
+end
+
+function M:textobject_inner_plain(_)
+  print(1)
+  textobject('inner', 'plain')
+end
+
+function M:move(domain, qualifier, start, _)
+  if qualifier == 'hint' then
+    if domain == 'outer' then
+      require('hop').hint_lines()
+    else
+      require('hop').hint_lines_skip_whitespace()
+    end
+    return true
+  end
+  if qualifier == 'previous' or qualifier == 'next' then
     local wiseness = domain == 'inner' and 'v' or 'V'
-    M[name('textobject', domain, qualifier)] = function(_, _)
-      local row = get_row(qualifier)
-      if not row then
-        return
-      end
-      local col_s, col_e = line_bounds(domain, row)
-      select_line(row, col_s, col_e, wiseness)
-    end
-    M[name('move', domain, qualifier)] = function(_, start, mode)
-      print(domain, mode)
-      local row, col = unpack(vim.api.nvim_win_get_cursor(0))
-      local col_s, col_e = line_bounds(domain, row)
-      local bound = start and col_s or col_e
-      if qualifier == 'previous' then
-        if col + 1 <= bound then
-          if row == 1 then
-            return
-          end
-          row = row - 1
-          col_s, col_e = line_bounds(domain, row)
+    local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+    local col_s, col_e = line_bounds(domain, row)
+    local bound = start and col_s or col_e
+    if qualifier == 'previous' then
+      if col + 1 <= bound then
+        if row == 1 then
+          return
         end
-      else
-        if col + 1 >= bound then
-          local max = vim.api.nvim_buf_line_count(0)
-          if row == max then
-            return
-          end
-          row = row + 1
-          col_s, col_e = line_bounds(domain, row)
-        end
+        row = row - 1
+        col_s, col_e = line_bounds(domain, row)
       end
-      bound = start and col_s or col_e
-      move_cursor(to_pos(row, bound), wiseness)
+    else
+      if col + 1 >= bound then
+        local max = vim.api.nvim_buf_line_count(0)
+        if row == max then
+          return
+        end
+        row = row + 1
+        col_s, col_e = line_bounds(domain, row)
+      end
     end
+    bound = start and col_s or col_e
+    move_cursor(to_pos(row, bound), wiseness)
+    return true
   end
 end
 

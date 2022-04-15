@@ -1,24 +1,18 @@
 local M = require('flies.objects.base').new()
 
-local name = require('flies.utils').name
+local t = require('flies.utils').t
 
-function M.new(previous, next)
-  M.previous = previous
-  M.next = next
+function M.new()
   return setmetatable({}, { __index = M })
 end
 
-function M:name()
-  return 'search'
-end
-
-local t = require('flies.utils').t
+M.name = 'search'
 
 local search_forward
 
 function M.search(expr, noremap, forward)
   search_forward = forward
-  require('flies').repeat_register(function(mode)
+  require('flies.move_again').register(function(mode)
     M.n(false, mode)
   end, function(mode)
     M.n(true, mode)
@@ -44,46 +38,39 @@ function M.n(forward, mode)
   require('hlslens').start()
 end
 
-for _, domain in ipairs { 'inner', 'outer' } do
-  M[name('move', domain, 'hint')] = function(self, start, mode)
-    local pattern = vim.fn.getreg('/')
-    require'hop'.hint_patterns({}, pattern)
+function M.set_search(fwd)
+  search_forward = fwd
+  require('flies.move_again').register(function()
+    M.n(false, 'n')
+  end, function()
+    M.n(true, 'n')
+  end)
+end
+
+function M:textobject_outer_np(qualifier, _)
+  if qualifier == 'previous' then
+    vim.cmd 'normal! gN'
+    return
   end
-  for _, qualifier in ipairs { 'plain', 'next', 'previous' } do
-    M[name('textobject', domain, qualifier)] = function(_, _)
-      if qualifier == 'previous' then
-        vim.cmd 'normal! gN'
-        return
-      end
-      if qualifier == 'next' then
-        vim.cmd 'normal! gN'
-        return
-      end
-      vim.cmd 'normal! Ngn'
-    end
-    M[name('init_move', domain, qualifier)] = function(self, start, mode)
-      if qualifier == 'previous' then
-        self.next()
-      else
-        self.previous()
-      end
-      require('hlslens').start()
-    end
-    M[name('move', domain, qualifier)] = function(self, start, mode)
-      if qualifier == 'previous' then
-        M.n(false, mode)
-      else
-        M.n(true, mode)
-      end
-    end
+  if qualifier == 'next' then
+    vim.cmd 'normal! gn'
+    return
   end
 end
 
-M.asterisk_z = M.new(function()
-  vim.fn.feedkeys(t '<plug>(asterisk-z*)')
-end, function()
-  vim.fn.feedkeys(t '<plug>(asterisk-gz*)')
-  require('hlslens').start()
-end)
+function M:textobject_outer_plain(_)
+  vim.cmd 'normal! gn'
+end
+
+function M:move(_, qualifier, mode)
+  if qualifier == 'hint' then
+    local pattern = vim.fn.getreg '/'
+    require('hop').hint_patterns({}, pattern)
+  elseif qualifier == 'previous' then
+    M.n(false, mode)
+  elseif qualifier == 'next' then
+    M.n(true, mode)
+  end
+end
 
 return M

@@ -4,11 +4,10 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
-function M:name()
-  return 'unknown'
-end
+local name = require('flies.utils').name
 
--- texobject_domain_qualifier(self, mode)
--- move_domain_qualifier(self, start, mode)
+-- M:texobject_domain_qualifier(mode)
+-- M:texobject_domain_np(qualifier, mode)
+-- M:move(domain, qualifier, start, mode)
 
 return M

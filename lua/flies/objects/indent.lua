@@ -1,8 +1,8 @@
-local move_cursor = require('flies.utils').move_cursor
-local to_pos = require('flies.utils').to_pos
-local line_ending_pos = require('flies.utils').line_ending_pos
-local select_line_range = require('flies.utils').select_line_range
-local line_bounds = require('flies.utils').line_bounds
+local move_cursor = require('flies.objects.utils').move_cursor
+local to_pos = require('flies.objects.utils').to_pos
+local line_ending_pos = require('flies.objects.utils').line_ending_pos
+local select_line_range = require('flies.objects.utils').select_line_range
+local line_bounds = require('flies.objects.utils').line_bounds
 
 -- TODO: previous, next
 
@@ -169,9 +169,7 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
-function M:name()
-  return 'indent'
-end
+M.name = 'indent'
 
 function M:textobject_inner_plain(_)
   textobject_plain 'inner'
@@ -182,71 +180,57 @@ function M:textobject_outer_plain(_)
 end
 
 -- TODO: count
-local function move_previous(start0, domain)
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  if row == 1 then
-    return
-  end
-  row = row - 1
-  row = lookbehind(row)
-  if not row then
-    return
-  end
-  if start0 then
-    row = start(domain, row)
+-- TODO: find meaningful behavior
+function M.move(domain, qualifier, start0)
+  if qualifier == 'previous' then
+    local row = vim.api.nvim_win_get_cursor(0)[1]
+    if row == 1 then
+      return
+    end
+    row = row - 1
+    row = lookbehind(row)
+    if not row then
+      return
+    end
+    if start0 then
+      row = start(domain, row)
+    else
+      row = previous_end(domain, row)
+      if not row then
+        return
+      end
+    end
+
+    local col_s, col_e = line_bounds('inner', row)
+    move_cursor(to_pos(row, start0 and col_s or col_e), 'V')
   else
-    row = previous_end(domain, row)
-    if not row then
+    local row = vim.api.nvim_win_get_cursor(0)[1]
+    local max = vim.api.nvim_buf_line_count(0)
+    if row == max then
       return
     end
+    if start then
+      row = lookahead(row)
+      if not row then
+        return
+      end
+      row = next_start(domain, row)
+      if not row then
+        return
+      end
+    else
+      row = row + 1
+      row = lookahead(row)
+      if not row then
+        return
+      end
+      local indent = vim.fn.indent(row)
+      row = ending(domain, row, indent)
+    end
+
+    local col_s, col_e = line_bounds('inner', row)
+    move_cursor(to_pos(row, start and col_s or col_e), 'V')
   end
-
-  local col_s, col_e = line_bounds('inner', row)
-  move_cursor(to_pos(row, start0 and col_s or col_e), 'V')
 end
 
-local function move_next(start, domain)
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  local max = vim.api.nvim_buf_line_count(0)
-  if row == max then
-    return
-  end
-  if start then
-    row = lookahead(row)
-    if not row then
-      return
-    end
-    row = next_start(domain, row)
-    if not row then
-      return
-    end
-  else
-    row = row + 1
-    row = lookahead(row)
-    if not row then
-      return
-    end
-    local indent = vim.fn.indent(row)
-    row = ending(domain, row, indent)
-  end
-
-  local col_s, col_e = line_bounds('inner', row)
-  move_cursor(to_pos(row, start and col_s or col_e), 'V')
-end
-
-function M:move_outer_next(start, _)
-  move_next(start, 'outer')
-end
-
-function M:move_inner_next(start, _)
-  move_next(start, 'inner')
-end
-
-function M:move_outer_previous(start, _)
-  move_previous(start, 'outer')
-end
-
-function M:move_inner_previous(start, _)
-  move_previous(start, 'inner')
-end
 return M
