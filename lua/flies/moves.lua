@@ -2,6 +2,7 @@ local M = {}
 
 local t = require('flies.utils').t
 local flies = require 'flies'
+local jump = require 'flies.utils'.jump
 
 function M.move(query_map, qualifier, domain, start, mode)
   if qualifier == 'plain' then
@@ -11,27 +12,6 @@ function M.move(query_map, qualifier, domain, start, mode)
   if query then
     return query.move(query, domain, qualifier, start, mode)
   end
-end
-
-function M.jump(target, qualifier, till, n_times)
-  local flags = qualifier == 'previous' and 'Wb' or 'W'
-  if till then
-    if qualifier == 'previous' then
-      target = target .. '.'
-    else
-      target = '.' .. target
-    end
-  end
-  if qualifier == 'previous' and till then
-    flags = flags .. 'e'
-  end
-
-  for _ = 1, n_times do
-    vim.fn.search(target, flags)
-  end
-
-  -- Open enough folds to show jump
-  vim.cmd 'normal! zv'
 end
 
 function M.query_obj()
@@ -93,12 +73,12 @@ function M.meta_move(mode)
   else
     if mode == 'n' then
       require('flies.move_again').register(function()
-        M.jump(char, 'previous', false, vim.v.count1)
+        jump(char, 'previous', false, vim.v.count1)
       end, function()
-        M.jump(char, 'next', false, vim.v.count1)
+        jump(char, 'next', false, vim.v.count1)
       end)
     end
-    M.jump(char, qualifier, mode ~= 'n', vim.v.count1)
+    jump(char, qualifier, mode ~= 'n', vim.v.count1)
   end
 end
 
@@ -113,7 +93,7 @@ function M.append_insert()
   if query_o then
     M.move(char, qualifier, 'inner', qualifier == 'previous', 'n')
   else
-    M.jump(char, qualifier, true, vim.v.count1)
+    jump(char, qualifier, true, vim.v.count1)
   end
   -- TODO: linewiseness
   -- TODO: one space padding ??
