@@ -1,5 +1,49 @@
 local M = {}
 
+-- adapted from https://github.com/nvim-treesitter/nvim-treesitter/blob/master/lua/nvim-treesitter/ts_utils.lua
+-- Set visual selection to range
+-- @param selection_mode One of "charwise" (default) or "v", "linewise" or "V",
+--   "blockwise" or "<C-v>" (as a string with 5 characters or a single character)
+function M.update_selection(buf, start_row, start_col, end_row, end_col, selection_mode)
+  selection_mode = selection_mode or "charwise"
+
+  vim.fn.setpos(".", { buf, start_row, start_col, 0 })
+
+  -- Start visual selection in appropriate mode
+  local v_table = { charwise = "v", linewise = "V", blockwise = "<C-v>" }
+  ---- Call to `nvim_replace_termcodes()` is needed for sending appropriate
+  ---- command to enter blockwise mode
+  local mode_string = vim.api.nvim_replace_termcodes(v_table[selection_mode] or selection_mode, true, true, true)
+  vim.cmd("normal! " .. mode_string)
+  vim.fn.setpos(".", { buf, end_row, end_col, 0 })
+end
+
+function M.row_forward_iterator(start)
+  return function(max, row)
+    if row == max then
+      return
+    end
+    row = row + 1
+    local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
+    return row, line
+  end,
+    vim.api.nvim_buf_line_count(0),
+    start and start - 1 or 0
+end
+
+function M.row_backward_iterator(start)
+  return function(_, row)
+    row = row - 1
+    if row == 0 then
+      return
+    end
+    local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
+    return row, line
+  end,
+    nil,
+    start and start + 1 or vim.api.nvim_buf_line_count(0) + 1
+end
+
 function M.to_pos(row, col)
   col = col and col - 1
   return { row, col }
