@@ -1,6 +1,5 @@
 local move_cursor = require('flies.objects.utils').move_cursor
 local to_pos = require('flies.objects.utils').to_pos
-local line_ending_pos = require('flies.objects.utils').line_ending_pos
 local select_line_range = require('flies.objects.utils').select_line_range
 local count = require('flies.utils').count
 local line_bounds = require('flies.objects.utils').line_bounds
@@ -17,7 +16,7 @@ end
 
 local function inner_start()
   local max = vim.api.nvim_buf_line_count(0)
-  local row = 0
+  local row = 1
   while true do
     if row > max then
       -- buffer is empty
@@ -36,7 +35,7 @@ local function inner_ending()
   while true do
     if row == 0 then
       -- buffer is empty
-      return 0
+      return 1
     end
     local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
     if not string.find(line, '^[%s]*$') then
@@ -53,6 +52,7 @@ function M.new()
 end
 
 M.name = 'buffer'
+M.blank_text_object = true
 
 function M:textobject_outer_plain(_)
   local max = vim.api.nvim_buf_line_count(0)
