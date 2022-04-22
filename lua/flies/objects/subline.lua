@@ -18,14 +18,6 @@ local function any(...)
   end
 end
 
-local function map(t, cb)
-  local res = {}
-  for k, v in pairs(t) do
-    res[k] = cb(v)
-  end
-  return res
-end
-
 local function lua_pattern(pattern)
   return function(line, init)
     local os, oe, cs, ce, cd
@@ -121,7 +113,7 @@ function M:move(domain, qualifier, start, _)
   local row, os, is, ie, oe
   if qualifier == 'next' then
     row, os, is, ie, oe = search_forward(self.search_cb, false, vim.v.count1)
-  else
+  elseif qualifier == 'previous' then
     row, os, is, ie, oe = search_backward(self.search_cb, false, vim.v.count1)
   end
   if not row then
@@ -130,7 +122,7 @@ function M:move(domain, qualifier, start, _)
   local s, e
   if domain == 'inner' then
     s, e = is, ie
-  else
+  elseif domain == 'outer' then
     s, e = os, oe
   end
   local col = start and s or e
@@ -142,14 +134,7 @@ function M:textobject_outer_plain(_)
   if not row then
     return
   end
-  require('flies.objects.utils').update_selection(
-    0,
-    row,
-    os,
-    row,
-    oe,
-    'charwise'
-  )
+  require('flies.objects.utils').update_selection({ row, os }, { row, oe })
 end
 
 function M:textobject_inner_plain(_)
@@ -157,54 +142,33 @@ function M:textobject_inner_plain(_)
   if not row then
     return
   end
-  require('flies.objects.utils').update_selection(
-    0,
-    row,
-    is,
-    row,
-    ie,
-    'charwise'
-  )
+  require('flies.objects.utils').update_selection({ row, is }, { row, ie })
 end
 
 function M:textobject_outer_np(qualifier, _)
   local row, os, oe
   if qualifier == 'next' then
     row, os, _, _, oe = search_forward(self.search_cb, false, vim.v.count1)
-  else
-    row, os, _, _, oe = search_forward(self.search_cb, false, vim.v.count1)
+  elseif qualifier == 'previous' then
+    row, os, _, _, oe = search_backward(self.search_cb, false, vim.v.count1)
   end
   if not row then
     return
   end
-  require('flies.objects.utils').update_selection(
-    0,
-    row,
-    os,
-    row,
-    oe,
-    'charwise'
-  )
+  require('flies.objects.utils').update_selection({ row, os }, { row, oe })
 end
 
 function M:textobject_inner_np(qualifier, _)
   local row, is, ie
   if qualifier == 'next' then
     row, _, is, ie, _ = search_forward(self.search_cb, false, vim.v.count1)
-  else
-    row, _, is, ie, _ = search_forward(self.search_cb, false, vim.v.count1)
+  elseif qualifier == 'previous' then
+    row, _, is, ie, _ = search_backward(self.search_cb, false, vim.v.count1)
   end
   if not row then
     return
   end
-  require('flies.objects.utils').update_selection(
-    0,
-    row,
-    is,
-    row,
-    ie,
-    'charwise'
-  )
+  require('flies.objects.utils').update_selection({ row, is }, { row, ie })
 end
 
 -- TODO: change move to move char after separator
@@ -239,7 +203,7 @@ function M.separator:move(domain, qualifier, start, _)
   local row, os, is, ie, oe
   if qualifier == 'next' then
     row, os, is, ie, oe = search_forward(self.move_cb, false, vim.v.count1)
-  else
+  elseif qualifier == 'previous' then
     row, os, is, ie, oe = search_backward(self.move_cb, false, vim.v.count1)
   end
   if not row then
@@ -248,7 +212,7 @@ function M.separator:move(domain, qualifier, start, _)
   local s, e
   if domain == 'inner' then
     s, e = is, ie
-  else
+  elseif domain == 'outer' then
     s, e = os, oe
   end
   local col = start and s or e
@@ -287,14 +251,7 @@ function M.variable_segment:textobject_outer_plain(_)
   if (c == '_') and (not d or string.find(d, '[%A]')) then
     os = os - 1
   end
-  require('flies.objects.utils').update_selection(
-    0,
-    row,
-    os,
-    row,
-    oe,
-    'charwise'
-  )
+  require('flies.objects.utils').update_selection({ row, os }, { row, oe })
 end
 
 function M.variable_segment:textobject_outer_np(qualifier, _)
@@ -313,31 +270,26 @@ function M.variable_segment:textobject_outer_np(qualifier, _)
   if (c == '_') and (not d or string.find(d, '[%A]')) then
     os = os - 1
   end
-  require('flies.objects.utils').update_selection(
-    0,
-    row,
-    os,
-    row,
-    oe,
-    'charwise'
-  )
+  require('flies.objects.utils').update_selection({ row, os }, { row, oe })
 end
 
-local function search_str(delim)
+-- TODO: start search from begining
+local function search_str(delims)
+  local d = require('flies.utils').invert(delims)
   return function(line, init)
     local os
+    local delim
     local esc = false
     for i = init, line:len() do
       local c = string.sub(line, i, i)
       if esc then
         esc = false
       elseif c == delim then
-        if os then
-          -- TODO: zero length string
-          return os, os + 1, i - 1, i
-        else
-          os = i
-        end
+        -- TODO: zero length string
+        return os, os + 1, i - 1, i
+      elseif d[c] then
+        os = i
+        delim = c
       elseif c == '\\' then
         esc = true
       end
@@ -347,7 +299,8 @@ end
 
 function M.string(...)
   local chars = { ... }
-  local cb = any(unpack(map(chars, search_str)))
+  -- local cb = any(unpack(map(chars, search_str)))
+  local cb = search_str(chars)
   local name = string.format('quoted string: %s', table.concat(chars, ', '))
   return setmetatable(
     { search_cb = cb, name = name or 'lua_pattern' },
