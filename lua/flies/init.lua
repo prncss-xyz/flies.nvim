@@ -43,19 +43,22 @@ local function map_texobjects()
   for domain_map, domain in pairs(M.domains) do
     for mode in string.gmatch('ox', '.') do
       for qualifier_map, qualifier in pairs(M.qualifiers) do
-        for query_map, _ in pairs(M.queries) do
+        for query_map, query in pairs(M.queries) do
           if M.is_textobject(query_map, domain, qualifier) then
-            vim.api.nvim_set_keymap(
+            local query_name = query.name
+            local desc = string.format(
+              'textobj %s %s %s',
+              query_name,
+              domain,
+              qualifier
+            )
+            vim.keymap.set(
               mode,
               domain_map .. qualifier_map .. query_map,
-              string.format(
-                ':lua require("flies").textobject(%q, %q, %q, %q)<cr>',
-                t(query_map),
-                domain,
-                qualifier,
-                mode
-              ),
-              { noremap = true }
+              function()
+                M.textobject(query_map, domain, qualifier, mode)
+              end,
+              { desc = desc }
             )
           end
         end
