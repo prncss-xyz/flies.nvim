@@ -69,7 +69,7 @@ function M:search_forward(init, count)
             ie = { oe[1], oe[2] - 1 }
           end
           if cmp(ie, is) == -1 then
-            return os, nil, nil, oe
+            return os, nil, oe, oe
           end
           return os, is, ie, oe
         end
@@ -133,6 +133,7 @@ function M:search_backward(init, count)
 end
 
 -- TODO: index == len + 1 ??
+-- TODO: match inside ts node (comment, string)
 function M:search_upward(init, count)
   local l1 = {}
   local l2 = {}
@@ -205,10 +206,10 @@ function M:search_upward(init, count)
             is = { os[1], os[2] + 1 }
           end
           if cmp(ie, is) == -1 then
-            return os, nil, nil, oe
+            return os, nil, oe, oe
           end
           return os, is, ie, oe
-        end
+        end -- ()
       end
       last_line = line
     end

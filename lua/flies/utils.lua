@@ -1,9 +1,30 @@
 local M = {}
 
+function M.invert(t)
+  local r = {}
+  for k, v in pairs(t) do
+    r[v] = k
+  end
+  return r
+end
+
+function M.reverse(t)
+  local i = 1
+  local j
+  while true do
+    j = #t + 1 - i
+    if j <= i then
+      break
+    end
+    t[i], t[j] = t[j], t[i]
+    i = i + 1
+  end
+end
+
 function M.count()
-	if vim.v.count == vim.v.count1 then
-		return vim.v.count
-	end
+  if vim.v.count == vim.v.count1 then
+    return vim.v.count
+  end
 end
 
 function M.name(...)
