@@ -3,7 +3,15 @@ local M = setmetatable({}, { __index = require 'flies.objects.generic' })
 function M.new(query)
   local o = setmetatable({}, { __index = M })
   o.name = string.format('@%s inner/outer', query)
-  o.query = query
+  o.query1 = string.format('@%s.outer', query)
+  o.query2 = string.format('@%s.inner', query)
+  return o
+end
+
+function M.query(query)
+  local o = setmetatable({}, { __index = M })
+  o.name = query
+  o.query1 = query
   return o
 end
 
@@ -53,94 +61,70 @@ local function is_node_stricly_inside_node(inner_node, outer_node)
   return true
 end
 
-local function get_queries(query)
-  -- this is needed to get the queries form nvim-treesitter if it is lazy-loaded
-  local parsers = require 'nvim-treesitter.parsers'
-  local queries = require 'nvim-treesitter.query'
+local function search(query, filter_cb, sort_cb)
   local bufnr = vim.api.nvim_get_current_buf()
-  local lang = parsers.get_buf_lang(bufnr)
-  if not lang then
-    return
+  local matches =
+    require('nvim-treesitter.query').get_capture_matches_recursively(
+      bufnr,
+      query,
+      'textobjects'
+    )
+  matches = vim.tbl_filter(filter_cb, matches)
+  if sort_cb then
+    table.sort(matches, sort_cb)
   end
-
-  local parsed_queries = queries.get_query(lang, 'textobjects')
-  local found_textobjects = parsed_queries and parsed_queries.captures or {}
-
-  local has_outer = vim.tbl_contains(found_textobjects, query .. '.outer')
-  local has_inner = vim.tbl_contains(found_textobjects, query .. '.inner')
-
-  local query1 = has_outer and string.format('@%s.outer', query)
-    or has_inner and string.format('@%s.inner', query)
-  local query2 = has_outer and has_inner and string.format('@%s.inner', query)
-
-  if not query1 then
-    return
-  end
-  return query1, query2
+  return matches
 end
 
-local function find_inner(inner_query, outer_range)
+local function get_inner(inner_query, outer_range)
   local ts_utils = require 'nvim-treesitter.ts_utils'
-  local queries = require 'nvim-treesitter.query'
-  local bufnr = vim.api.nvim_get_current_buf()
-  local largest_range
-  local latest_stop
-  local match_length = nil
-  local matches = queries.get_capture_matches_recursively(
-    bufnr,
-    inner_query,
-    'textobjects'
-  )
-  for _, m in pairs(matches) do
-    -- if m.node and ts_utils.is_in_node_range(m.node, row, col) then
-    if m.node and is_node_stricly_inside_node(m.node, outer_range.node) then
-      local length = ts_utils.node_length(m.node)
-      if not match_length or length > match_length then
-        largest_range = m
-        match_length = length
-      end
-      -- for nodes with same length take the one with earliest start
-      if match_length and length == largest_range then
-        local stop = m.stop
-        if stop then
-          local _, _, stop_byte = m.stop.node:end_()
-          if not latest_stop or stop_byte > latest_stop then
-            largest_range = m
-            match_length = length
-            latest_stop = stop_byte
-          end
-        end
-      end
-    end
+
+  local function filter_cb(m)
+    return m.node and is_node_stricly_inside_node(m.node, outer_range.node)
   end
-  return largest_range
+
+  local function sort_cb(m1, m2)
+    local length1 = ts_utils.node_length(m1.node)
+    local length2 = ts_utils.node_length(m2.node)
+    if length1 > length2 then
+      return true
+    end
+    if length1 < length2 then
+      return false
+    end
+    -- for nodes with same length take the one with latest end
+    local end1 = m1.end_
+    local end2 = m2.end_
+    if end1 and not end2 then
+      return true
+    end
+    if not end1 then
+      return false
+    end
+    local _, _, end_byte1 = end1.node:start()
+    local _, _, end_byte2 = end2.node:start()
+    return end_byte1 > end_byte2
+  end
+
+  local matches = search(inner_query, filter_cb, sort_cb)
+  local match = matches[1]
+  return match
 end
 
--- TODO: count
-local function search(query, pos, forward)
-  local query1, query2 = get_queries(query)
-  if not query1 then
-    -- TODO: fallback
-    return
-  end
-  local bufnr = vim.api.nvim_get_current_buf()
-  local queries = require 'nvim-treesitter.query'
-
-  local function scoring_function(match)
-    local score, _
-    if not forward then
-      _, _, score = match.node:start()
-    else
-      _, _, score = match.node:end_()
-    end
+local function search_np(self, pos, forward, count)
+  local function sort_cb(match1, match2)
     if forward then
-      return -score
+      local _, _, score1 = match1.node:start()
+      local _, _, score2 = match2.node:start()
+      return score1 < score2
     else
-      return score
+      local _, _, score1 = match1.node:end_()
+      local _, _, score2 = match2.node:end_()
+      return score1 > score2
     end
   end
 
-  local function filter_function(match)
+  local function filter_cb(match)
     local range = { match.node:range() }
     if forward then
       return cmp(pos, { range[1] + 1, range[2] }) < 0
@@ -148,14 +132,9 @@ local function search(query, pos, forward)
       return cmp(pos, { range[3] + 1, range[4] }) > 0
     end
   end
+  local matches = search(self.query1, filter_cb, sort_cb)
+  local match = matches[count]
 
-  local match = queries.find_best_match(
-    bufnr,
-    query1,
-    'textobjects',
-    filter_function,
-    scoring_function
-  )
   if not match then
     return
   end
@@ -165,96 +144,80 @@ local function search(query, pos, forward)
   if os[1] == oe[2] and os[2] + 2 == oe[2] then
     return os, nil, oe, oe
   end
-  if not query2 then
+  if not self.query2 then
     return os, os, oe, oe
   end
 
-  local largest_range = find_inner(query2, match)
+  local inner_range = get_inner(self.query2, match)
 
-  if not largest_range then
+  if not inner_range then
     return os, os, oe, oe
   end
-  s, e = get_lua_range(largest_range)
+  s, e = get_lua_range(inner_range)
   local is, ie = { s[1], s[2] }, { e[1], e[2] }
   return os, is, ie, oe
 end
 
 function M:search_forward(pos, count)
-  return search(self.query, pos, true)
+  return search_np(self, pos, true, count)
 end
 
 function M:search_backward(pos, count)
-  return search(self.query, pos, false)
+  return search_np(self, pos, false, count)
 end
 
-function M:search_upward(pos, _)
+function M:search_upward(pos, count)
   local ts_utils = require 'nvim-treesitter.ts_utils'
-  local queries = require 'nvim-treesitter.query'
-  local bufnr = vim.api.nvim_get_current_buf()
-
-  local query1, query2 = get_queries(self.query)
-
-  if not query1 then
-    -- TODO:
-    return
-  end
-
   local row, col = unpack(pos)
   row = row - 1
-
-  local matches
-  local match_length
-  local smallest_range
-  local earliest_start
-
-  matches = queries.get_capture_matches_recursively(
-    bufnr,
-    query1,
-    'textobjects'
-  )
-  for _, m in pairs(matches) do
-    if m.node then
-      if ts_utils.is_in_node_range(m.node, row, col) then
-        local length = ts_utils.node_length(m.node)
-        if not match_length or length < match_length then
-          smallest_range = m
-          match_length = length
-        end
-        -- for nodes with same length take the one with earliest start
-        if match_length and length == smallest_range then
-          local start = m.start
-          if start then
-            local _, _, start_byte = m.start.node:start()
-            if not earliest_start or start_byte < earliest_start then
-              smallest_range = m
-              match_length = length
-              earliest_start = start_byte
-            end
-          end
-        end
-      end
-    end
+  local function filter_cb(m)
+    return m.node and ts_utils.is_in_node_range(m.node, row, col)
   end
 
-  if not smallest_range then
+  local function sort_cb(m1, m2)
+    local length1 = ts_utils.node_length(m1.node)
+    local length2 = ts_utils.node_length(m2.node)
+    if length1 < length2 then
+      return true
+    end
+    if length1 > length2 then
+      return false
+    end
+    -- for nodes with same length take the one with earliest start
+    local start1 = m1.start
+    local start2 = m2.start
+    if start1 and not start2 then
+      return true
+    end
+    if not start1 then
+      return false
+    end
+    local _, _, start_byte1 = start1.node:start()
+    local _, _, start_byte2 = start2.node:start()
+    return start_byte1 < start_byte2
+  end
+
+  local matches = search(self.query1, filter_cb, sort_cb)
+  local match = matches[count]
+  if not match then
     return
   end
-  local s, e = get_lua_range(smallest_range)
+  local s, e = get_lua_range(match)
   local os, oe = { s[1], s[2] }, { e[1], e[2] }
   -- empty inner object
   if os[1] == oe[2] and os[2] + 2 == oe[2] then
     return os, nil, oe, oe
   end
-  if not query2 then
+  if not self.query2 then
     return os, os, oe, oe
   end
 
-  local largest_range = find_inner(query2, smallest_range)
+  local inner_range = get_inner(self.query2, match)
 
-  if not largest_range then
+  if not inner_range then
     return os, os, oe, oe
   end
-  s, e = get_lua_range(largest_range)
+  s, e = get_lua_range(inner_range)
   local is, ie = { s[1], s[2] }, { e[1], e[2] }
   return os, is, ie, oe
 end
