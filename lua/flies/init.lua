@@ -15,53 +15,39 @@ local default_conf = {
 local t = require('flies.utils').t
 local name = require('flies.utils').name
 
-function M.is_textobject(query_map, domain, qualifier)
-  local query = M.queries[t(query_map)]
-  if not query then
-    return
-  end
-  if qualifier == 'next' or qualifier == 'previous' then
-    return query[name('textobject', domain, 'np')]
-  else
-    return query[name('textobject', domain, qualifier)]
-  end
-end
-
 function M.textobject(query_map, domain, qualifier, mode)
   local query = M.queries[t(query_map)]
   if not query then
     return
   end
-  if qualifier == 'next' or qualifier == 'previous' then
-    query[name('textobject', domain, 'np')](query, qualifier, mode)
-  else
-    query[name('textobject', domain, qualifier)](query, mode)
-  end
+  query[name('textobject', domain, qualifier)](query, mode)
 end
 
 local function map_texobjects()
   for domain_map, domain in pairs(M.domains) do
-    for mode in string.gmatch('ox', '.') do
-      for qualifier_map, qualifier in pairs(M.qualifiers) do
-        for query_map, query in pairs(M.queries) do
-          if M.is_textobject(query_map, domain, qualifier) then
-            local query_name = query.name
-            local desc = string.format(
-              'textobj %s %s %s',
-              query_name,
-              domain,
-              qualifier
-            )
-            vim.keymap.set(
-              mode,
-              domain_map .. qualifier_map .. query_map,
-              function()
-                M.textobject(query_map, domain, qualifier, mode)
-              end,
-              { desc = desc }
-            )
-          end
-        end
+    for qualifier_map, qualifier in pairs(M.qualifiers) do
+      for query_map, query in pairs(M.queries) do
+        local query_name = query.name
+        local desc = string.format(
+          'textobj %s %s %s',
+          query_name,
+          domain,
+          qualifier
+        )
+        vim.keymap.set('o', domain_map .. qualifier_map .. query_map, function()
+          M.textobject(query_map, domain, qualifier, 'o')
+        end, { desc = desc })
+        vim.api.nvim_set_keymap(
+          'x',
+          domain_map .. qualifier_map .. query_map,
+          string.format(
+            ':<c-u>lua require"flies".textobject(%q, %q, %q)<cr>',
+            query_map,
+            domain,
+            qualifier
+          ),
+          {}
+        )
       end
     end
   end
