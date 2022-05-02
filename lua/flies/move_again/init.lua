@@ -7,11 +7,11 @@ local rep = {
 
 function M.recompose(previous, next)
   local fp = function()
-    M.repeat_register(previous, next)
+    M.register(previous, next)
     previous()
   end
   local fn = function()
-    M.repeat_register(previous, next)
+    M.register(previous, next)
     next()
   end
   return fp, fn
