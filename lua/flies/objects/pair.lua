@@ -27,9 +27,9 @@ end
 local inner_start = require('flies.objects.utils').line_inner_start
 local inner_end = require('flies.objects.utils').line_inner_end
 
-local cmp = require 'flies.objects.utils'.cmp
+local cmp = require('flies.objects.utils').cmp
 
-function M:search_forward(init, count)
+function M:search_forward(domain, init, count)
   local l = {}
   local targ
   local os, is, ie, oe
@@ -68,10 +68,20 @@ function M:search_forward(init, count)
           else
             ie = { oe[1], oe[2] - 1 }
           end
-          if cmp(ie, is) == -1 then
-            return os, nil, oe, oe
+          if domain == 'outer' then
+            return os, oe
+          else
+            if cmp(ie, is) == -1 then
+              is, ie = ie, nil
+            end
+            if domain == 'both' then
+              return os, is, ie, oe
+            elseif domain == 'inner' then
+              return is, ie
+            else
+              assert(false, string.format('unknown domain %q', domain))
+            end
           end
-          return os, is, ie, oe
         end
         table.remove(l)
       end
@@ -80,7 +90,7 @@ function M:search_forward(init, count)
   end
 end
 
-function M:search_backward(init, count)
+function M:search_backward(domain, init, count)
   local l = {}
   local targ
   local os, is, ie, oe
@@ -120,10 +130,20 @@ function M:search_backward(init, count)
           else
             is = { os[1], os[2] + 1 }
           end
-          if cmp(ie, is) == -1 then
-            return os, nil, nil, oe
+          if domain == 'outer' then
+            return os, oe
+          else
+            if cmp(ie, is) == -1 then
+              is, ie = ie, nil
+            end
+            if domain == 'both' then
+              return os, is, ie, oe
+            elseif domain == 'inner' then
+              return is, ie
+            else
+              assert(false, string.format('unknown domain %q', domain))
+            end
           end
-          return os, is, ie, oe
         end
         table.remove(l)
       end
@@ -134,7 +154,7 @@ end
 
 -- TODO: index == len + 1 ??
 -- TODO: match inside ts node (comment, string)
-function M:search_upward(init, count)
+function M:search_upward(domain, init, count)
   local l1 = {}
   local l2 = {}
   local os, is, ie, oe
@@ -205,11 +225,21 @@ function M:search_upward(init, count)
           else
             is = { os[1], os[2] + 1 }
           end
-          if cmp(ie, is) == -1 then
-            return os, nil, oe, oe
+          if domain == 'outer' then
+            return os, oe
+          else
+            if cmp(ie, is) == -1 then
+              is, ie = ie, nil
+            end
+            if domain == 'both' then
+              return os, is, ie, oe
+            elseif domain == 'inner' then
+              return is, ie
+            else
+              assert(false, string.format('unknown domain %q', domain))
+            end
           end
-          return os, is, ie, oe
-        end -- ()
+        end
       end
       last_line = line
     end

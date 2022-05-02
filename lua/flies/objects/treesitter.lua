@@ -1,86 +1,232 @@
-local name = require('flies.utils').name
+local M = setmetatable({}, { __index = require 'flies.objects.generic' })
 
-local M = require('flies.objects.base').new()
-
--- FIXME: previous object when already on valid object
--- TODO: hijack komment.outer to komment.inner on move
-
-function M.new(query, query2)
-  local o = setmetatable({ query = query, query2 = query2 }, { __index = M })
-  if o.query2 then
-    o.name = string.format('@%s @%s', o.query, o.query2)
-  else
-    o.name = string.format('@%s', o.query)
-  end
+function M.new(query)
+  local o = setmetatable({}, { __index = M })
+  o.name = string.format('@%s inner/outer', query)
+  o.query1 = string.format('@%s.outer', query)
+  o.query2 = string.format('@%s.inner', query)
   return o
 end
 
-function M:query_string(domain)
-  if self.query2 then
-    local q = domain == 'inner' and self.query or self.query2
-    return '@' .. q
+function M.query(query)
+  local o = setmetatable({}, { __index = M })
+  o.name = query
+  o.query1 = query
+  return o
+end
+
+local function get_lua_range(range)
+  local vim_range
+  if range.start then
+    local start_range = { range.start.node:range() }
+    local node_range = { range.node:range() }
+    vim_range = {
+      require('nvim-treesitter.ts_utils').get_vim_range({
+        start_range[1],
+        start_range[2],
+        node_range[3],
+        node_range[4],
+      }, 0),
+    }
   else
-    return string.format('@%s.%s', self.query, domain)
+    vim_range = {
+      require('nvim-treesitter.ts_utils').get_vim_range(
+        { range.node:range() },
+        0
+      ),
+    }
   end
+  return { vim_range[1], vim_range[2] }, { vim_range[3], vim_range[4] }
 end
 
--- M:texobject_domain_qualifier(mode)
--- M:texobject_domain_np(qualifier, mode)
+local cmp = require('flies.objects.utils').cmp
 
-function M:textobject_outer_plain(mode)
-  require('nvim-treesitter.textobjects.select').select_textobject(
-    self:query_string 'outer',
-    mode
+local function is_node_stricly_inside_node(inner_node, outer_node)
+  local i_start_line, i_start_col, i_end_line, i_end_col = inner_node:range()
+  local o_start_line, o_start_col, o_end_line, o_end_col = outer_node:range()
+  local cstart = cmp(
+    { i_start_line, i_start_col },
+    { o_start_line, o_start_col }
   )
+  local cend = cmp({ i_end_line, i_end_col }, { o_end_line, o_end_col })
+  if cstart == 0 and cend == 0 then
+    return false
+  end
+  if cstart < 0 then
+    return false
+  end
+  if cend > 0 then
+    return false
+  end
+  return true
 end
 
-function M:textobject_inner_plain(mode)
-  require('nvim-treesitter.textobjects.select').select_textobject(
-    self:query_string 'inner',
-    mode
-  )
-end
-
-function M:textobject_outer_hint(mode)
-  self:move('outer', 'hint', true, mode)
-  self:textobject_outer_plain(mode)
-end
-
-function M:textobject_inner_hint(mode)
-  self:move('inner', 'hint', true, mode)
-  self:textobject_inner_plain(mode)
-end
-
-function M:textobject_outer_np(domain, mode)
-  self:move('outer', domain, true, mode)
-  self:textobject_inner_plain(mode)
-end
-
-function M:textobject_inner_np(domain, mode)
-  self:move('inner', domain, true, mode)
-  self:textobject_inner_plain(mode)
-end
-
-function M:move(domain, qualifier, start, _)
-  if qualifier == 'hint' then
-    require 'nvim-treesitter.textobjects.select'
-    require('hop-extensions').hint_textobjects(
-      string.format('%s.%s', self.query, domain)
-      -- TODO: start = false
+local function search(query, filter_cb, sort_cb)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local matches =
+    require('nvim-treesitter.query').get_capture_matches_recursively(
+      bufnr,
+      query,
+      'textobjects'
     )
+  matches = vim.tbl_filter(filter_cb, matches)
+  if sort_cb then
+    table.sort(matches, sort_cb)
   end
-  if qualifier == 'next' or qualifier == 'previous' then
-    local function method()
-      require('nvim-treesitter.textobjects.move')[name(
-        'goto',
-        qualifier,
-        start and 'start' or 'end'
-      )](self:query_string(domain))
+  return matches
+end
+
+local function get_inner(inner_query, outer_range)
+  local ts_utils = require 'nvim-treesitter.ts_utils'
+
+  local function filter_cb(m)
+    return m.node and is_node_stricly_inside_node(m.node, outer_range.node)
+  end
+
+  local function sort_cb(m1, m2)
+    local length1 = ts_utils.node_length(m1.node)
+    local length2 = ts_utils.node_length(m2.node)
+    if length1 > length2 then
+      return true
     end
-    for _ = 1, vim.v.count1 do
-      method()
+    if length1 < length2 then
+      return false
+    end
+    -- for nodes with same length take the one with latest end
+    local end1 = m1.end_
+    local end2 = m2.end_
+    if end1 and not end2 then
+      return true
+    end
+    if not end1 then
+      return false
+    end
+    local _, _, end_byte1 = end1.node:start()
+    local _, _, end_byte2 = end2.node:start()
+    return end_byte1 > end_byte2
+  end
+
+  local matches = search(inner_query, filter_cb, sort_cb)
+  local match = matches[1]
+  return match
+end
+
+function M:_search_np(domain, pos, forward, count)
+  local query = domain == 'inner' and self.query2 or self.query1
+  local function sort_cb(match1, match2)
+    if forward then
+      local _, _, score1 = match1.node:start()
+      local _, _, score2 = match2.node:start()
+      return score1 < score2
+    else
+      local _, _, score1 = match1.node:end_()
+      local _, _, score2 = match2.node:end_()
+      return score1 > score2
     end
   end
+
+  local function filter_cb(match)
+    local range = { match.node:range() }
+    if forward then
+      return cmp(pos, { range[1] + 1, range[2] }) < 0
+    else
+      return cmp(pos, { range[3] + 1, range[4] }) > 0
+    end
+  end
+  local matches = search(query, filter_cb, sort_cb)
+  local match = matches[count]
+
+  if not match then
+    return
+  end
+  if domain == 'both' then
+    if not self.query2 then
+      return
+    end
+    local os, oe = get_lua_range(match)
+    match = get_inner(self.query2, match)
+    local is, ie = get_lua_range(match)
+    return os, is, ie, oe
+  end
+  return get_lua_range(match)
+end
+
+function M:search_all(domain, start, end_)
+  local query = domain == 'inner' and self.query2 or self.query1
+  local function filter_cb(match)
+    local range = { match.node:range() }
+    return range[1] + 1 >= start and range[3] + 1 <= end_
+  end
+  local matches = search(query, filter_cb)
+  return vim.tbl_map(function(match)
+    return { get_lua_range(match) }
+  end, matches)
+end
+
+function M:search_forward(domain, pos, count)
+  return self:_search_np(domain, pos, true, count)
+end
+
+function M:search_backward(domain, pos, count)
+  return self:_search_np(domain, pos, false, count)
+end
+
+function M:search_upward(domain, pos, count)
+  local ts_utils = require 'nvim-treesitter.ts_utils'
+  local row, col = unpack(pos)
+  row = row - 1
+  local function filter_cb(m)
+    return m.node and ts_utils.is_in_node_range(m.node, row, col)
+  end
+
+  local function sort_cb(m1, m2)
+    local length1 = ts_utils.node_length(m1.node)
+    local length2 = ts_utils.node_length(m2.node)
+    if length1 < length2 then
+      return true
+    end
+    if length1 > length2 then
+      return false
+    end
+    -- for nodes with same length take the one with earliest start
+    local start1 = m1.start
+    local start2 = m2.start
+    if start1 and not start2 then
+      return true
+    end
+    if not start1 then
+      return false
+    end
+    local _, _, start_byte1 = start1.node:start()
+    local _, _, start_byte2 = start2.node:start()
+    return start_byte1 < start_byte2
+  end
+
+  local matches = search(self.query1, filter_cb, sort_cb)
+  local match = matches[count]
+  if not match then
+    return
+  end
+
+  local os, oe = get_lua_range(match)
+  if domain == 'outer' then
+    return os, oe
+  end
+  if not self.query2 then
+    return
+  end
+  match = get_inner(self.query2, match)
+  if not match then
+    return
+  end
+  local is, ie = get_lua_range(match)
+  if domain == 'inner' then
+    return is, ie
+  end
+  if domain == 'both' then
+    return os, is, ie, oe
+  end
+  assert(false, string.format('unknown domain %q', domain))
 end
 
 return M

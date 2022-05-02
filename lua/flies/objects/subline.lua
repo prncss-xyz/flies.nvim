@@ -2,7 +2,11 @@ local M = setmetatable({}, { __index = require 'flies.objects.generic' })
 
 -- local M = require('flies.objects.generic').new()
 
-local function with_row(row, os, is, ie, oe)
+local function with_row2(row, s, e)
+  return s and { row, s }, e and { row, e }
+end
+
+local function with_row4(row, os, is, ie, oe)
   return os and { row, os },
     is and { row, is },
     ie and { row, ie },
@@ -49,18 +53,30 @@ function M.lua_pattern(pattern)
   end
 end
 
-function M:search_upward(init, _)
-  local line = require('flies.objects.utils').get_row(init[1])
+function M:search_upward(domain, init, count)
+  if count > 1 then
+    return
+  end
+  local line_str = require('flies.objects.utils').get_row(init[1])
   local col = init[2]
   local os = 1
   local is, ie, oe
   while true do
-    os, is, ie, oe = self.search_cb(line, os)
+    os, is, ie, oe = self.search_cb(line_str, os)
     if not os then
       return
     end
     if os <= col and col <= oe then
-      return with_row(init[1], os, is, ie, oe)
+      local line = init[1]
+      if domain == 'outer' then
+        return with_row2(line, os, oe)
+      elseif domain == 'inner' then
+        return with_row2(line, is, ie)
+      elseif domain == 'both' then
+        return with_row4(line, os, is, ie, oe)
+      else
+        assert(false, string.format('unknown domain %q', domain))
+      end
     elseif os > col then
       return
     end
@@ -68,19 +84,28 @@ function M:search_upward(init, _)
   end
 end
 
-function M:search_forward(init, count)
-  for row, line in require('flies.objects.utils').row_forward_iterator(init[1]) do
+function M:search_forward(domain, init, count)
+  for row, line_str in
+    require('flies.objects.utils').row_forward_iterator(init[1])
+  do
     local os = 1
     while true do
       local oe, is, ie
-      os, is, ie, oe = self.search_cb(line, os)
+      os, is, ie, oe = self.search_cb(line_str, os)
       if not os then
         break
       end
-      local col = init[2]
-      if row > init[1] or os > col then
+      if row > init[1] or os > init[2] then
         if count == 1 then
-          return with_row(row, os, is, ie, oe)
+          if domain == 'outer' then
+            return with_row2(row, os, oe)
+          elseif domain == 'inner' then
+            return with_row2(row, is, ie)
+          elseif domain == 'both' then
+            return with_row4(row, os, is, ie, oe)
+          else
+            assert(false, string.format('unknown domain %q', domain))
+          end
         end
         count = count - 1
       end
@@ -89,22 +114,32 @@ function M:search_forward(init, count)
   end
 end
 
-function M:search_backward(init, count)
-  for row, line in require('flies.objects.utils').row_backward_iterator(init[1]) do
+function M:search_backward(domain, init, count)
+  for row, line_str in
+    require('flies.objects.utils').row_backward_iterator(init[1])
+  do
     local os = 1
     local res = {}
     while true do
       local oe, is, ie
-      os, is, ie, oe = self.search_cb(line, os)
-      local col = init[2]
-      if os and (row < init[1] or os < col) then
+      os, is, ie, oe = self.search_cb(line_str, os)
+      if os and (row < init[1] or os < init[2]) then
         table.insert(res, { os, is, ie, oe })
         os = oe + 1
       else
         local i = 1 + #res - count
         local r = res[i]
         if r then
-          return with_row(row, unpack(r))
+          os, is, ie, oe = unpack(r)
+          if domain == 'outer' then
+            return with_row2(row, os, oe)
+          elseif domain == 'inner' then
+            return with_row2(row, is, ie)
+          elseif domain == 'both' then
+            return with_row4(row, os, is, ie, oe)
+          else
+            assert(false, string.format('unknown domain %q', domain))
+          end
         end
         count = count - #res
         break
@@ -195,8 +230,8 @@ local function search_str(delims)
         esc = true
       elseif c == delim then
         -- TODO: zero length string
-        if os + 1 > i - 1 then
-          return os, nil, i, i
+        if os + 1 == i then
+          return os, i, nil, i
         end
         return os, os + 1, i - 1, i
       elseif d[c] and not delim then
@@ -206,7 +241,6 @@ local function search_str(delims)
     end
   end
 end
-
 
 local function succ(line, init, p1, pats)
   line = string.sub(line, init)
