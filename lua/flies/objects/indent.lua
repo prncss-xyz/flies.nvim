@@ -4,6 +4,15 @@ local line_ending_pos = require('flies.objects.utils').line_ending_pos
 local select_line_range = require('flies.objects.utils').select_line_range
 local line_bounds = require('flies.objects.utils').line_bounds
 
+--[[
+
+prior art:
+  - https://github.com/jessekelighine/vindent.vim
+  - https://github.com/michaeljsmith/vim-indent-object
+  - https://github.com/jeetsukumaran/vim-indentwise
+
+--]]
+
 -- TODO: previous, next
 
 local function is_blank(row)

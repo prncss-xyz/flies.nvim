@@ -10,7 +10,7 @@ function M.new(query, query2)
   if o.query2 then
     o.name = string.format('@%s @%s', o.query, o.query2)
   else
-    o.name = string.format('@%s inner/outer', o.query)
+    o.name = string.format('@%s', o.query)
   end
   return o
 end

@@ -8,7 +8,7 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
-function M:move(domain, qualifier, start, _)
+function M:move(domain, qualifier, start)
   local function m(os, is, ie, oe)
     if not (ie or oe) then
       return

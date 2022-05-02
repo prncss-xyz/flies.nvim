@@ -43,7 +43,6 @@ end
 
 M.name = 'line'
 M.blank_text_object = true
-M.normal_dir = true
 
 local function textobject(domain, qualifier)
   local wiseness = domain == 'inner' and 'v' or 'V'

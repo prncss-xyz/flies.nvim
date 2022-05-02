@@ -207,6 +207,67 @@ local function search_str(delims)
   end
 end
 
+
+local function succ(line, init, p1, pats)
+  line = string.sub(line, init)
+  local ofs = init
+  line = string.sub(line, init)
+  local s, e = p1:match_str(line)
+  if not s then
+    return
+  end
+  local res = { ofs + s }
+  for _, pat in ipairs(pats) do
+    ofs = ofs + e
+    table.insert(res, ofs)
+    line = string.sub(line, e + 1)
+    s, e = pat:match_str(line)
+    if s ~= 0 then
+      return
+    end
+  end
+  ofs = ofs + e
+  table.insert(res, ofs)
+  return res
+end
+
+local function vim_pattern(a, b, c)
+  if a and not b and not c then
+    return function(line, init)
+      local r = succ(line, init, vim.regex(a), {})
+      if not r then
+        return
+      end
+      local s, e = unpack(r)
+      e = e - 1
+      return s, s, e, e
+    end
+  end
+  if a and b and not c then
+    return function(line, init)
+      local r = succ(line, init, vim.regex(a), { vim.regex(b) })
+      if not r then
+        return
+      end
+      local is, ie, oe = unpack(r)
+      oe = oe - 1
+      return is, is, ie, oe
+    end
+  end
+  if a and b and c then
+    return function(line, init)
+      local r = succ(line, init, vim.regex(a), { vim.regex(b), vim.regex(c) })
+      if not r then
+        return
+      end
+      local os, is, ie, oe = unpack(r)
+      oe = oe - 1
+      return os, is, ie, oe
+    end
+  end
+  assert(false)
+end
+
 function M.string(...)
   local chars = { ... }
   -- local cb = any(unpack(map(chars, search_str)))

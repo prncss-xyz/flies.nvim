@@ -2,7 +2,7 @@ local M = {}
 
 local t = require('flies.utils').t
 local flies = require 'flies'
-local jump = require 'flies.utils'.jump
+local jump = require('flies.utils').jump
 
 function M.move(query_map, qualifier, domain, start, mode)
   if qualifier == 'plain' then
@@ -42,25 +42,39 @@ end
 
 -- TODO: reusable: accept a callback to set parameters
 -- TODO: escape hatch
+-- TODO: o mode: if inside an object, actual behavior, if outside, reverse start, end
 function M.meta_move(mode)
   local q = require('flies.repeater').querier(M.query_obj)
   if not q then
     return
   end
   local qualifier = q.qualifier
+  if qualifier == 'plain' then
+    qualifier = 'next'
+  end
   local char = q.query_char
   local query_o = q.query
   if mode == 'o' and qualifier == 'next' then
     vim.cmd 'normal! v'
   end
-  local start = (qualifier == 'previous')
   if query_o then
-    local domain = mode == 'n' and 'outer' or 'inner'
+    local domain
     if query_o.name == 'line' then
       domain = 'inner'
+    elseif query_o.blank_text_object and mode == 'n' then
+      domain = 'inner'
+    elseif query_o.blank_text_object and mode ~= 'n' then
+      domain = 'outer'
+    elseif mode == 'n' then
+      domain = 'outer'
+    else
+      domain = 'inner'
     end
-    if mode == 'n' and not query_o.normal_dir then
+    local start
+    if mode == 'n' and not (query_o.name == 'line') then
       start = true
+    else
+      start = (qualifier == 'previous')
     end
     if mode == 'n' then
       require('flies.move_again').register(function()
@@ -88,6 +102,9 @@ function M.append_insert()
     return
   end
   local qualifier = q.qualifier
+  if qualifier == 'plain' then
+    qualifier = 'next'
+  end
   local char = q.query_char
   local query_o = q.query
   if query_o then
@@ -99,17 +116,7 @@ function M.append_insert()
   -- TODO: one space padding ??
   -- TODO: escape hatch
   if not query_o then
-    if qualifier == 'previous' then
-      vim.api.nvim_feedkeys('i', 'n', false)
-    else
-      vim.api.nvim_feedkeys('a', 'n', false)
-    end
-  elseif query_o.blank_text_object then
-    if qualifier == 'previous' then
-      vim.api.nvim_feedkeys('i', 'n', false)
-    else
-      vim.api.nvim_feedkeys('a', 'n', false)
-    end
+    vim.api.nvim_feedkeys('i', 'n', false)
   else
     if qualifier == 'previous' then
       vim.api.nvim_feedkeys('i', 'n', false)
