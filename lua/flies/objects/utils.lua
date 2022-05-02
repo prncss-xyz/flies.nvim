@@ -1,11 +1,37 @@
 local M = {}
 
+local t = require('flies.utils').t
+
 -- adapted from https://github.com/nvim-treesitter/nvim-treesitter/blob/master/lua/nvim-treesitter/ts_utils.lua
 -- Set visual selection to range
 -- @param selection_mode One of "charwise" (default) or "v", "linewise" or "V",
 --   "blockwise" or "<C-v>" (as a string with 5 characters or a single character)
+
+function M.post() end
+
 function M.update_selection(s, e, selection_mode)
-  selection_mode = selection_mode or 'charwise'
+  -- FIXME: cutting a zero length range should leave in insert mode, as in targets
+  if s == nil then
+    M.post = function()
+      vim.fn.setpos('.', { 0, e[1], e[2], 0 })
+    end
+    vim.api.nvim_feedkeys(
+      t '<esc>:lua require"flies.objects.utils".post()<cr>',
+      'n',
+      true
+    )
+    return
+  end
+
+  if not selection_mode then
+    local sb, _ = M.line_bounds('inner', s[1])
+    local _, eb = M.line_bounds('inner', e[1])
+    if sb == s[2] and eb == e[2] then
+      selection_mode = 'linewise'
+    else
+      selection_mode = 'charwise'
+    end
+  end
 
   vim.fn.setpos('.', { 0, s[1], s[2], 0 })
 
