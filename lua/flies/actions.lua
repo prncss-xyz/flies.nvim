@@ -34,7 +34,7 @@ function M.query_obj()
         query = flies.queries[char],
         query_char = char,
         qualifier = qualifier or 'plain',
-        qualifiers_char = qualifier_char,
+        qualifier_char = qualifier_char,
       }
     end
   end
@@ -71,7 +71,7 @@ function M.meta_move(mode)
       domain = 'inner'
     end
     local start
-    if mode == 'n' and not (query_o.name == 'line') then
+    if mode == 'n' then
       start = true
     else
       start = (qualifier == 'previous')
@@ -124,6 +124,29 @@ function M.append_insert()
       vim.api.nvim_feedkeys('a', 'n', false)
     end
   end
+end
+
+function M.op(op, domain_param, noremap)
+  local q = require('flies.repeater').querier(M.query_obj)
+  if not q then
+    return
+  end
+  local domain
+  if type(domain_param) == 'string' then
+    domain = domain_param
+  elseif type(domain_param) == 'function' then
+    domain = domain_param(q)
+  else
+    domain = 'outer'
+  end
+  vim.api.nvim_feedkeys(t(op), noremap and 'n' or 'm', true)
+  local str = string.format(
+    ':<c-u>lua require"flies".textobject(%q, %q, %q)<cr>',
+    q.query_char,
+    domain,
+    q.qualifier
+  )
+  vim.api.nvim_feedkeys(t(str), 'n', true)
 end
 
 return M
