@@ -125,8 +125,8 @@ function M:textobject_outer_plain()
   local init = get_cursor()
   local s, e = self:_search_upward_pp('outer', init, vim.v.count1)
   -- if no explicit count was added, look forward if upward failed
-  if not s and vim.v.count1 == 1 and vim.v.count == 1 then
-    s, e = self:_search_forward_pp('outer', init, vim.v.count1)
+  if not s and vim.v.count1 == 1 and vim.v.count == 0 then
+    s, e = self:_search_forward_pp('outer', init, 1)
   end
   if not s then
     return
@@ -138,8 +138,8 @@ function M:textobject_inner_plain()
   local init = get_cursor()
   local s, e = self:_search_upward_pp('inner', init, vim.v.count1)
   -- if no explicit count was added, look forward if upward failed
-  if not e and vim.v.count1 == 1 and vim.v.count == 1 then
-    -- s, e = self:_search_forward_pp('inner', init, vim.v.count1)
+  if not e and vim.v.count1 == 1 and vim.v.count == 0 then
+    s, e = self:_search_forward_pp('inner', init, 1)
   end
   if not s then
     return
