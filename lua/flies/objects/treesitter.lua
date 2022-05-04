@@ -1,18 +1,20 @@
 local M = setmetatable({}, { __index = require 'flies.objects.generic' })
 
-function M.new(query)
-  local o = setmetatable({}, { __index = M })
-  o.name = string.format('@%s inner/outer', query)
-  o.query1 = string.format('@%s.outer', query)
-  o.query2 = string.format('@%s.inner', query)
-  return o
-end
-
-function M.query(query)
-  local o = setmetatable({}, { __index = M })
-  o.name = query
-  o.query1 = query
-  return o
+function M.new(t)
+  if type(t) == 'string' then
+    t = { t }
+  end
+  t = setmetatable(t, { __index = M })
+  local q = t[1]
+  if q:sub(1, 1) == '@' then
+    t.name = t[1]
+    t.query1 = t[1]
+  else
+    t.name = string.format('@%s inner/outer', q)
+    t.query1 = string.format('@%s.outer', q)
+    t.query2 = string.format('@%s.inner', q)
+  end
+  return t
 end
 
 local function get_lua_range(range)
