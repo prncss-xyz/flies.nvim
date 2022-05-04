@@ -8,129 +8,24 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
-local set_cursor = require('flies.utils').set_cursor
-local get_cursor = require('flies.utils').get_cursor
-
-function M:_search_upward_pp(domain, init, count)
-  local s, e = self:search_upward(domain, init, count)
-  if s then
-    return self:post_proc(domain, s, e)
-  end
-end
-
-function M:_search_forward_pp(domain, init, count)
-  local s, e = self:search_forward(domain, init, count)
-  if s then
-    return self:post_proc(domain, s, e)
-  end
-end
-
-function M:_search_backward_pp(domain, init, count)
-  local s, e = self:search_backward(domain, init, count)
-  if s then
-    return self:post_proc(domain, s, e)
-  end
-end
-
-  -- query[name('textobject', domain, qualifier)](query, mode)
-
-if false then
-  function M:default_search_iter(domain, init)
-    local line, col = unpack(init)
-    local function step()
-      local s, e = self:search_forward(domain, { line, col }, 1)
-      if not s then
-        return
-      end
-      if M.no_nest then
-        line, col = unpack(s)
-      else
-        line, col = unpack(e)
-      end
-      return s, e
-    end
-    return step, nil, true
-  end
-
-  function M:_search_range_pp_iter(domain, start, end_)
-    local init = { start, 0 }
-    local fn, state, s
-    if self.search_iter then
-      fn, state, s = self:search_iter(domain, init)
-    else
-      fn, state, s = self:default_search_iter(domain, init)
-    end
-    local e
-    local oc, ol
-    local function step()
-      s, e = fn(state, s)
-      assert(not (oc == s[1] and ol == s[2]), 'iterator not forwarding')
-      oc, ol = unpack(s)
-      if s[1] > end_ then
-        return
-      end
-      if s then
-        return self:post_proc(domain, s, e)
-      end
-    end
-    return step, nil, true
-  end
-end
-
-function M:move(domain, qualifier, start)
-  if qualifier == 'hint' then
-    self:hint(domain, set_cursor)
-    return
-  end
-  local s, e, p
-  local cmp = require('flies.objects.utils').cmp
-  local init = get_cursor()
-  -- TODO: compare actual bounds
-  local count = vim.v.count1
-  s, e = self:_search_upward_pp(domain, init, 1)
-  p = start and s or e
-  if qualifier == 'next' then
-    if p and cmp(p, init) > 0 then
-      count = count - 1
-    end
-    if count > 0 then
-      s, e = self:_search_forward_pp(domain, init, count)
-      p = start and s or e
-    end
-  elseif qualifier == 'previous' then
-    if p and cmp(p, init) < 0 then
-      count = count - 1
-    end
-    if count > 0 then
-      s, e = self:_search_backward_pp(domain, init, count)
-      p = start and s or e
-    end
-  else
-    assert(false, string.format('unknown qualiier %q', qualifier))
-    return
-  end
-  if not p then
-    return
-  end
-  set_cursor(p)
-end
+-- query[name('textobject', domain, qualifier)](query, mode)
 
 function M:search(domain, qualifier, init, count)
   if qualifier == 'up' then
-    return self:_search_upward_pp(domain, init, count)
+    return self:search_upward(domain, init, count)
   end
   if qualifier == 'smart' then
-    local a, b, c, d = self:_search_upward_pp(domain, init, 1)
+    local a, b, c, d = self:search_upward(domain, init, 1)
     if a then
       return a, b, c, d
     end
-    return self:_search_forward_pp(domain, init, 1)
+    return self:search_forward(domain, init, 1)
   end
   if qualifier == 'next' then
-    return self:_search_forward_pp(domain, init, count)
+    return self:search_forward(domain, init, count)
   end
   if qualifier == 'previous' then
-    return self:_search_backward_pp(domain, init, count)
+    return self:search_backward(domain, init, count)
   end
   if qualifier == 'hint' then
     assert(false, string.format('use search_cb with qualifier %q', qualifier))
@@ -146,71 +41,68 @@ function M:search_cb(domain, qualifier, init, count, cb)
   cb(self:search(domain, qualifier, init, count))
 end
 
-function M:textobject_outer_plain()
-  local init = get_cursor()
-  local s, e = self:_search_upward_pp('outer', init, vim.v.count1)
-  -- if no explicit count was added, look forward if upward failed
-  if not s and vim.v.count1 == 1 and vim.v.count == 0 then
-    s, e = self:_search_forward_pp('outer', init, 1)
+function M:textobject(domain, qualifier)
+  if qualifier == 'plain' then
+    if vim.v.count == vim.v.count1 then
+      qualifier = 'up'
+    else
+      qualifier = 'smart'
+    end
   end
-  if not s then
-    return
-  end
-  require('flies.objects.utils').update_selection(s, e)
+  local pos = require('flies.utils').get_cursor()
+  self:search_cb(domain, qualifier, pos, vim.v.count1, function(a, b, c, d)
+    local s, e
+    if c then
+      s, e = a, d
+      require('flies').cache = {
+        pos = pos,
+        s = s,
+        e = e,
+      }
+    else
+      s, e = a, b
+      require('flies').cache = { pos = pos }
+    end
+    require('flies.objects.utils').update_selection(s, e)
+  end)
 end
 
-function M:textobject_inner_plain()
-  local init = get_cursor()
-  local s, e = self:_search_upward_pp('inner', init, vim.v.count1)
-  -- if no explicit count was added, look forward if upward failed
-  if not e and vim.v.count1 == 1 and vim.v.count == 0 then
-    s, e = self:_search_forward_pp('inner', init, 1)
-  end
-  if not s then
+function M:motion(domain, qualifier, start)
+  if qualifier == 'hint' then
+    self:hint(domain, require('flies.utils').set_cursor)
     return
   end
-  require('flies.objects.utils').update_selection(s, e)
-end
-
-function M:textobject_outer_next()
-  local init = get_cursor()
-  local s, e = self:_search_forward_pp('outer', init, vim.v.count1)
-  if not s then
+  local s, e, p
+  local cmp = require('flies.objects.utils').cmp
+  local init = require('flies.utils').get_cursor()
+  -- TODO: compare actual bounds
+  local count = vim.v.count1
+  s, e = self:search_upward(domain, init, 1)
+  p = start and s or e
+  if qualifier == 'next' then
+    if p and cmp(p, init) > 0 then
+      count = count - 1
+    end
+    if count > 0 then
+      s, e = self:search_forward(domain, init, count)
+      p = start and s or e
+    end
+  elseif qualifier == 'previous' then
+    if p and cmp(p, init) < 0 then
+      count = count - 1
+    end
+    if count > 0 then
+      s, e = self:search_backward(domain, init, count)
+      p = start and s or e
+    end
+  else
+    assert(false, string.format('unknown qualiier %q', qualifier))
     return
   end
-  require('flies.objects.utils').update_selection(s, e)
-end
-
-function M:textobject_inner_next()
-  local init = get_cursor()
-  local s, e = self:_search_forward_pp('inner', init, vim.v.count1)
-  if not s then
+  if not p then
     return
   end
-  require('flies.objects.utils').update_selection(s, e)
-end
-
-function M:textobject_outer_previous()
-  local init = get_cursor()
-  local s, e = self:_search_backward_pp('outer', init, vim.v.count1)
-  if not s then
-    return
-  end
-  require('flies.objects.utils').update_selection(s, e)
-end
-
-function M:textobject_inner_previous()
-  local init = get_cursor()
-  local s, e = self:_search_backward_pp('inner', init, vim.v.count1)
-  if not s then
-    return
-  end
-  require('flies.objects.utils').update_selection(s, e)
-end
-
--- this is here to override when needed
-function M:post_proc(_, s, e)
-  return s, e
+  require('flies.utils').set_cursor(p)
 end
 
 function M:jump_target_gtr(domain)
@@ -225,8 +117,7 @@ function M:jump_target_gtr(domain)
   local index = 1
   for _, r in ipairs(self:search_all(domain, start, end_)) do
     local s, e = unpack(r)
-    s, e = self:post_proc(domain, s, e)
-    -- for s, e in self:_search_range_pp_iter(domain, start, end_) do
+    -- for s, e in self:_search_range_iter(domain, start, end_) do
     local line = s[1] - 1
     local column = s[2]
     table.insert(jump_targets, {
@@ -257,18 +148,6 @@ function M:hint(domain, cb)
       cb(unpack(res.object))
     end
   )
-end
-
-function M:textobject_outer_hint()
-  self:hint('outer', function(s, e)
-    require('flies.objects.utils').update_selection(s, e)
-  end)
-end
-
-function M:textobject_inner_hint()
-  self:hint('inner', function(s, e)
-    require('flies.objects.utils').update_selection(s, e)
-  end)
 end
 
 return M

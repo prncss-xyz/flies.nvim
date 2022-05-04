@@ -174,7 +174,11 @@ function M.separator(char_name)
 end
 
 function M.word()
-  return M.new { name = 'word', search_cb = M.lua_pattern '()[%w_]+(%s*)' }
+  return M.new {
+    name = 'word',
+    search_cb = M.lua_pattern '()[%w_]+(%s*)',
+    blank_text_object = true,
+  }
 end
 
 function M.vimword()
@@ -185,11 +189,16 @@ function M.vimword()
       M.lua_pattern '()%S(%s+)',
       M.lua_pattern '()[%w_]+(%s*)'
     ),
+    blank_text_object = true,
   }
 end
 
 function M.bigword()
-  return M.new { name = 'bigword', search_cb = M.lua_pattern '()%S+(%s*)' }
+  return M.new {
+    name = 'bigword',
+    search_cb = M.lua_pattern '()%S+(%s*)',
+    blank_text_object = true,
+  }
 end
 
 local function variable_segment_post_proc(_, os, is, ie, oe)
@@ -212,6 +221,7 @@ function M.variable_segment()
       M.lua_pattern '()%u?%l+(_?)'
     ),
     post_proc = variable_segment_post_proc,
+    blank_text_object = true,
   }
   return o
 end

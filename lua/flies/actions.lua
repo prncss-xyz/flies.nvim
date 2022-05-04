@@ -5,13 +5,13 @@ local t = require('flies.utils').t
 local flies = require 'flies'
 local jump = require('flies.utils').jump
 
-function M.move(query_map, qualifier, domain, start, mode)
+function M.move(query_map, qualifier, domain, start)
   if qualifier == 'plain' then
     qualifier = 'next'
   end
   local query = flies.queries[t(query_map)]
   if query then
-    return query.move(query, domain, qualifier, start, mode)
+    return query.motion(query, domain, qualifier, start)
   end
 end
 
@@ -53,12 +53,12 @@ function M.meta_move(mode)
     end
     if mode == 'n' then
       require('flies.move_again').register(function()
-        M.move(char, 'previous', domain, start, 'n')
+        M.move(char, 'previous', domain, start)
       end, function()
-        M.move(char, 'next', domain, start, 'n')
+        M.move(char, 'next', domain, start)
       end)
     end
-    M.move(char, qualifier, domain, start, mode)
+    M.move(char, qualifier, domain, start)
   else
     if mode == 'n' then
       require('flies.move_again').register(function()
@@ -83,7 +83,7 @@ function M.append_insert()
   local char = q.query_char
   local query_o = q.query
   if query_o then
-    M.move(char, qualifier, 'inner', qualifier == 'previous', 'n')
+    M.move(char, qualifier, 'inner', qualifier == 'previous')
   else
     jump(char, qualifier, true, vim.v.count1)
   end
