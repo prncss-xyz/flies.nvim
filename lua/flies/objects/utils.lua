@@ -11,9 +11,9 @@ function M.post() end
 
 function M.update_selection(s, e, selection_mode)
   -- FIXME: cutting a zero length range should leave in insert mode, as in targets
-  if s == nil then
+  if e == nil then
     M.post = function()
-      vim.fn.setpos('.', { 0, e[1], e[2], 0 })
+      vim.fn.setpos('.', { 0, s[1], s[2], 0 })
     end
     vim.api.nvim_feedkeys(
       t '<esc>:lua require"flies.objects.utils".post()<cr>',

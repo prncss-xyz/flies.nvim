@@ -33,7 +33,7 @@ function M.querier_save()
   index = 0
 end
 
-function G.pre_dot()
+function M.pre_dot()
   will_repeat = true
   return '.' .. t ":lua require'flies.repeater'.post_dot()<cr>"
 end
@@ -47,7 +47,8 @@ function M.setup()
   vim.api.nvim_set_keymap(
     'n',
     '.',
-    'v:lua.Flies.pre_dot()',
+    -- don't know how to escape dots (loaded["flies.repeater"]) here
+    'v:lua.package.loaded.flies.repeater.pre_dot()',
     { expr = true, noremap = true }
   )
 end

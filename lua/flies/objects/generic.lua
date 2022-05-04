@@ -8,16 +8,8 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
-local function move_cursor(pos)
-  pos[2] = pos[2] - 1
-  vim.api.nvim_win_set_cursor(0, pos)
-end
-
-local function get_cursor()
-  local init = vim.api.nvim_win_get_cursor(0)
-  init[2] = init[2] + 1
-  return init
-end
+local set_cursor = require('flies.utils').set_cursor
+local get_cursor = require('flies.utils').get_cursor
 
 function M:_search_upward_pp(domain, init, count)
   local s, e = self:search_upward(domain, init, count)
@@ -39,6 +31,8 @@ function M:_search_backward_pp(domain, init, count)
     return self:post_proc(domain, s, e)
   end
 end
+
+  -- query[name('textobject', domain, qualifier)](query, mode)
 
 if false then
   function M:default_search_iter(domain, init)
@@ -85,7 +79,7 @@ end
 
 function M:move(domain, qualifier, start)
   if qualifier == 'hint' then
-    self:hint(domain, move_cursor)
+    self:hint(domain, set_cursor)
     return
   end
   local s, e, p
@@ -118,7 +112,38 @@ function M:move(domain, qualifier, start)
   if not p then
     return
   end
-  move_cursor(p)
+  set_cursor(p)
+end
+
+function M:search(domain, qualifier, init, count)
+  if qualifier == 'up' then
+    return self:_search_upward_pp(domain, init, count)
+  end
+  if qualifier == 'smart' then
+    local a, b, c, d = self:_search_upward_pp(domain, init, 1)
+    if a then
+      return a, b, c, d
+    end
+    return self:_search_forward_pp(domain, init, 1)
+  end
+  if qualifier == 'next' then
+    return self:_search_forward_pp(domain, init, count)
+  end
+  if qualifier == 'previous' then
+    return self:_search_backward_pp(domain, init, count)
+  end
+  if qualifier == 'hint' then
+    assert(false, string.format('use search_cb with qualifier %q', qualifier))
+  end
+  assert(false, string.format('unknown qualifier %q', qualifier))
+end
+
+function M:search_cb(domain, qualifier, init, count, cb)
+  if qualifier == 'hint' then
+    self:hint(domain, cb)
+    return
+  end
+  cb(self:search(domain, qualifier, init, count))
 end
 
 function M:textobject_outer_plain()

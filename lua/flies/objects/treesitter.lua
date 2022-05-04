@@ -113,6 +113,8 @@ local function get_inner(inner_query, outer_range)
   return match
 end
 
+-- FIXME: outer swappable (or argument) skipped when not terminated by blank chars
+
 function M:_search_np(domain, pos, forward, count)
   local query = domain == 'inner' and self.query2 or self.query1
   local function sort_cb(match1, match2)

@@ -1,6 +1,7 @@
 local M = {}
 
 local t = require('flies.utils').t
+-- TODO: bad dependancy scheme, find better way to share config
 local flies = require 'flies'
 local jump = require('flies.utils').jump
 
@@ -14,37 +15,11 @@ function M.move(query_map, qualifier, domain, start, mode)
   end
 end
 
-function M.query_obj()
-  local qualifier
-  local qualifier_char
-  while true do
-    local char = vim.fn.getchar()
-    char = vim.fn.nr2char(char)
-    local r = flies.qualifiers[char]
-    if r then
-      if qualifier then
-        return
-      end
-      qualifier = r
-      qualifier_char = char
-    elseif char == t '<esc>' then
-      return
-    else
-      return {
-        query = flies.queries[char],
-        query_char = char,
-        qualifier = qualifier or 'plain',
-        qualifier_char = qualifier_char,
-      }
-    end
-  end
-end
-
 -- TODO: reusable: accept a callback to set parameters
 -- TODO: escape hatch
 -- TODO: o mode: if inside an object, actual behavior, if outside, reverse start, end
 function M.meta_move(mode)
-  local q = require('flies.repeater').querier(M.query_obj)
+  local q = require('flies.repeater').querier(require'flies.utils'.query_obj)
   if not q then
     return
   end
@@ -71,7 +46,7 @@ function M.meta_move(mode)
       domain = 'inner'
     end
     local start
-    if mode == 'n' then
+    if mode == 'n' or query_o.name == 'line' then
       start = true
     else
       start = (qualifier == 'previous')
@@ -97,7 +72,7 @@ function M.meta_move(mode)
 end
 
 function M.append_insert()
-  local q = require('flies.repeater').querier(M.query_obj)
+  local q = require('flies.repeater').querier(require'flies.utils'.query_obj)
   if not q then
     return
   end
@@ -127,7 +102,7 @@ function M.append_insert()
 end
 
 function M.op(op, domain_param, noremap)
-  local q = require('flies.repeater').querier(M.query_obj)
+  local q = require('flies.repeater').querier(require'flies.utils'.query_obj)
   if not q then
     return
   end
@@ -147,6 +122,14 @@ function M.op(op, domain_param, noremap)
     q.qualifier
   )
   vim.api.nvim_feedkeys(t(str), 'n', true)
+end
+
+-- TODO: only if successful
+function M.op_insert(op, domain_param, noremap)
+  M.op(op, domain_param, noremap)
+  vim.schedule(function()
+    vim.cmd 'startinsert'
+  end)
 end
 
 return M

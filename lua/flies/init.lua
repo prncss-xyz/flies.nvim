@@ -15,7 +15,11 @@ local default_conf = {
 local t = require('flies.utils').t
 local name = require('flies.utils').name
 
+local i = 0
+
 function M.textobject(query_map, domain, qualifier, mode)
+  M.last_pos = require 'flies.utils'.get_cursor()
+  i = i + 1
   local query = M.queries[t(query_map)]
   if not query then
     return
@@ -80,6 +84,10 @@ function M.setup(user_conf)
   M.qualifiers = qualifiers
   map_texobjects()
   -- map_move()
+
+  M.repeater = require 'flies.repeater'
+  M.operations_register = require('flies.operations.base').reg
+  require 'flies.operations.init'
 end
 
 return M
