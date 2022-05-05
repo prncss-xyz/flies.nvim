@@ -113,9 +113,9 @@ local function get_inner(inner_query, outer_range)
   return match
 end
 
--- FIXME: outer swappable (or argument) skipped when not terminated by blank chars
-
 function M:_search_np(domain, pos, forward, count)
+  local row, col = pos[1] - 1, pos[2] - 1
+
   local query = domain == 'inner' and self.query2 or self.query1
   local function sort_cb(match1, match2)
     if forward then
@@ -177,8 +177,7 @@ end
 
 function M:search_upward(domain, pos, count)
   local ts_utils = require 'nvim-treesitter.ts_utils'
-  local row, col = unpack(pos)
-  row = row - 1
+  local row, col = pos[1] - 1, pos[2] - 1
   local function filter_cb(m)
     return m.node and ts_utils.is_in_node_range(m.node, row, col)
   end
