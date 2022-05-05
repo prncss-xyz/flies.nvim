@@ -12,24 +12,16 @@ local search_forward
 
 function M.search(expr, noremap, forward)
   search_forward = forward
-  require('flies.move_again').register(function(mode)
-    M.n(false, mode)
-  end, function(mode)
-    M.n(true, mode)
+  require('flies.move_again').register(function()
+    M.n(false)
+  end, function()
+    M.n(true)
   end)
   vim.api.nvim_feedkeys(t(expr), noremap and 'n' or 'm', false)
   require('hlslens').start()
 end
 
-function M.n(forward, mode)
-  if mode == 'o' then
-    if forward then
-      vim.cmd 'normal! gn'
-    else
-      vim.cmd 'normal! gN'
-    end
-    return
-  end
+function M.n(forward)
   if forward == search_forward then
     vim.fn.feedkeys(vim.v.count1 .. 'n', 'n')
   else
@@ -41,14 +33,16 @@ end
 function M.set_search(fwd)
   search_forward = fwd
   require('flies.move_again').register(function()
-    M.n(false, 'n')
+    M.n(false)
   end, function()
-    M.n(true, 'n')
+    M.n(true)
   end)
 end
 
-function M:textobject_outer_np(qualifier, _)
-  if qualifier == 'previous' then
+function M:textobject(_, qualifier, _)
+  if qualifier == 'plain' then
+    vim.cmd 'normal! gn'
+  elseif qualifier == 'previous' then
     vim.cmd 'normal! gN'
     return
   end
@@ -58,18 +52,14 @@ function M:textobject_outer_np(qualifier, _)
   end
 end
 
-function M:textobject_outer_plain(_)
-  vim.cmd 'normal! gn'
-end
-
-function M:move(_, qualifier, mode)
+function M:motion(_, qualifier, _)
   if qualifier == 'hint' then
     local pattern = vim.fn.getreg '/'
     require('hop').hint_patterns({}, pattern)
   elseif qualifier == 'previous' then
-    M.n(false, mode)
+    M.n(false)
   elseif qualifier == 'next' then
-    M.n(true, mode)
+    M.n(true)
   end
 end
 
