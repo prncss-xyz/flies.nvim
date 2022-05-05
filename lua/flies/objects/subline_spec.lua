@@ -35,7 +35,7 @@ end)
 describe('vimword', function()
   it('search vimword', function()
     local t = M.vimword()
-    with_fake_buf({ ' bbb.cc ' }, function()
+    with_fake_buf({ ' bbb.cc   !!' }, function()
       assert.are.same(
         { { 1, 2 }, { 1, 2 }, { 1, 4 }, { 1, 4 } },
         { t:search_upward('both', { 1, 2 }, 1) }
@@ -46,18 +46,14 @@ end)
 describe('variable segment', function()
   it('description', function()
     local t = M.variable_segment()
-    assert.are_not.equal(
-      t.post_proc,
-      require('flies.objects.generic').post_proc
-    )
     with_fake_buf({ ' bb_cc ' }, function()
       assert.are.same(
         { { 1, 2 }, { 1, 2 }, { 1, 3 }, { 1, 4 } },
-        { t:post_proc(t:search_upward('both', { 1, 2 }, 1)) }
+        { t:search_upward('both', { 1, 2 }, 1) }
       )
       assert.are.same(
         { { 1, 4 }, { 1, 5 }, { 1, 6 }, { 1, 6 } },
-        { t:post_proc(t:search_upward('both', { 1, 5 }, 1)) }
+        { t:search_upward('both', { 1, 5 }, 1) }
       )
     end)
   end)

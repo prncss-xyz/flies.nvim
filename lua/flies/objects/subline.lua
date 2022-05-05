@@ -1,16 +1,18 @@
 local M = setmetatable({}, { __index = require 'flies.objects.generic' })
 
--- local M = require('flies.objects.generic').new()
-
-local function with_row2(row, s, e)
-  return s and { row, s }, e and { row, e }
-end
-
-local function with_row4(row, os, is, ie, oe)
-  return os and { row, os },
-    is and { row, is },
-    ie and { row, ie },
-    oe and { row, oe }
+local function format_result(domain, row, res)
+  if domain == 'outer' then
+    return res[1] and { row, res[1] }, res[4] and { row, res[4] }
+  elseif domain == 'inner' then
+    return res[2] and { row, res[2] }, res[3] and { row, res[3] }
+  elseif domain == 'both' then
+    return res[1] and { row, res[1] },
+      res[2] and { row, res[2] },
+      res[3] and { row, res[3] },
+      res[4] and { row, res[4] }
+  else
+    assert(false, string.format('unknown domain %q', domain))
+  end
 end
 
 function M.any(...)
@@ -53,96 +55,73 @@ function M.lua_pattern(pattern)
   end
 end
 
-function M:search_upward(domain, init, count)
-  if count > 1 then
-    return
-  end
-  local line_str = require('flies.objects.utils').get_row(init[1])
-  local col = init[2]
-  local os = 1
+function M:_search_line(line)
+  local ret = {}
   local is, ie, oe
-  while true do
-    os, is, ie, oe = self.search_cb(line_str, os)
+  local len = line:len()
+  local os = 1
+  while os <= len do
+    os, is, ie, oe = self.seek_cb(line, os)
     if not os then
-      return
+      return ret
     end
-    if os <= col and col <= oe then
-      local line = init[1]
-      if domain == 'outer' then
-        return with_row2(line, os, oe)
-      elseif domain == 'inner' then
-        return with_row2(line, is, ie)
-      elseif domain == 'both' then
-        return with_row4(line, os, is, ie, oe)
-      else
-        assert(false, string.format('unknown domain %q', domain))
-      end
-    elseif os > col then
-      return
-    end
+    table.insert(ret, { os, is, ie, oe })
     os = oe + 1
+  end
+  return ret
+end
+
+function M:search_upward(domain, init, _)
+  local line = require('flies.objects.utils').get_row(init[1])
+  local matches = self:_search_line(line)
+  for _, match in ipairs(matches) do
+    local os, _, _, oe = unpack(match)
+    if os <= init[2] and init[2] <= oe then
+      return format_result(domain, init[1], match)
+    end
   end
 end
 
 function M:search_forward(domain, init, count)
-  for row, line_str in
-    require('flies.objects.utils').row_forward_iterator(init[1])
-  do
-    local os = 1
-    while true do
-      local oe, is, ie
-      os, is, ie, oe = self.search_cb(line_str, os)
-      if not os then
-        break
-      end
+  for row, line in require('flies.objects.utils').row_forward_iterator(init[1]) do
+    local matches = self:_search_line(line)
+    for _, match in ipairs(matches) do
+      local os = match[1]
       if row > init[1] or os > init[2] then
-        if count == 1 then
-          if domain == 'outer' then
-            return with_row2(row, os, oe)
-          elseif domain == 'inner' then
-            return with_row2(row, is, ie)
-          elseif domain == 'both' then
-            return with_row4(row, os, is, ie, oe)
-          else
-            assert(false, string.format('unknown domain %q', domain))
-          end
-        end
         count = count - 1
+        if count == 0 then
+          return format_result(domain, row, match)
+        end
       end
-      os = oe + 1
     end
   end
 end
 
+function M:search_all(domain, start, end_)
+  local res = {}
+  for row, line in require('flies.objects.utils').row_forward_iterator(start) do
+    if row + 1 == end_ then
+      break
+    end
+    local matches = self:_search_line(line)
+    for _, match in ipairs(matches) do
+      table.insert(res, { format_result(domain, row, match) })
+    end
+  end
+  return res
+end
+
 function M:search_backward(domain, init, count)
-  for row, line_str in
-    require('flies.objects.utils').row_backward_iterator(init[1])
-  do
-    local os = 1
-    local res = {}
-    while true do
-      local oe, is, ie
-      os, is, ie, oe = self.search_cb(line_str, os)
-      if os and (row < init[1] or os < init[2]) then
-        table.insert(res, { os, is, ie, oe })
-        os = oe + 1
-      else
-        local i = 1 + #res - count
-        local r = res[i]
-        if r then
-          os, is, ie, oe = unpack(r)
-          if domain == 'outer' then
-            return with_row2(row, os, oe)
-          elseif domain == 'inner' then
-            return with_row2(row, is, ie)
-          elseif domain == 'both' then
-            return with_row4(row, os, is, ie, oe)
-          else
-            assert(false, string.format('unknown domain %q', domain))
-          end
+  for row, line in require('flies.objects.utils').row_backward_iterator(init[1]) do
+    local matches = self:_search_line(line)
+    require('flies.utils').reverse(matches)
+    for _, match in ipairs(matches) do
+      local os = match[1]
+      if row < init[1] or os < init[2] then
+        count = count - 1
+        if count == 0 then
+          return format_result(domain, row, match)
         end
-        count = count - #res
-        break
       end
     end
   end
@@ -166,17 +145,17 @@ end
 
 function M.separator(char_name)
   local char_pat = lua_regex_escape_char(char_name)
-  local search_cb = M.lua_pattern(
+  local seek_cb = M.lua_pattern(
     string.format('(%s).-()(%s)', char_pat, char_pat)
   )
   local name = string.format('between %q', char_name)
-  return M.new { name = name, search_cb = search_cb }
+  return M.new { name = name, seek_cb = seek_cb }
 end
 
 function M.word()
   return M.new {
     name = 'word',
-    search_cb = M.lua_pattern '()[%w_]+(%s*)',
+    seek_cb = M.lua_pattern '()[%w_]+(%s*)',
     blank_text_object = true,
   }
 end
@@ -184,7 +163,7 @@ end
 function M.vimword()
   return M.new {
     name = 'vimword',
-    search_cb = M.any(
+    seek_cb = M.any(
       M.lua_pattern '%S$',
       M.lua_pattern '()%S(%s+)',
       M.lua_pattern '()[%w_]+(%s*)'
@@ -196,34 +175,56 @@ end
 function M.bigword()
   return M.new {
     name = 'bigword',
-    search_cb = M.lua_pattern '()%S+(%s*)',
+    seek_cb = M.lua_pattern '()%S+(%s*)',
     blank_text_object = true,
   }
 end
 
-local function variable_segment_post_proc(_, os, is, ie, oe)
-  local line = require('flies.objects.utils').get_row(os[1])
-  local c = string.sub(line, os[2] - 1, os[2] - 1)
-  local d = string.sub(line, oe[2] + 1, oe[2] + 1)
+local variable_segment_seek0_cb = M.any(
+  M.lua_pattern '()%u+()$',
+  M.lua_pattern '()%u+()(%W)',
+  M.lua_pattern '()%u+()(%u%S)',
+  M.lua_pattern '()%u?%l+(_?)'
+)
+
+local function variable_segment_seek_cb(line, init)
+  local os, is, ie, oe = variable_segment_seek0_cb(line, init)
+  if not os then
+    return
+  end
+  local c = string.sub(line, os - 1, os - 1)
+  local d = string.sub(line, oe + 1, oe + 1)
   if (c == '_') and (d == '' or string.find(d, '[%A]')) then
-    os[2] = os[2] - 1
+    os = os - 1
   end
   return os, is, ie, oe
 end
 
 function M.variable_segment()
-  local o = M.new {
+  return M.new {
     name = 'variable_segment',
-    search_cb = M.any(
-      M.lua_pattern '()%u+()$',
-      M.lua_pattern '()%u+()(%W)',
-      M.lua_pattern '()%u+()(%u%S)',
-      M.lua_pattern '()%u?%l+(_?)'
-    ),
-    post_proc = variable_segment_post_proc,
+    seek_cb = variable_segment_seek_cb,
     blank_text_object = true,
   }
-  return o
+end
+
+local function line_cb(line, _)
+  local len = line:len()
+  if len == 0 then
+    print '!'
+    return 1, 1, nil, 1
+  end
+  local is = require('flies.objects.utils').line_inner_start(line) or 1
+  local ie = require('flies.objects.utils').line_inner_end(line)
+  return 1, is, ie, len
+end
+
+function M.line()
+  return M.new {
+    name = 'line',
+    seek_cb = line_cb,
+    blank_text_object = true,
+  }
 end
 
 local function search_str(delims)
@@ -315,9 +316,9 @@ end
 function M.string(...)
   local chars = { ... }
   -- local cb = any(unpack(map(chars, search_str)))
-  local search_cb = search_str(chars)
+  local seek_cb = search_str(chars)
   local name = string.format('quoted string: %s', table.concat(chars, ', '))
-  return M.new { name = name, search_cb = search_cb }
+  return M.new { name = name, seek_cb = seek_cb }
 end
 
 -- TODO: target style argument object

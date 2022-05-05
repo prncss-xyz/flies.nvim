@@ -28,6 +28,7 @@ function M:query_n()
   if not pos then
     return
   end
+  -- local s, e = query:search(domain, qualifier, pos, vim.v.count1)
   require('flies.utils').set_cursor(pos)
   local str = string.format(
     ':<c-u>lua require"flies".textobject(%q, %q, %q)<cr>',
@@ -59,7 +60,7 @@ end
 function M:op(mode)
   local s1, e1 = require('flies.utils').get_marks_pos(mode)
   if mode == 'o' then
-    local s2, e2 = query:search(domain, 'smart', require('flies').last_pos, 1)
+    local s2, e2 = query:search(domain, 'smart', require('flies').cache.pos, 1)
     post(s2, e2, s1, e1)
   elseif mode == 'x' then
     local q = require('flies.repeater').querier(

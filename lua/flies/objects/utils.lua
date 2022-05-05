@@ -7,31 +7,35 @@ local t = require('flies.utils').t
 -- @param selection_mode One of "charwise" (default) or "v", "linewise" or "V",
 --   "blockwise" or "<C-v>" (as a string with 5 characters or a single character)
 
-function M.post() end
+local function infer_wiseness(s, e)
+  local line = M.get_row(s[1])
+  if s[1] == e[1] then
+    if s[2] == 1 and e[2] == line:len() then
+      return 'linewise'
+    else
+      return 'charwise'
+    end
+  end
+  local is = M.line_inner_start(line)
+  if is ~= s[2] then
+    return 'charwise'
+  end
+  line = M.get_row(e[1])
+  local ie = M.line_inner_end(line)
+  if ie ~= e[2] then
+    return 'charwise'
+  end
+  return 'linewise'
+end
 
 function M.update_selection(s, e, selection_mode)
   -- FIXME: cutting a zero length range should leave in insert mode, as in targets
   if e == nil then
-    M.post = function()
-      vim.fn.setpos('.', { 0, s[1], s[2], 0 })
-    end
-    vim.api.nvim_feedkeys(
-      t '<esc>:lua require"flies.objects.utils".post()<cr>',
-      'n',
-      true
-    )
+    vim.fn.setpos('.', { 0, s[1], s[2], 0 })
     return
   end
 
-  if not selection_mode then
-    local sb, _ = M.line_bounds('inner', s[1])
-    local _, eb = M.line_bounds('inner', e[1])
-    if sb == s[2] and eb == e[2] then
-      selection_mode = 'linewise'
-    else
-      selection_mode = 'charwise'
-    end
-  end
+  selection_mode = selection_mode or infer_wiseness(s, e)
 
   vim.fn.setpos('.', { 0, s[1], s[2], 0 })
 
@@ -123,11 +127,11 @@ function M.move_cursor(pos, wiseness)
 end
 
 function M.line_inner_start(line)
-  return string.find(line, '[%S]')
+  return string.find(line, '%S')
 end
 
 function M.line_inner_end(line)
-  return string.find(line, '.[%s]*$')
+  return string.find(line, '.%s*$')
 end
 
 function M.line_bounds(domain, row)
@@ -136,8 +140,8 @@ function M.line_bounds(domain, row)
     return 1, 1
   end
   if domain == 'inner' then
-    local col_s = string.find(line, '[%S]')
-    local col_e = string.find(line, '.[%s]*$')
+    local col_s = M.line_inner_start(line)
+    local col_e = M.line_outer_start(line)
     return col_s, col_e
   end
   if domain == 'outer' then

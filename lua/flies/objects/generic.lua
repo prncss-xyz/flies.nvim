@@ -11,6 +11,7 @@ end
 -- query[name('textobject', domain, qualifier)](query, mode)
 
 function M:search(domain, qualifier, init, count)
+  dump(1)
   if qualifier == 'up' then
     return self:search_upward(domain, init, count)
   end
@@ -51,6 +52,9 @@ function M:textobject(domain, qualifier)
   end
   local pos = require('flies.utils').get_cursor()
   self:search_cb(domain, qualifier, pos, vim.v.count1, function(a, b, c, d)
+    if not a then
+      return
+    end
     local s, e
     if c then
       s, e = a, d

@@ -78,7 +78,7 @@ local function search(query, filter_cb, sort_cb)
   return matches
 end
 
-local function get_inner(inner_query, outer_range)
+local function find_inner(inner_query, outer_range)
   local ts_utils = require 'nvim-treesitter.ts_utils'
 
   local function filter_cb(m)
@@ -96,12 +96,12 @@ local function get_inner(inner_query, outer_range)
     end
     -- for nodes with same length take the one with latest end
     local end1 = m1.end_
-    local end2 = m2.end_
-    if end1 and not end2 then
-      return true
-    end
     if not end1 then
       return false
+    end
+    local end2 = m2.end_
+    if not end2 then
+      return true
     end
     local _, _, end_byte1 = end1.node:start()
     local _, _, end_byte2 = end2.node:start()
@@ -109,6 +109,7 @@ local function get_inner(inner_query, outer_range)
   end
 
   local matches = search(inner_query, filter_cb, sort_cb)
+  -- local matches = search(inner_query, filter_cb, sort_cb)
   local match = matches[1]
   return match
 end
@@ -117,24 +118,28 @@ function M:_search_np(domain, pos, forward, count)
   local row, col = pos[1] - 1, pos[2] - 1
 
   local query = domain == 'inner' and self.query2 or self.query1
+
+  -- TODO: should it be cached
   local function sort_cb(match1, match2)
     if forward then
-      local _, _, score1 = match1.node:start()
-      local _, _, score2 = match2.node:start()
-      return score1 < score2
+      local start_byte1, start_byte2
+      _, _, start_byte1 = match1.node:start()
+      _, _, start_byte2 = match2.node:start()
+      return start_byte1 < start_byte2
     else
-      local _, _, score1 = match1.node:end_()
-      local _, _, score2 = match2.node:end_()
-      return score1 > score2
+      local end_byte1, start_byte2
+      _, _, end_byte1 = match1.node:end_()
+      _, _, start_byte2 = match2.node:end_()
+      return end_byte1 > start_byte2
     end
   end
 
   local function filter_cb(match)
     local range = { match.node:range() }
     if forward then
-      return cmp(pos, { range[1] + 1, range[2] }) < 0
+      return cmp({ row, col }, { range[1] + 1, range[2] }) < 0
     else
-      return cmp(pos, { range[3] + 1, range[4] }) > 0
+      return cmp({ row, col }, { range[3] + 1, range[4] }) > 0
     end
   end
   local matches = search(query, filter_cb, sort_cb)
@@ -148,7 +153,7 @@ function M:_search_np(domain, pos, forward, count)
       return
     end
     local os, oe = get_lua_range(match)
-    match = get_inner(self.query2, match)
+    match = find_inner(self.query2, match)
     local is, ie = get_lua_range(match)
     return os, is, ie, oe
   end
@@ -159,7 +164,7 @@ function M:search_all(domain, start, end_)
   local query = domain == 'inner' and self.query2 or self.query1
   local function filter_cb(match)
     local range = { match.node:range() }
-    return range[1] + 1 >= start and range[3] + 1 <= end_
+    return range[1] + 1 >= start and range[1] + 1 < end_
   end
   local matches = search(query, filter_cb)
   return vim.tbl_map(function(match)
@@ -193,12 +198,12 @@ function M:search_upward(domain, pos, count)
     end
     -- for nodes with same length take the one with earliest start
     local start1 = m1.start
-    local start2 = m2.start
-    if start1 and not start2 then
-      return true
-    end
     if not start1 then
       return false
+    end
+    local start2 = m2.start
+    if not start2 then
+      return true
     end
     local _, _, start_byte1 = start1.node:start()
     local _, _, start_byte2 = start2.node:start()
@@ -218,7 +223,7 @@ function M:search_upward(domain, pos, count)
   if not self.query2 then
     return
   end
-  match = get_inner(self.query2, match)
+  match = find_inner(self.query2, match)
   if not match then
     return
   end
