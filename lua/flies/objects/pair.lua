@@ -1,4 +1,4 @@
-local M = require('flies.objects.generic').new()
+local M = require('flies.objects.base').new()
 
 -- new
 -- local function search_forward(cb, in_place, count) end

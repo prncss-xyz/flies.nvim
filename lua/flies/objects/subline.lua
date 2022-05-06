@@ -1,6 +1,7 @@
-local M = setmetatable({}, { __index = require 'flies.objects.generic' })
+local M = setmetatable({}, { __index = require 'flies.objects.base' })
+local utils = require 'flies.objects.utils'
 
-local function format_result(domain, row, res)
+function M.format_result(domain, row, res)
   if domain == 'outer' then
     return res[1] and { row, res[1] }, res[4] and { row, res[4] }
   elseif domain == 'inner' then
@@ -60,7 +61,7 @@ function M:_search_line(line)
   local is, ie, oe
   local len = line:len()
   local os = 1
-  while os <= len do
+  while os == 1 and len == 0 or os <= len do
     os, is, ie, oe = self.seek_cb(line, os)
     if not os then
       return ret
@@ -77,7 +78,7 @@ function M:search_upward(domain, init, _)
   for _, match in ipairs(matches) do
     local os, _, _, oe = unpack(match)
     if os <= init[2] and init[2] <= oe then
-      return format_result(domain, init[1], match)
+      return M.format_result(domain, init[1], match)
     end
   end
 end
@@ -90,7 +91,7 @@ function M:search_forward(domain, init, count)
       if row > init[1] or os > init[2] then
         count = count - 1
         if count == 0 then
-          return format_result(domain, row, match)
+          return M.format_result(domain, row, match)
         end
       end
     end
@@ -105,7 +106,7 @@ function M:search_all(domain, start, end_)
     end
     local matches = self:_search_line(line)
     for _, match in ipairs(matches) do
-      table.insert(res, { format_result(domain, row, match) })
+      table.insert(res, { M.format_result(domain, row, match) })
     end
   end
   return res
@@ -116,11 +117,11 @@ function M:search_backward(domain, init, count)
     local matches = self:_search_line(line)
     require('flies.utils').reverse(matches)
     for _, match in ipairs(matches) do
-      local os = match[1]
-      if row < init[1] or os < init[2] then
+      local oe = match[4]
+      if row < init[1] or oe < init[2] then
         count = count - 1
         if count == 0 then
-          return format_result(domain, row, match)
+          return M.format_result(domain, row, match)
         end
       end
     end
@@ -133,6 +134,66 @@ function M.new(o)
 end
 
 -- TODO: change move to move char after separator
+
+local function succ(line, init, p1, pats)
+  line = string.sub(line, init)
+  local ofs = init
+  line = string.sub(line, init)
+  local s, e = p1:match_str(line)
+  if not s then
+    return
+  end
+  local res = { ofs + s }
+  for _, pat in ipairs(pats) do
+    ofs = ofs + e
+    table.insert(res, ofs)
+    line = string.sub(line, e + 1)
+    s, e = pat:match_str(line)
+    if s ~= 0 then
+      return
+    end
+  end
+  ofs = ofs + e
+  table.insert(res, ofs)
+  return res
+end
+
+local function vim_pattern(a, b, c)
+  if a and not b and not c then
+    return function(line, init)
+      local r = succ(line, init, vim.regex(a), {})
+      if not r then
+        return
+      end
+      local s, e = unpack(r)
+      e = e - 1
+      return s, s, e, e
+    end
+  end
+  if a and b and not c then
+    return function(line, init)
+      local r = succ(line, init, vim.regex(a), { vim.regex(b) })
+      if not r then
+        return
+      end
+      local is, ie, oe = unpack(r)
+      oe = oe - 1
+      return is, is, ie, oe
+    end
+  end
+  if a and b and c then
+    return function(line, init)
+      local r = succ(line, init, vim.regex(a), { vim.regex(b), vim.regex(c) })
+      if not r then
+        return
+      end
+      local os, is, ie, oe = unpack(r)
+      oe = oe - 1
+      return os, is, ie, oe
+    end
+  end
+  assert(false)
+end
 
 local function lua_regex_escape_char(char)
   if char == '%' then
@@ -208,26 +269,31 @@ function M.variable_segment()
   }
 end
 
-local function line_cb(line, _)
+local function line_seek_cb(line, init)
   local len = line:len()
   if len == 0 then
-    print '!'
     return 1, 1, nil, 1
   end
-  local is = require('flies.objects.utils').line_inner_start(line) or 1
+  local is = require('flies.objects.utils').line_inner_start(line) or len
   local ie = require('flies.objects.utils').line_inner_end(line)
   return 1, is, ie, len
+end
+
+local function line_search_count(self, domain, _, count)
+  local line = utils.get_row(count)
+  return M.format_result(domain, count, { line_seek_cb(line, count) })
 end
 
 function M.line()
   return M.new {
     name = 'line',
-    seek_cb = line_cb,
+    seek_cb = line_seek_cb,
     blank_text_object = true,
+    search_count = line_search_count,
   }
 end
 
-local function search_str(delims)
+local function str_seek_cb(delims)
   local d = require('flies.utils').invert(delims)
   return function(line, init)
     local os
@@ -253,70 +319,10 @@ local function search_str(delims)
   end
 end
 
-local function succ(line, init, p1, pats)
-  line = string.sub(line, init)
-  local ofs = init
-  line = string.sub(line, init)
-  local s, e = p1:match_str(line)
-  if not s then
-    return
-  end
-  local res = { ofs + s }
-  for _, pat in ipairs(pats) do
-    ofs = ofs + e
-    table.insert(res, ofs)
-    line = string.sub(line, e + 1)
-    s, e = pat:match_str(line)
-    if s ~= 0 then
-      return
-    end
-  end
-  ofs = ofs + e
-  table.insert(res, ofs)
-  return res
-end
-
-local function vim_pattern(a, b, c)
-  if a and not b and not c then
-    return function(line, init)
-      local r = succ(line, init, vim.regex(a), {})
-      if not r then
-        return
-      end
-      local s, e = unpack(r)
-      e = e - 1
-      return s, s, e, e
-    end
-  end
-  if a and b and not c then
-    return function(line, init)
-      local r = succ(line, init, vim.regex(a), { vim.regex(b) })
-      if not r then
-        return
-      end
-      local is, ie, oe = unpack(r)
-      oe = oe - 1
-      return is, is, ie, oe
-    end
-  end
-  if a and b and c then
-    return function(line, init)
-      local r = succ(line, init, vim.regex(a), { vim.regex(b), vim.regex(c) })
-      if not r then
-        return
-      end
-      local os, is, ie, oe = unpack(r)
-      oe = oe - 1
-      return os, is, ie, oe
-    end
-  end
-  assert(false)
-end
-
 function M.string(...)
   local chars = { ... }
   -- local cb = any(unpack(map(chars, search_str)))
-  local seek_cb = search_str(chars)
+  local seek_cb = str_seek_cb(chars)
   local name = string.format('quoted string: %s', table.concat(chars, ', '))
   return M.new { name = name, seek_cb = seek_cb }
 end

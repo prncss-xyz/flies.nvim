@@ -1,96 +1,82 @@
-local move_cursor = require('flies.objects.utils').move_cursor
-local to_pos = require('flies.objects.utils').to_pos
-local select_line_range = require('flies.objects.utils').select_line_range
-local count = require('flies.utils').count
-local line_bounds = require('flies.objects.utils').line_bounds
-
-local function line_start(line)
-  local s, _ = line_bounds('inner', line)
-  return to_pos(line, s)
-end
-
-local function line_end(line)
-  local _, e = line_bounds('inner', line)
-  return to_pos(line, e)
-end
-
-local function inner_start()
-  local max = vim.api.nvim_buf_line_count(0)
-  local row = 1
-  while true do
-    if row > max then
-      -- buffer is empty
-      return 1
-    end
-    local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
-    if not string.find(line, '^[%s]*$') then
-      return row
-    end
-    row = row + 1
-  end
-end
-
-local function inner_ending()
-  local row = vim.api.nvim_buf_line_count(0)
-  while true do
-    if row == 0 then
-      -- buffer is empty
-      return 1
-    end
-    local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
-    if not string.find(line, '^[%s]*$') then
-      return row
-    end
-    row = row - 1
-  end
-end
-
 local M = require('flies.objects.base').new()
+
+local super = getmetatable(M).__index
 
 function M.new()
   return setmetatable({}, { __index = M })
 end
 
+local utils = require 'flies.objects.utils'
+
+local function starting(domain)
+  if domain == 'outer' then
+    return { 1, 1 }
+  end
+  for row, line in utils.row_forward_iterator(1) do
+    local start = utils.line_inner_start(line)
+    if start then
+      return { row, start }
+    end
+  end
+  return { 1, 1 }
+end
+
+local function ending(domain)
+  local last_row = vim.api.nvim_buf_line_count(0)
+  if domain == 'outer' then
+    local line = utils.get_row(last_row)
+    local col = line:len()
+    if col == 0 then
+      col = 1
+    end
+    return { last_row, col }
+  end
+  for row, line in utils.row_backward_iterator(last_row) do
+    local end_ = utils.line_inner_end(line)
+    if end_ then
+      return { row, end_ }
+    end
+  end
+end
+
+local line = require('flies.objects.subline').line()
+
+function M:search_upward(domain, pos, count)
+  if vim.v.count == 1 or count > 1 then
+    return line:search_count(domain, pos, count)
+  end
+
+  if domain == 'both' then
+    return starting 'outer', starting 'inner', ending 'inner', ending 'outer'
+  else
+    return starting(domain), ending(domain)
+  end
+end
+
+function M:search_forward(domain, pos, count)
+  if vim.v.count == 1 or count > 1 then
+    return line:search_count(domain, pos, count)
+  end
+
+  if domain == 'both' then
+    return ending 'outer', ending 'inner', ending 'inner', ending 'outer'
+  else
+    return ending(domain), ending(domain)
+  end
+end
+
+function M:search_backward(domain, _, _)
+  if domain == 'both' then
+    return starting 'outer',
+      starting 'inner',
+      starting 'inner',
+      starting 'outer'
+  else
+    return starting(domain), starting(domain)
+  end
+end
+
 M.name = 'buffer'
 M.blank_text_object = true
-
-function M:textobject_outer_plain(_)
-  local max = vim.api.nvim_buf_line_count(0)
-  select_line_range(1, max)
-end
-
-function M:textobject_inner_plain(_, _)
-  local row_s = inner_start()
-  if not row_s then
-    return
-  end
-  local row_e = inner_ending() or vim.api.nvim_buf_line_count(0)
-  select_line_range(row_s, row_e)
-end
-
-function M:move(domain, qualifier, _, _)
-  if qualifier == 'previous' then
-    if domain == 'outer' then
-      move_cursor({ 1, 0 }, 'V')
-    else
-      move_cursor(line_start(inner_start()), 'V')
-    end
-    return
-  end
-  local lines = vim.api.nvim_buf_line_count(0)
-  local c = count()
-  if c then
-    c = math.min(c, lines)
-    move_cursor(line_start(c), 'V')
-    return
-  end
-  local line
-  if domain == 'inner' then
-    line = inner_ending()
-  else
-    line = lines
-  end
-  move_cursor(line_end(line), 'V')
-end
 
 return M

@@ -58,7 +58,7 @@ function M.meta_move(mode)
         M.move(char, 'next', domain, start)
       end)
     end
-    M.move(char, qualifier, domain, start)
+    query_o:motion(qualifier, domain, start)
   else
     if mode == 'n' then
       require('flies.move_again').register(function()

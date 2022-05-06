@@ -1,4 +1,4 @@
-local M = require('flies.objects.base').new()
+local M = {}
 
 local t = require('flies.utils').t
 

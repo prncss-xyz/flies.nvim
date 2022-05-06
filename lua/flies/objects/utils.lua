@@ -134,20 +134,30 @@ function M.line_inner_end(line)
   return string.find(line, '.%s*$')
 end
 
-function M.line_bounds(domain, row)
-  local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
-  if line == '' then
-    return 1, 1
-  end
-  if domain == 'inner' then
-    local col_s = M.line_inner_start(line)
-    local col_e = M.line_outer_start(line)
-    return col_s, col_e
+function M.line_bounds(domain, line)
+  local oe = line:len()
+  if oe == 0 then
+    oe = 1
   end
   if domain == 'outer' then
-    return 1, line:len()
+    return 1, oe
+  end
+  local is = string.find(line, '.%S')
+  local ie = string.find(line, '.%s*$')
+  if domain == 'inner' then
+    return is, ie
+  end
+  if domain == 'both' then
+    return 1, is, ie, oe
   end
 end
+
+function M.line_ending(domain, line)
+  if domain == 'outer' then
+    return col
+  end
+end
+
 
 function M.line_ending_col(row)
   local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]

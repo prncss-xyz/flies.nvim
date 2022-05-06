@@ -1,4 +1,4 @@
-local M = setmetatable({}, { __index = require 'flies.objects.generic' })
+local M = setmetatable({}, { __index = require 'flies.objects.base' })
 
 function M.new(t)
   if type(t) == 'string' then
