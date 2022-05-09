@@ -1,5 +1,8 @@
 local M = {}
 
+local repeater = require 'flies.repeater'
+local query_obj = require('flies.utils').query_obj
+
 local t = require('flies.utils').t
 -- TODO: bad dependancy scheme, find better way to share config
 local flies = require 'flies'
@@ -19,7 +22,8 @@ end
 -- TODO: escape hatch
 -- TODO: o mode: if inside an object, actual behavior, if outside, reverse start, end
 function M.meta_move(mode)
-  local q = require('flies.repeater').querier(require'flies.utils'.query_obj)
+  repeater.init()
+  local q = repeater.querier(query_obj)
   if not q then
     return
   end
@@ -33,9 +37,12 @@ function M.meta_move(mode)
     vim.cmd 'normal! v'
   end
   if query_o then
-    local domain
-    if query_o.name == 'line' then
-      domain = 'inner'
+    local domain = require('flies.utils').get_path(
+      query_o,
+      'meta_move',
+      'domain'
+    )
+    if domain then
     elseif query_o.blank_text_object and mode == 'n' then
       domain = 'inner'
     elseif query_o.blank_text_object and mode ~= 'n' then
@@ -45,11 +52,16 @@ function M.meta_move(mode)
     else
       domain = 'inner'
     end
-    local start
-    if mode == 'n' or query_o.name == 'line' then
-      start = true
-    else
-      start = (qualifier == 'previous')
+    local start = require('flies.utils').get_path(query_o, 'meta_move', 'start')
+    if start == nil then
+      if mode == 'n' then
+        start = true
+      else
+        start = (qualifier == 'previous')
+      end
+    end
+    if query_o.name == 'line' then
+      start = false
     end
     if mode == 'n' then
       require('flies.move_again').register(function()
@@ -58,7 +70,7 @@ function M.meta_move(mode)
         M.move(char, 'next', domain, start)
       end)
     end
-    query_o:motion(qualifier, domain, start)
+    query_o:motion(domain, qualifier, start)
   else
     if mode == 'n' then
       require('flies.move_again').register(function()
@@ -71,8 +83,34 @@ function M.meta_move(mode)
   end
 end
 
+function M.move_current(domain)
+  repeater.init()
+  local q = repeater.querier(query_obj)
+  if not q then
+    return
+  end
+  local qualifier = q.qualifier
+  local start
+  if qualifier == 'plain' then
+    start = false
+  elseif qualifier == 'previous' then
+    start = true
+  else
+    return
+  end
+  local query_o = q.query
+  local char = q.query_char
+  if query_o then
+    query_o:move_current('inner', start)
+  else
+    jump(char, qualifier, true, vim.v.count1)
+  end
+  q.query:move_current(domain, start)
+end
+
 function M.append_insert()
-  local q = require('flies.repeater').querier(require'flies.utils'.query_obj)
+  repeater.init()
+  local q = repeater.querier(query_obj)
   if not q then
     return
   end
@@ -102,7 +140,8 @@ function M.append_insert()
 end
 
 function M.op(op, domain_param, noremap)
-  local q = require('flies.repeater').querier(require'flies.utils'.query_obj)
+  repeater.init()
+  local q = repeater.querier(query_obj)
   if not q then
     return
   end

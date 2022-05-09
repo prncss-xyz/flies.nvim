@@ -1,7 +1,5 @@
 local M = require('flies.objects.base').new()
 
-local super = getmetatable(M).__index
-
 function M.new()
   return setmetatable({}, { __index = M })
 end
@@ -41,16 +39,8 @@ end
 
 local line = require('flies.objects.subline').line()
 
-function M:search_upward(domain, pos, count)
-  if vim.v.count == 1 or count > 1 then
-    return line:search_count(domain, pos, count)
-  end
-
-  if domain == 'both' then
-    return starting 'outer', starting 'inner', ending 'inner', ending 'outer'
-  else
-    return starting(domain), ending(domain)
-  end
+function M:search_upward(domain, _, _)
+  return starting(domain), ending(domain)
 end
 
 function M:search_forward(domain, pos, count)
@@ -58,22 +48,11 @@ function M:search_forward(domain, pos, count)
     return line:search_count(domain, pos, count)
   end
 
-  if domain == 'both' then
-    return ending 'outer', ending 'inner', ending 'inner', ending 'outer'
-  else
-    return ending(domain), ending(domain)
-  end
+  return ending(domain), ending(domain)
 end
 
 function M:search_backward(domain, _, _)
-  if domain == 'both' then
-    return starting 'outer',
-      starting 'inner',
-      starting 'inner',
-      starting 'outer'
-  else
-    return starting(domain), starting(domain)
-  end
+  return starting(domain), starting(domain)
 end
 
 M.name = 'buffer'

@@ -1,13 +1,18 @@
 local M = require('flies.operations.base').new()
 
+local repeater = require 'flies.repeater'
+local query_obj = require('flies.utils').query_obj
+
 M.name = 'swap'
 
+local pos
 local domain
 local query
 local count
 local qualifier
 function M:query_n()
-  local q = require('flies.repeater').querier(require('flies.utils').query_obj)
+  repeater.init()
+  local q = repeater.querier(query_obj)
   if not q then
     return
   end
@@ -23,7 +28,7 @@ function M:query_n()
   vim.v.count = 0
   vim.v.count1 = 1
 
-  local pos = require('flies.utils').get_cursor()
+  pos = require('flies.utils').get_cursor()
   pos = query:search(domain, 'smart', pos, 1)
   if not pos then
     return
@@ -60,7 +65,7 @@ end
 function M:op(mode)
   local s1, e1 = require('flies.utils').get_marks_pos(mode)
   if mode == 'o' then
-    local s2, e2 = query:search(domain, 'smart', require('flies').cache.pos, 1)
+    local s2, e2 = query:search(domain, 'smart', pos, 1)
     post(s2, e2, s1, e1)
   elseif mode == 'x' then
     local q = require('flies.repeater').querier(

@@ -7,4 +7,10 @@ describe('get_path', function()
   it('should return value when path exists', function()
     assert.are.same(3, M.get_path({ toto = { titi = 3 } }, 'toto', 'titi'))
   end)
+  it('should return value when path exists', function()
+    assert.are.same(
+      false,
+      M.get_path({ toto = { titi = false } }, 'toto', 'titi')
+    )
+  end)
 end)

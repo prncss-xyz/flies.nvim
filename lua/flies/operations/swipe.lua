@@ -1,14 +1,16 @@
 local M = require('flies.operations.base').new()
 
+local repeater = require 'flies.repeater'
+local query_obj = require('flies.utils').query_obj
+
 M.name = 'swipe'
 
-function M:op(mode)
-  local s, e = require('flies.utils').get_marks_pos(mode)
-  dump('hello', s, e)
-end
+local q
 
 function M:query_n()
-  local q = require('flies.repeater').querier(require('flies.utils').query_obj)
+  repeater.init()
+  q = repeater.querier(query_obj)
+  q = require('flies.repeater').querier(require('flies.utils').query_obj)
   if not q then
     return
   end
@@ -20,6 +22,17 @@ function M:query_n()
     q.qualifier
   )
   return str
+end
+
+function M:op(mode)
+  local os, oe = require('flies.utils').get_marks_pos(mode)
+  if mode == 'o' then
+    local is, ie = q.query:innerize(os, oe)
+    if not is then
+      return
+    end
+    require('flies.utils').strip(os, is, ie, oe)
+  end
 end
 
 return M

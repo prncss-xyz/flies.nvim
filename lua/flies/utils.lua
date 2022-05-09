@@ -1,4 +1,5 @@
 local M = {}
+local util = require 'flies.objects.utils'
 
 function M.invert(t)
   local r = {}
@@ -146,7 +147,7 @@ end
 function M.get_path(o, ...)
   for _, p in ipairs { ... } do
     o = o[p]
-    if not o then
+    if o == nil then
       return
     end
   end
@@ -199,7 +200,45 @@ function M.lsp_edit(ls, cs, le, ce, text)
   }
 end
 
-function M.strip(os, is, ie, oe)
+function M.strip0(os, is, ie, oe)
+  is[2] = is[2] - 1
+  ie[2] = ie[2] + 1
+
+  local bufnr = vim.api.nvim_get_current_buf()
+
+  local edits = {}
+  if os[1] == is[1] then
+    table.insert(edits, M.lsp_edit(os[1] - 1, os[2] - 1, is[1] - 1, is[2], ''))
+  else
+    table.insert(edits, M.lsp_edit(os[1] - 1, 0, is[1] - 1, 0, ''))
+  end
+  for r = os[1], ie[1] - 1 do
+    table.insert(edits, M.lsp_edit(r, os[2] - 3, r, is[2], '.'))
+  end
+  table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
+  vim.lsp.util.apply_text_edits(edits, bufnr, 'utf-8')
+end
+
+function M.strip1(os, is, ie, oe)
+  is[2] = is[2] - 1
+  ie[2] = ie[2] + 1
+
+  local bufnr = vim.api.nvim_get_current_buf()
+
+  local edits = {}
+  if os[1] == is[1] then
+    table.insert(edits, M.lsp_edit(os[1] - 1, os[2] - 1, is[1] - 1, is[2], ''))
+  else
+    table.insert(edits, M.lsp_edit(os[1] - 1, 0, is[1] - 1, 0, ''))
+  end
+  for r = os[1], ie[1] - 1 do
+    table.insert(edits, M.lsp_edit(r, os[2] - 1, r, is[2], '.'))
+  end
+  table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
+  vim.lsp.util.apply_text_edits(edits, bufnr, 'utf-8')
+end
+
+function M.strip2(os, is, ie, oe)
   is[2] = is[2] - 1
   ie[2] = ie[2] + 1
 
@@ -214,9 +253,20 @@ function M.strip(os, is, ie, oe)
   for r = os[1], ie[1] - 1 do
     table.insert(edits, M.lsp_edit(r, os[2] - 1, r, is[2], ''))
   end
-  table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
+  local str = util.get_row(oe[1])
+  str = str:sub(oe[2] + 1)
+  -- table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
+  if str:len() > 0 then
+    table.insert(edits, M.lsp_edit(ie[1] - 1, os[2] - 1, oe[1], oe[2], str))
+  else
+    local r = ie[1] - 1
+    table.insert(edits, M.lsp_edit(r, os[2] - 1, r, is[2], ''))
+    table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
+  end
   vim.lsp.util.apply_text_edits(edits, bufnr, 'utf-8')
 end
+
+M.strip = M.strip1
 
 function M.swap(s1, e1, s2, e2, cursor_to_second)
   local range1 = M.to_lsp_range(s1, e1)
@@ -273,4 +323,5 @@ function M.swap(s1, e1, s2, e2, cursor_to_second)
     })
   end
 end
+
 return M

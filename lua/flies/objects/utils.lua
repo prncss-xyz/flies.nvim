@@ -1,20 +1,14 @@
 local M = {}
 
-local t = require('flies.utils').t
-
 -- adapted from https://github.com/nvim-treesitter/nvim-treesitter/blob/master/lua/nvim-treesitter/ts_utils.lua
 -- Set visual selection to range
 -- @param selection_mode One of "charwise" (default) or "v", "linewise" or "V",
 --   "blockwise" or "<C-v>" (as a string with 5 characters or a single character)
 
-local function infer_wiseness(s, e)
+function M.infer_wiseness(s, e)
   local line = M.get_row(s[1])
-  if s[1] == e[1] then
-    if s[2] == 1 and e[2] == line:len() then
-      return 'linewise'
-    else
-      return 'charwise'
-    end
+  if M.cmp(e, s) < 0 then
+    e, s = s, e
   end
   local is = M.line_inner_start(line)
   if is ~= s[2] then
@@ -35,7 +29,7 @@ function M.update_selection(s, e, selection_mode)
     return
   end
 
-  selection_mode = selection_mode or infer_wiseness(s, e)
+  selection_mode = selection_mode or M.infer_wiseness(s, e)
 
   vim.fn.setpos('.', { 0, s[1], s[2], 0 })
 
@@ -127,11 +121,13 @@ function M.move_cursor(pos, wiseness)
 end
 
 function M.line_inner_start(line)
-  return string.find(line, '%S')
+  -- parenthesis to get only first value
+  return (string.find(line, '%S'))
 end
 
 function M.line_inner_end(line)
-  return string.find(line, '.%s*$')
+  -- parenthesis to get only first value
+  return (string.find(line, '.%s*$'))
 end
 
 function M.line_bounds(domain, line)
@@ -147,9 +143,6 @@ function M.line_bounds(domain, line)
   if domain == 'inner' then
     return is, ie
   end
-  if domain == 'both' then
-    return 1, is, ie, oe
-  end
 end
 
 function M.line_ending(domain, line)
@@ -157,7 +150,6 @@ function M.line_ending(domain, line)
     return col
   end
 end
-
 
 function M.line_ending_col(row)
   local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]

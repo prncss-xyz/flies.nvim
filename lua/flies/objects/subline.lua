@@ -6,11 +6,6 @@ function M.format_result(domain, row, res)
     return res[1] and { row, res[1] }, res[4] and { row, res[4] }
   elseif domain == 'inner' then
     return res[2] and { row, res[2] }, res[3] and { row, res[3] }
-  elseif domain == 'both' then
-    return res[1] and { row, res[1] },
-      res[2] and { row, res[2] },
-      res[3] and { row, res[3] },
-      res[4] and { row, res[4] }
   else
     assert(false, string.format('unknown domain %q', domain))
   end
@@ -290,6 +285,7 @@ function M.line()
     seek_cb = line_seek_cb,
     blank_text_object = true,
     search_count = line_search_count,
+    meta_move = { start = false },
   }
 end
 

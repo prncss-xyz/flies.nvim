@@ -10,16 +10,20 @@ end
 
 -- query[name('textobject', domain, qualifier)](query, mode)
 
+function M:search_smart(domain, init)
+  local s, e = self:search_upward(domain, init, 1)
+  if s then
+    return s, e
+  end
+  return self:search_forward(domain, init, 1)
+end
+
 function M:search(domain, qualifier, init, count)
   if qualifier == 'up' then
     return self:search_upward(domain, init, count)
   end
   if qualifier == 'smart' then
-    local a, b, c, d = self:search_upward(domain, init, 1)
-    if a then
-      return a, b, c, d
-    end
-    return self:search_forward(domain, init, 1)
+    return self:search_smart(domain, init)
   end
   if qualifier == 'next' then
     return self:search_forward(domain, init, count)
@@ -33,6 +37,11 @@ function M:search(domain, qualifier, init, count)
   assert(false, string.format('unknown qualifier %q', qualifier))
 end
 
+function M:innerize(os, _)
+  local init = { os[1], os[2] }
+  return self:search_upward('inner', init, 1)
+end
+
 function M:search_cb(domain, qualifier, init, count, cb)
   if qualifier == 'hint' then
     self:hint(domain, cb)
@@ -41,36 +50,39 @@ function M:search_cb(domain, qualifier, init, count, cb)
   cb(self:search(domain, qualifier, init, count))
 end
 
-local function select(a, b, c, d)
-  if not a then
+local function select(s, e)
+  if not s then
     return
-  end
-  local pos = require('flies.utils').get_cursor()
-  local s, e
-  if d then
-    s, e = a, d
-    require('flies').cache = {
-      pos = pos,
-      is = b,
-      ie = c,
-    }
-  else
-    s, e = a, b
-    require('flies').cache = { pos = pos }
   end
   require('flies.objects.utils').update_selection(s, e)
 end
 
 function M:textobject(domain, qualifier)
   if qualifier == 'plain' then
-    if vim.v.count == vim.v.count1 then
-      qualifier = 'up'
-    else
+    if vim.v.count == 0 then
       qualifier = 'smart'
+    else
+      qualifier = 'up'
     end
   end
   local pos = require('flies.utils').get_cursor()
   self:search_cb(domain, qualifier, pos, vim.v.count1, select)
+end
+
+function M:move_current(domain, start)
+  local init = require('flies.utils').get_cursor()
+  local count = vim.v.count1
+  local s, e = self:search_upward(domain, init, count)
+  local p
+  if start then
+    p = s
+  else
+    p = e
+  end
+  if not p then
+    return
+  end
+  require('flies.utils').set_cursor(p)
 end
 
 function M:motion(domain, qualifier, start)
@@ -79,28 +91,15 @@ function M:motion(domain, qualifier, start)
     return
   end
   local s, e, p
-  local cmp = require('flies.objects.utils').cmp
   local init = require('flies.utils').get_cursor()
   -- TODO: compare actual bounds
   local count = vim.v.count1
-  s, e = self:search_upward(domain, init, 1)
-  p = start and s or e
   if qualifier == 'next' then
-    if p and cmp(p, init) > 0 then
-      count = count - 1
-    end
-    if count > 0 then
-      s, e = self:search_forward(domain, init, count)
-      p = start and s or e
-    end
+    s, e = self:search_forward(domain, init, count)
+    p = start and s or e
   elseif qualifier == 'previous' then
-    if p and cmp(p, init) < 0 then
-      count = count - 1
-    end
-    if count > 0 then
-      s, e = self:search_backward(domain, init, count)
-      p = start and s or e
-    end
+    s, e = self:search_backward(domain, init, count)
+    p = start and s or e
   else
     assert(false, string.format('unknown qualiier %q', qualifier))
     return

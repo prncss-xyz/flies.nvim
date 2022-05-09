@@ -74,9 +74,7 @@ function M:search_forward(domain, init, count)
             if cmp(ie, is) == -1 then
               is, ie = ie, nil
             end
-            if domain == 'both' then
-              return os, is, ie, oe
-            elseif domain == 'inner' then
+            if domain == 'inner' then
               return is, ie
             else
               assert(false, string.format('unknown domain %q', domain))
@@ -136,9 +134,7 @@ function M:search_backward(domain, init, count)
             if cmp(ie, is) == -1 then
               is, ie = ie, nil
             end
-            if domain == 'both' then
-              return os, is, ie, oe
-            elseif domain == 'inner' then
+            if domain == 'inner' then
               return is, ie
             else
               assert(false, string.format('unknown domain %q', domain))
@@ -231,9 +227,7 @@ function M:search_upward(domain, init, count)
             if cmp(ie, is) == -1 then
               is, ie = ie, nil
             end
-            if domain == 'both' then
-              return os, is, ie, oe
-            elseif domain == 'inner' then
+            if domain == 'inner' then
               return is, ie
             else
               assert(false, string.format('unknown domain %q', domain))
