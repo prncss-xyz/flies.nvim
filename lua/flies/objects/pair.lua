@@ -1,4 +1,7 @@
 local M = require('flies.objects.base').new()
+local util = require 'flies.objects.utils'
+local cmp = util.cmp
+local fun = require 'flies.util.fun'
 
 -- new
 -- local function search_forward(cb, in_place, count) end
@@ -24,220 +27,121 @@ function M.new(p)
   }, { __index = M })
 end
 
-local inner_start = require('flies.objects.utils').line_inner_start
-local inner_end = require('flies.objects.utils').line_inner_end
+function M:innerize(os, oe)
+  local is, ie
+  if os[1] == oe[1] then
+    is = { os[1], os[2] + 1 }
+    ie = { oe[1], oe[2] - 1 }
+  else
+    local is_row = os[1] + 1
+    local line = util.get_row(is_row)
+    local is_col = util.line_inner_start(line) or 1
+    is = { is_row, is_col }
 
-local cmp = require('flies.objects.utils').cmp
+    local ie_row = oe[1] - 1
+    line = util.get_row(is_row)
+    local ie_col = util.line_inner_end(line) or 1
+    ie = { ie_row, ie_col }
+  end
+  if cmp(is, ie) < 1 then
+    return is, ie
+  else
+    return ie
+  end
+end
 
-function M:search_forward(domain, init, count)
+function M:np_iterator(domain, init, forward, start, extremum)
   local l = {}
-  local targ
-  local os, is, ie, oe
-  for row, line in require('flies.objects.utils').row_forward_iterator(init[1]) do
-    local col_init
-    if row == init[1] then
-      col_init = init[2]
-    else
-      col_init = 1
-    end
-    local last_line = ''
-    for col = col_init, line:len() do
-      if is and not is[2] then
-        is[2] = inner_start(line)
-      end
-      local char = line:sub(col, col)
-      if self.l[char] then
-        -- opening
-        table.insert(l, self.l[char])
-        count = count - 1
-        if count == 0 then
-          targ = #l
-          os = { row, col }
-          if col == inner_end(line) then
-            is = { os[1] + 1, 1 } -- column will be figured out in next step
-          else
-            is = { os[1], os[2] + 1 }
-          end
+  local res = {}
+  local res_s = {}
+  local i = 0
+  local openers = forward and self.l or self.r
+  local char_iter = forward and util.char_forward_iterator
+    or util.char_backward_iterator
+  local iter = char_iter(init, extremum)
+
+  return function()
+    while true do
+      if #l == 0 then
+        if #res > 0 then
+          i = i + 1
+          return i, unpack(table.remove(res))
         end
-      elseif char == l[#l] then
+      end
+      local row, col, char = iter()
+      if not row then
+        return
+      end
+      if row == init[1] and col == init[2] then
+      else
         -- closing
-        if targ and #l == targ then
-          oe = { row, col }
-          if col == 1 then
-            ie = { oe[1] - 1, string.len(last_line) }
-          else
-            ie = { oe[1], oe[2] - 1 }
+        if char == l[#l] then
+          table.remove(l)
+          local s = table.remove(res_s)
+          local e = { row, col }
+          if not forward then
+            s, e = e, s
           end
-          if domain == 'outer' then
-            return os, oe
-          else
-            if cmp(ie, is) == -1 then
-              is, ie = ie, nil
-            end
-            if domain == 'inner' then
-              return is, ie
-            else
-              assert(false, string.format('unknown domain %q', domain))
-            end
+          if domain == 'inner' then
+            s, e = self:innerize(s, e)
           end
+          if forward == start then
+            table.insert(res, { s, e })
+          else
+            i = i + 1
+            return i, s, e
+          end
+        elseif openers[char] then
+          -- opening
+          table.insert(l, openers[char])
+          table.insert(res_s, { row, col })
         end
-        table.remove(l)
       end
-      last_line = line
     end
   end
 end
 
-function M:search_backward(domain, init, count)
-  local l = {}
-  local targ
-  local os, is, ie, oe
-  for row, line in require('flies.objects.utils').row_backward_iterator(init[1]) do
-    local col_init
-    if row == init[1] then
-      col_init = init[2]
-    else
-      col_init = line:len()
-    end
-    local last_line = ''
-    for col = col_init, 1, -1 do
-      if is and not is[2] then
-        is[2] = inner_end(line)
-      end
-      local char = line:sub(col, col)
-      local c = self.r[char]
-      if c then
-        -- opening
-        table.insert(l, c)
-        count = count - 1
-        if count == 0 then
-          targ = #l
-          oe = { row, col }
-          if col == 1 then
-            ie = { oe[1] - 1, string.len(last_line) } -- column will be figured out in next step
-          else
-            ie = { oe[1], oe[2] - 1 }
-          end
-        end
+function M:up_iterator(domain, init)
+  local skip_first_rev = true
+  local reverse = coroutine.create(function(target, e)
+    local openers = self.r
+    local l = {}
+    local i = 0
+    local s
+    for row, col, char in util.char_backward_iterator(init) do
+      if row == init[1] and col == init[2] and skip_first_rev then
       elseif char == l[#l] then
-        -- closing
-        if targ and #l == targ then
-          os = { row, col }
-          if col == string.len(line) then
-            is = { os[1] + 1, 1 }
-          else
-            is = { os[1], os[2] + 1 }
-          end
-          if domain == 'outer' then
-            return os, oe
-          else
-            if cmp(ie, is) == -1 then
-              is, ie = ie, nil
-            end
-            if domain == 'inner' then
-              return is, ie
-            else
-              assert(false, string.format('unknown domain %q', domain))
-            end
-          end
-        end
         table.remove(l)
-      end
-      last_line = line
-    end
-  end
-end
-
--- TODO: index == len + 1 ??
--- TODO: match inside ts node (comment, string)
-function M:search_upward(domain, init, count)
-  local l1 = {}
-  local l2 = {}
-  local os, is, ie, oe
-  local last_line = ''
-  local fc = true
-  for row, line in require('flies.objects.utils').row_forward_iterator(init[1]) do
-    local col_init
-    if row == init[1] then
-      col_init = init[2]
-      if self.l[line:sub(col_init, col_init)] then
-        col_init = col_init + 1
-        fc = false
-      end
-    else
-      col_init = 1
-    end
-    for col = col_init, line:len() do
-      local char = line:sub(col, col)
-      if self.l[char] then
+      elseif openers[char] then
         -- opening
-        table.insert(l1, self.l[char])
-      elseif char == l1[#l1] then
-        -- closing
-        table.remove(l1)
-      elseif self.r[char] then
-        table.insert(l2, self.r[char])
-        count = count - 1
-        if count == 0 then
-          oe = { row, col }
-          if col == 1 then
-            ie = { oe[1] - 1, string.len(last_line) }
-          else
-            ie = { oe[1], oe[2] - 1 }
-          end
-          goto done
+        table.insert(l, openers[char])
+      elseif #l == 0 and char == target then
+        if domain == 'inner' then
+          s, e = self:innerize({ row, col }, e)
         end
+        i = i + 1
+        target, e = coroutine.yield(i, s, e)
       end
-      last_line = line
+    end
+  end)
+  local openers = self.l
+  local closers = self.r
+  local function main(row, col, char)
+    local l = {}
+    if row == init[1] and col == init[2] and openers[char] then
+      skip_first_rev = false
+    elseif char == l[#l] then
+      -- closing
+      table.remove(l)
+    elseif openers[char] then
+      -- opening
+      table.insert(l, openers[char])
+    elseif #l == 0 and closers[char] then
+      local _, i, s, e = coroutine.resume(reverse, closers[char], { row, col })
+      return i, s, e
     end
   end
-  if true then
-    return
-  end
-  ::done::
-  require('flies.utils').reverse(l2)
-  for row, line in require('flies.objects.utils').row_backward_iterator(init[1]) do
-    local col_init
-    if row == init[1] then
-      col_init = init[2]
-      if fc then
-        col_init = col_init - 1
-      end
-    else
-      col_init = line:len()
-    end
-    for col = col_init, 1, -1 do
-      local char = line:sub(col, col)
-      if self.r[char] then
-        -- opening
-        table.insert(l2, self.r[char])
-      elseif char == l2[#l2] then
-        table.remove(l2)
-        -- closing
-        if #l2 == 0 then
-          os = { row, col }
-          if col == string.len(line) then
-            is = { os[1] + 1, 1 }
-          else
-            is = { os[1], os[2] + 1 }
-          end
-          if domain == 'outer' then
-            return os, oe
-          else
-            if cmp(ie, is) == -1 then
-              is, ie = ie, nil
-            end
-            if domain == 'inner' then
-              return is, ie
-            else
-              assert(false, string.format('unknown domain %q', domain))
-            end
-          end
-        end
-      end
-      last_line = line
-    end
-  end
+  return require 'flies.util.iter'.transform(main)(util.char_forward_iterator(init))
 end
 
 return M
