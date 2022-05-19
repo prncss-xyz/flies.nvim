@@ -34,7 +34,7 @@ local function get_lua_range(range)
         node_range[4],
       }, 0),
     }
-  else
+  elseif range.node then
     vim_range = {
       ts_utils.get_vim_range({ range.node:range() }, 0),
     }
@@ -42,10 +42,13 @@ local function get_lua_range(range)
   return { vim_range[1], vim_range[2] }, { vim_range[3], vim_range[4] }
 end
 
-function M:is_node_inside_range(os, oe, inner_node)
+function M:is_node_inside_range(strict, os, oe, inner_node)
   local i_start_line, i_start_col, i_end_line, i_end_col = inner_node:range()
   local cstart = cmp({ i_start_line, i_start_col }, { os[1] - 1, os[2] - 1 })
   local cend = cmp({ i_end_line, i_end_col }, { oe[1] - 1, oe[2] }) -- HACK: why?
+  if strict and cstart == 0 and cend == 0 then
+    return false
+  end
   if cstart < 0 then
     return false
   end
@@ -55,7 +58,7 @@ function M:is_node_inside_range(os, oe, inner_node)
   return true
 end
 
-local function is_node_stricly_inside_node(inner_node, outer_node)
+local function is_node_inside_node(strict, inner_node, outer_node)
   local i_start_line, i_start_col, i_end_line, i_end_col = inner_node:range()
   local o_start_line, o_start_col, o_end_line, o_end_col = outer_node:range()
   local cstart = cmp(
@@ -63,7 +66,7 @@ local function is_node_stricly_inside_node(inner_node, outer_node)
     { o_start_line, o_start_col }
   )
   local cend = cmp({ i_end_line, i_end_col }, { o_end_line, o_end_col })
-  if cstart == 0 and cend == 0 then
+  if strict and cstart == 0 and cend == 0 then
     return false
   end
   if cstart < 0 then
@@ -107,7 +110,7 @@ local function earliest(m1, m2)
   return latest(m2, m1)
 end
 
-local function shortest_latest(m1, m2)
+local function widest_latest(m1, m2)
   local node_length = ts_utils.node_length
   local length1 = node_length(m1.node)
   local length2 = node_length(m2.node)
@@ -121,8 +124,8 @@ local function shortest_latest(m1, m2)
   return latest(m1, m2)
 end
 
-local function widest_latest(m1, m2)
-  return shortest_latest(m2, m1)
+local function shortest_earliest(m1, m2)
+  return widest_latest(m2, m1)
 end
 
 function M:innerize(os, oe)
@@ -131,7 +134,7 @@ function M:innerize(os, oe)
   end
 
   local function filter_cb(m)
-    return m.node and self:is_node_inside_range(os, oe, m.node)
+    return m.node and self:is_node_inside_range(true, os, oe, m.node)
   end
 
   local matches = search(self.query2, filter_cb, widest_latest)
@@ -142,51 +145,42 @@ function M:innerize(os, oe)
   return get_lua_range(match)
 end
 
-function M:_search_np(domain, pos, forward, count)
-  local row, col = pos[1] - 1, pos[2] - 1
+function M:np_iterator(domain, pos, forward, start, extremum)
   local query = domain == 'inner' and self.query2 or self.query1
-
-  -- TODO: should it be cached
-  local sort_cb = forward and earliest or latest
-  local function filter_cb(match)
-    local range = { match.node:range() }
+  local bufnr = vim.api.nvim_get_current_buf()
+  local matches = ts_query.get_capture_matches_recursively(
+    bufnr,
+    query,
+    'textobjects'
+  )
+  local res = {}
+  for _, match in ipairs(matches) do
+    local s, e = get_lua_range(match)
+    local p = start and s or e
     if forward then
-      return cmp({ row, col }, { range[1], range[2] }) < 0
+      if cmp(pos, p) < 0 and (not extremum or p[1] <= extremum) then
+        table.insert(res, { s, e })
+      end
     else
-      return cmp({ row, col }, { range[3], range[4] }) > 0
+      if cmp(pos, p) > 0 and (not extremum or p[1] >= extremum) then
+        table.insert(res, { s, e })
+      end
     end
   end
-  local matches = search(query, filter_cb, sort_cb)
-  local match = matches[count]
-
-  if not match then
-    return
+  local index = start and 1 or 2
+  local function sort_cb(a, b)
+    if forward then
+      return cmp(a[index], b[index]) < 0
+    else
+      return cmp(a[index], b[index]) > 0
+    end
   end
-  return get_lua_range(match)
-end
-
-function M:search_all(domain, start, end_)
-  local query = domain == 'inner' and self.query2 or self.query1
-  local function filter_cb(match)
-    local range = { match.node:range() }
-    return range[1] >= start - 1 and range[1] < end_ - 1
-  end
-  local matches = search(query, filter_cb)
-  return vim.tbl_map(function(match)
-    return { get_lua_range(match) }
-  end, matches)
-end
-
-function M:search_forward(domain, pos, count)
-  return self:_search_np(domain, pos, true, count)
-end
-
-function M:search_backward(domain, pos, count)
-  return self:_search_np(domain, pos, false, count)
+  table.sort(res, sort_cb)
+  return require('flies.utils').from_list(res)
 end
 
 -- TODO: skip query1 when blank_text_object
-function M:search_upward(domain, pos, count)
+function M:up_cb(domain, pos, count)
   local row, col = pos[1] - 1, pos[2] - 1
   local function filter_cb(m)
     return m.node and ts_utils.is_in_node_range(m.node, row, col)
@@ -195,7 +189,7 @@ function M:search_upward(domain, pos, count)
   -- disabling innerize heuristic on blank_text_object
   local query = self.blank_text_object and domain == 'inner' and self.query2
     or self.query1
-  local matches = search(query, filter_cb, shortest_latest)
+  local matches = search(query, filter_cb, shortest_earliest)
   local match = matches[count]
   if not match then
     return

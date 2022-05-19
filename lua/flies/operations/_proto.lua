@@ -4,7 +4,6 @@ M.name = 'proto'
 
 function M:op(mode)
   local s, e = require('flies.utils').get_marks_pos(mode)
-  dump('hello', s, e)
 end
 
 function M:query_n()

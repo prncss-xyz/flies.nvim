@@ -40,7 +40,7 @@ local function map_texobjects()
           'x',
           domain_map .. qualifier_map .. query_map,
           string.format(
-            ':<c-u>lua require"flies".textobject(%q, %q, %q)<cr>',
+            ':<c-u>lua require"flies".textobject(%q, %q, %q, "x")<cr>',
             query_map,
             domain,
             qualifier

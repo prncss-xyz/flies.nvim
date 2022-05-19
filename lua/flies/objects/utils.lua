@@ -1,5 +1,7 @@
 local M = {}
 
+local iter = require 'flies.util.iterator'
+
 -- adapted from https://github.com/nvim-treesitter/nvim-treesitter/blob/master/lua/nvim-treesitter/ts_utils.lua
 -- Set visual selection to range
 -- @param selection_mode One of "charwise" (default) or "v", "linewise" or "V",
@@ -10,26 +12,38 @@ function M.infer_wiseness(s, e)
   if M.cmp(e, s) < 0 then
     e, s = s, e
   end
-  local is = M.line_inner_start(line)
-  if is ~= s[2] then
+  local is = M.line_inner_start(line) or 1
+  if is < s[2] then
     return 'charwise'
   end
   line = M.get_row(e[1])
-  local ie = M.line_inner_end(line)
-  if ie ~= e[2] then
+  local ie = M.line_inner_end(line) or 1
+  if ie > e[2] then
+    return 'charwise'
+  end
+  if s[1] == e[1] then
+    if s[2] == 1 and e[2] == line:len() then
+      return 'linewise'
+    end
+    if s[2] < is then
+      return 'linewise'
+    end
+    if e[2] > ie then
+      return 'linewise'
+    end
     return 'charwise'
   end
   return 'linewise'
 end
 
-function M.update_selection(s, e, selection_mode)
+function M.update_selection(s, e, wiseness)
   -- FIXME: cutting a zero length range should leave in insert mode, as in targets
   if e == nil then
     vim.fn.setpos('.', { 0, s[1], s[2], 0 })
     return
   end
 
-  selection_mode = selection_mode or M.infer_wiseness(s, e)
+  wiseness = wiseness or M.infer_wiseness(s, e)
 
   vim.fn.setpos('.', { 0, s[1], s[2], 0 })
 
@@ -38,7 +52,7 @@ function M.update_selection(s, e, selection_mode)
   ---- Call to `nvim_replace_termcodes()` is needed for sending appropriate
   ---- command to enter blockwise mode
   local mode_string = vim.api.nvim_replace_termcodes(
-    v_table[selection_mode] or selection_mode,
+    v_table[wiseness] or wiseness,
     true,
     true,
     true
@@ -68,30 +82,98 @@ function M.get_row(row)
   return vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
 end
 
-function M.row_forward_iterator(start)
-  return function(max, row)
-    if row == max then
-      return
-    end
-    row = row + 1
-    local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
-    return row, line
-  end,
-    vim.api.nvim_buf_line_count(0),
-    start and start - 1 or 0
+local function row_forward_iterator(max, row)
+  if row >= max then
+    return
+  end
+  row = row + 1
+  local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
+  return row, line
 end
 
-function M.row_backward_iterator(start)
-  return function(_, row)
-    row = row - 1
-    if row == 0 then
-      return
-    end
-    local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
-    return row, line
-  end,
-    nil,
+function M.row_forward_iterator(start, maximum)
+  local lc = vim.api.nvim_buf_line_count(0)
+  maximum = maximum or lc
+  if maximum > lc then
+    maximum = lc
+  end
+  return row_forward_iterator, maximum, start and start - 1 or 0
+end
+
+local function row_backward_iterator(min0, row)
+  row = row - 1
+  if row <= min0 then
+    return
+  end
+  local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
+  return row, line
+end
+
+function M.row_backward_iterator(start, min)
+  min = min or 1
+  if min < 1 then
+    min = 1
+  end
+  return row_backward_iterator,
+    min - 1,
     start and start + 1 or vim.api.nvim_buf_line_count(0) + 1
+end
+
+local function line_forward_iterator(line, i)
+  i = i + 1
+  local char = string.sub(line, i, i)
+  if char then
+    return i, char
+  end
+end
+
+function M.line_forward_iterator(line, i)
+  i = i or 1
+  return line_forward_iterator, line, i
+end
+
+function M.char_forward_iterator(init, maximum)
+  local f, s, row = M.row_forward_iterator(init[1], maximum)
+  local line
+  row, line = f(s, row)
+  if not row then
+    return
+  end
+  local col
+  return function()
+    col = col and col + 1 or init[2]
+    while col > line:len() do
+      col = 1
+      row, line = f(s, row)
+      if not row then
+        return
+      end
+    end
+    return row, col, line:sub(col, col)
+  end
+end
+
+function M.char_backward_iterator(init, minimum)
+  local f, s, row = M.row_backward_iterator(init[1], minimum)
+  local line
+  row, line = f(s, row)
+  if not row then
+    return
+  end
+  local col
+  return function()
+    col = col and col - 1 or init[2]
+    while col == 0 do
+      row, line = f(s, row)
+      if not row then
+        return
+      end
+      col = line:len()
+    end
+    if line then
+      return row, col, line:sub(col, col)
+    end
+  end
 end
 
 function M.to_pos(row, col)

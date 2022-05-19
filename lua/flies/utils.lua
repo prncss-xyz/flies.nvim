@@ -9,6 +9,28 @@ function M.invert(t)
   return r
 end
 
+local function ripairs(s, i)
+  i = i - 1
+  if i > 0 then
+    return i, s[i]
+  end
+end
+
+function M.ripairs(t)
+  return ripairs, t, #t + 1
+end
+
+function M.from_list(list)
+  local i = 0
+  return function()
+    i = i + 1
+    local res = list[i]
+    if res then
+      return unpack(res)
+    end
+  end
+end
+
 function M.reverse(t)
   local i = 1
   local j
@@ -20,16 +42,6 @@ function M.reverse(t)
     t[i], t[j] = t[j], t[i]
     i = i + 1
   end
-end
-
-function M.count()
-  if vim.v.count == vim.v.count1 then
-    return vim.v.count
-  end
-end
-
-function M.name(...)
-  return table.concat({ ... }, '_')
 end
 
 function M.t(str)

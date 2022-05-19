@@ -37,25 +37,30 @@ local function ending(domain)
   end
 end
 
-local line = require('flies.objects.subline').line()
-
-function M:search_upward(domain, _, _)
-  return starting(domain), ending(domain)
+function M:up_iterator(domain, _)
+  return require('flies.utils').from_list {
+    { starting(domain), ending(domain) },
+  }
 end
 
-function M:search_forward(domain, pos, count)
-  if vim.v.count == 1 or count > 1 then
-    return line:search_count(domain, pos, count)
+function M:np_iterator(domain, _, forward, start)
+  if forward and start then
+    return require('flies.utils').from_list {
+      { ending(domain), starting(domain) },
+    }
+  else
+    return require('flies.utils').from_list {
+      { starting(domain), ending(domain) },
+    }
   end
-
-  return ending(domain), ending(domain)
-end
-
-function M:search_backward(domain, _, _)
-  return starting(domain), starting(domain)
 end
 
 M.name = 'buffer'
 M.blank_text_object = true
+
+local line = require('flies.objects.subline.line')
+function M:up_cb(domain, init, count)
+  return line:up_cb(domain, init, count)
+end
 
 return M

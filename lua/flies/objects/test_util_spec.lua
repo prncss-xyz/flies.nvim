@@ -53,8 +53,25 @@ end)
 
 describe('__index', function()
   it('should return unmocked functions', function()
-    with_fake_buf({}, function ()
+    with_fake_buf({}, function()
       assert.is.truthy(require('flies.objects.utils').cmp)
     end)
+  end)
+end)
+
+describe('iter_to_list', function()
+  it('should build a {start, end} list from iterator', function()
+    local function iter(_, i)
+      i = i + 1
+      if i <= 3 then
+        return i, { i, i }, { i, i }
+      end
+    end
+    assert.are.same(
+      { { 1, 1 }, { 1, 1 } },
+      { { 2, 2 }, { 2, 2 } },
+      { { 3, 3 }, { 3, 3 } },
+      M.iter_to_list(iter, nil, 0)
+    )
   end)
 end)

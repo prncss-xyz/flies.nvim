@@ -60,8 +60,8 @@ function M.meta_move(mode)
         start = (qualifier == 'previous')
       end
     end
-    if query_o.name == 'line' then
-      start = false
+    if query_o.name == 'line' and qualifier == 'previous' then
+      start = true
     end
     if mode == 'n' then
       require('flies.move_again').register(function()

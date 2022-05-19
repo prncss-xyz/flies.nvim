@@ -62,4 +62,16 @@ function M.with_fake_buf(buf, cb)
   end)
 end
 
+function M.iter_to_list(f, state, i)
+  local res = {}
+  local s, e
+  while i ~= nil do
+    i, s, e = f(state, i)
+    if i then
+      res[i] = { s, e }
+    end
+  end
+  return res
+end
+
 return M
