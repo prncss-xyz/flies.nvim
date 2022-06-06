@@ -217,10 +217,30 @@ end
 
 -- %f[set] matches an empty string such that next char belongs to set and previous does not
 
+local magic = '().%+-*?[]^$'
+local exclude = '_'
+local function ascii_range(acc, from, to_)
+  for j = from, to_ do
+    local char = string.char(j)
+    if not string.find(exclude, char, 1, true) then
+      if string.find(magic, char, 1, true) then
+        char = '%' .. char
+      end
+      acc = acc .. char
+    end
+  end
+  return acc
+end
+local punctuation_chars = ''
+punctuation_chars = ascii_range(punctuation_chars, 33, 47)
+punctuation_chars = ascii_range(punctuation_chars, 58, 64)
+punctuation_chars = ascii_range(punctuation_chars, 91, 96)
+punctuation_chars = ascii_range(punctuation_chars, 123, 126)
+
 function M.word()
   return M.new {
     name = 'word',
-    seek_cb = M.lua_pattern '()[%w_]+(%s*)',
+    seek_cb = M.lua_pattern('()[^%s' .. punctuation_chars .. ']+(%s*)'),
     blank_text_object = true,
   }
 end
@@ -229,9 +249,8 @@ function M.vimword()
   return M.new {
     name = 'vimword',
     seek_cb = M.any(
-      M.lua_pattern '%S$',
-      M.lua_pattern '()%S(%s+)',
-      M.lua_pattern '()[%w_]+(%s*)'
+      M.lua_pattern('()[' .. punctuation_chars .. ']+(%s*)'),
+      M.lua_pattern('()[^%s' .. punctuation_chars .. ']+(%s*)')
     ),
     blank_text_object = true,
   }
