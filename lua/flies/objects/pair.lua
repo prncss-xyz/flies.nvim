@@ -60,10 +60,10 @@ function M:np_iterator(domain, init, forward, start, extremum)
   local limit_reverse
   local limit_direct
   if forward then
-    limit_direct = extremum or init[1] + M.lookup_lines
+    limit_direct = init[1] + M.lookup_lines
     limit_reverse = init[1] - M.lookup_lines
   else
-    limit_direct = extremum or init[1] - M.lookup_lines
+    limit_direct = init[1] - M.lookup_lines
     limit_reverse = init[1] + M.lookup_lines
   end
   local res = {}
@@ -99,6 +99,12 @@ function M:np_iterator(domain, init, forward, start, extremum)
   end
   local l = {}
   local function main(row, col, char)
+    if forward and extremum and row > extremum then
+      return
+    end
+    if not forward and extremum and row < extremum then
+      return
+    end
     if row == init[1] and col == init[2] and openers[char] then
       skip_first_rev = false
       return f.null

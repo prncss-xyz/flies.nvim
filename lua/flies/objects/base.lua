@@ -21,26 +21,26 @@ end
 function M:search_plain(domain, init, count)
   if count then
     if self.up_cb then
-      local s, e = self:up_cb(domain, init, count)
+      local s, e, w = self:up_cb(domain, init, count)
       if s then
-        return s, e
+        return s, e, w
       end
     elseif self.up_iterator then
-      local s, e = iter.nth(count)(self:up_iterator(domain, init))
+      local s, e, w = iter.nth(count)(self:up_iterator(domain, init))
       if s then
-        return s, e
+        return s, e, w
       end
     end
   else
     if self.up_iterator then
-      local s, e = iter.head(self:up_iterator(domain, init))
+      local s, e, w = iter.head(self:up_iterator(domain, init))
       if s then
-        return s, e
+        return s, e, w
       end
     elseif self.up_cb then
-      local s, e = self:up_cb(domain, init, 1)
+      local s, e, w = self:up_cb(domain, init, 1)
       if s then
-        return s, e
+        return s, e, w
       end
     end
   end
@@ -122,7 +122,7 @@ function M:motion(domain, qualifier, start)
     M.jump(start)(s, e)
     return
   end
-  local s, e = iter.head(
+  local s, e, w = iter.head(
     self:np_iterator(domain, pos, qualifier == 'next', start)
   )
   if s then
@@ -140,7 +140,7 @@ function M:jump_target_gtr(domain)
   local jump_targets = {}
   local indirect_jump_targets = {}
   local index = 0
-  for s, e in self:np_iterator(domain, { start, 0 }, true, true, end_) do
+  for s, e, w in self:np_iterator(domain, { start, 0 }, true, true, end_) do
     index = index + 1
     local line = s[1] - 1
     local column = s[2]
@@ -148,7 +148,7 @@ function M:jump_target_gtr(domain)
       line = line,
       column = column,
       window = 0,
-      object = { s, e },
+      object = { s, e, w },
     })
     table.insert(indirect_jump_targets, {
       index = index,

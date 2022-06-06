@@ -163,12 +163,19 @@ function M.op(op, domain_param, noremap)
   vim.api.nvim_feedkeys(t(str), 'n', true)
 end
 
--- TODO: only if successful
-function M.op_insert(op, domain_param, noremap)
-  M.op(op, domain_param, noremap)
-  vim.schedule(function()
-    vim.cmd 'startinsert'
-  end)
+function M.bind_op(op, domain_param, name, noremap)
+  if noremap == nil then
+    noremap = true
+  end
+  vim.api.nvim_set_keymap('n', string.format('<Plug>(%s)', name), function()
+    M.op(op, domain_param, noremap)
+  end, {})
+  vim.api.nvim_set_keymap(
+    'x',
+    string.format('<Plug>(%s)', name),
+    op,
+    { noremap = noremap }
+  )
 end
 
 return M

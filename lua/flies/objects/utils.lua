@@ -36,8 +36,10 @@ function M.infer_wiseness(s, e)
   return 'linewise'
 end
 
+-- Start visual selection in appropriate mode
+local v_table = { charwise = 'v', linewise = 'V', blockwise = '<C-v>' }
+
 function M.update_selection(s, e, wiseness)
-  -- FIXME: cutting a zero length range should leave in insert mode, as in targets
   if e == nil then
     vim.fn.setpos('.', { 0, s[1], s[2], 0 })
     return
@@ -47,8 +49,6 @@ function M.update_selection(s, e, wiseness)
 
   vim.fn.setpos('.', { 0, s[1], s[2], 0 })
 
-  -- Start visual selection in appropriate mode
-  local v_table = { charwise = 'v', linewise = 'V', blockwise = '<C-v>' }
   ---- Call to `nvim_replace_termcodes()` is needed for sending appropriate
   ---- command to enter blockwise mode
   local mode_string = vim.api.nvim_replace_termcodes(
@@ -198,7 +198,7 @@ function M.set_selection(start, ending, wiseness)
   vim.fn.setpos('.', { 0, ending[1], ending[2] + 1, 0 })
 end
 
-function M.move_cursor(pos, wiseness)
+function M.move_cursor(pos)
   vim.api.nvim_win_set_cursor(0, pos)
 end
 
@@ -224,12 +224,6 @@ function M.line_bounds(domain, line)
   local ie = string.find(line, '.%s*$')
   if domain == 'inner' then
     return is, ie
-  end
-end
-
-function M.line_ending(domain, line)
-  if domain == 'outer' then
-    return col
   end
 end
 
