@@ -1,4 +1,4 @@
-local M = setmetatable({}, { __index = require 'flies.objects.base' })
+local M = require('flies.objects.base'):new()
 local utils = require 'flies.objects.utils'
 local f = require 'flies.util.iterator'
 
@@ -130,11 +130,6 @@ function M:np_iterator(domain, init, forward, start, extremum)
   end)
 end
 
-function M.new(o)
-  setmetatable(o, { __index = M })
-  return o
-end
-
 -- TODO: change move to move char after separator
 
 local function succ(line, init, p1, pats)
@@ -206,14 +201,27 @@ local function lua_regex_escape_char(char)
   return string.format('[%s]', char)
 end
 
-function M.separator(char_name)
+M.separator = M:new()
+
+function M.separator:new(char_name)
   local char_pat = lua_regex_escape_char(char_name)
   local seek_cb = M.lua_pattern(
     string.format('(%s).-()(%s)', char_pat, char_pat)
   )
   local name = string.format('between %q', char_name)
-  return M.new { name = name, seek_cb = seek_cb }
+  return self:super('new', { name = name, seek_cb = seek_cb })
 end
+
+-- M.separator = M:new()
+--
+-- function M.separator(char_name)
+--   local char_pat = lua_regex_escape_char(char_name)
+--   local seek_cb = M.lua_pattern(
+--     string.format('(%s).-()(%s)', char_pat, char_pat)
+--   )
+--   local name = string.format('between %q', char_name)
+--   return M:new { name = name, seek_cb = seek_cb }
+-- end
 
 -- %f[set] matches an empty string such that next char belongs to set and previous does not
 
@@ -237,32 +245,26 @@ punctuation_chars = ascii_range(punctuation_chars, 58, 64)
 punctuation_chars = ascii_range(punctuation_chars, 91, 96)
 punctuation_chars = ascii_range(punctuation_chars, 123, 126)
 
-function M.word()
-  return M.new {
-    name = 'word',
-    seek_cb = M.lua_pattern('()[^%s' .. punctuation_chars .. ']+(%s*)'),
-    blank_text_object = true,
-  }
-end
+M.word = M:new {
+  name = 'word',
+  seek_cb = M.lua_pattern('()[^%s' .. punctuation_chars .. ']+(%s*)'),
+  blank_text_object = true,
+}
 
-function M.vimword()
-  return M.new {
-    name = 'vimword',
-    seek_cb = M.any(
-      M.lua_pattern('()[' .. punctuation_chars .. ']+(%s*)'),
-      M.lua_pattern('()[^%s' .. punctuation_chars .. ']+(%s*)')
-    ),
-    blank_text_object = true,
-  }
-end
+M.vimword = M:new {
+  name = 'vimword',
+  seek_cb = M.any(
+    M.lua_pattern('()[' .. punctuation_chars .. ']+(%s*)'),
+    M.lua_pattern('()[^%s' .. punctuation_chars .. ']+(%s*)')
+  ),
+  blank_text_object = true,
+}
 
-function M.bigword()
-  return M.new {
-    name = 'bigword',
-    seek_cb = M.lua_pattern '()%S+(%s*)',
-    blank_text_object = true,
-  }
-end
+M.bigword = M:new {
+  name = 'bigword',
+  seek_cb = M.lua_pattern '()%S+(%s*)',
+  blank_text_object = true,
+}
 
 local function str_seek_cb(delims)
   local d = require('flies.utils').invert(delims)
@@ -290,12 +292,14 @@ local function str_seek_cb(delims)
   end
 end
 
-function M.string(...)
-  local chars = { ... }
+M.string = M:new()
+
+function M.string:new(o)
+  local chars = o
   -- local cb = any(unpack(map(chars, search_str)))
   local seek_cb = str_seek_cb(chars)
   local name = string.format('quoted string: %s', table.concat(chars, ', '))
-  return M.new { name = name, seek_cb = seek_cb }
+  return self:super('new', { name = name, seek_cb = seek_cb })
 end
 
 return M

@@ -1,8 +1,7 @@
-local M = require('flies.objects.base').new()
-
-function M.new()
-  return setmetatable({}, { __index = M })
-end
+local M = require('flies.objects.base'):new {
+  name = 'buffer',
+  blank_text_object = true,
+}
 
 local utils = require 'flies.objects.utils'
 
@@ -55,10 +54,7 @@ function M:np_iterator(domain, _, forward, start)
   end
 end
 
-M.name = 'buffer'
-M.blank_text_object = true
-
-local line = require('flies.objects.subline.line')
+local line = require 'flies.objects.subline.line'
 function M:up_cb(domain, init, count)
   return line:up_cb(domain, init, count)
 end

@@ -1,7 +1,7 @@
 local M = require 'flies.objects.pair'
 local with_fake_buf = require('flies.objects.test_util').with_fake_buf
 
-local b = M.new { { '(', ')' }, { '{', '}' } }
+local b = M:new { { '(', ')' }, { '{', '}' } }
 
 describe('should match paren around cursor', function()
   it('should match inside', function()

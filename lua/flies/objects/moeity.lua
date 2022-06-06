@@ -1,14 +1,8 @@
-local M = setmetatable({}, { __index = require 'flies.objects.base' })
+local M = require('flies.objects.base'):new()
 
 local util = require 'flies.objects.utils'
 local repeater = require 'flies.repeater'
 local query_obj = require('flies.utils').query_obj
-
-function M.new(o)
-  o = o or {}
-  setmetatable(o, { __index = M })
-  return o
-end
 
 local function get_right(init, s, e)
   local rs, re

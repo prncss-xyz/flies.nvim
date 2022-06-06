@@ -3,7 +3,7 @@ local with_fake_buf = require('flies.objects.test_util').with_fake_buf
 
 describe('bigword', function()
   it('should respect basic pattern', function()
-    local t = M.bigword()
+    local t = M.bigword
     assert.is.falsy(t:search_upward('outer', { 1, 2 }, 1))
     with_fake_buf({ ' aaa.bbb cc ' }, function()
       assert.are.same(
@@ -13,7 +13,7 @@ describe('bigword', function()
     end)
   end)
   it('should respect count', function()
-    local t = M.bigword()
+    local t = M.bigword
     with_fake_buf({ '  aa  cc ' }, function()
       assert.are.same(
         { { 1, 7 }, { 1, 9 } },
@@ -22,7 +22,7 @@ describe('bigword', function()
     end)
   end)
   it('should search backward', function()
-    local t = M.bigword()
+    local t = M.bigword
     with_fake_buf({ '  aa  cc ' }, function()
       assert.are.same(
         { { 1, 3 }, { 1, 6 } },
@@ -34,7 +34,7 @@ end)
 -- TODO: exact vimword spec
 describe('vimword', function()
   it('search vimword', function()
-    local t = M.vimword()
+    local t = M.vimword
     with_fake_buf({ ' bbb.cc   !!' }, function()
       assert.are.same(
         { { 1, 2 }, { 1, 4 } },

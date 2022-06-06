@@ -1,11 +1,11 @@
-local M = require('flies.objects.base').new()
+local M = require('flies.objects.base'):new()
 local util = require 'flies.objects.utils'
 local f = require 'flies.util.iterator'
 local cmp = util.cmp
 
 -- TODO: zero length range
 
-function M.new(p)
+function M:new(p)
   local l = {}
   local r = {}
   local name = ''
@@ -14,11 +14,11 @@ function M.new(p)
     r[v[2]] = v[1]
     name = name .. v[1] .. v[2]
   end
-  return setmetatable({
+  return self:super('new', {
     l = l,
     r = r,
     name = name,
-  }, { __index = M })
+  })
 end
 
 M.lookup_lines = 200

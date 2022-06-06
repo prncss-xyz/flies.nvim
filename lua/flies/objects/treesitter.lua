@@ -1,14 +1,13 @@
-local M = setmetatable({}, { __index = require 'flies.objects.base' })
+local M = require('flies.objects.base'):new()
 
 local ts_utils = require 'nvim-treesitter.ts_utils'
 local ts_query = require 'nvim-treesitter.query'
 local cmp = require('flies.objects.utils').cmp
 
-function M.new(t)
+function M:new(t)
   if type(t) == 'string' then
     t = { t }
   end
-  t = setmetatable(t, { __index = M })
   local q = t[1]
   if q:sub(1, 1) == '@' then
     t.name = t[1]
@@ -18,7 +17,8 @@ function M.new(t)
     t.query1 = string.format('@%s.outer', q)
     t.query2 = string.format('@%s.inner', q)
   end
-  return t
+  local mt = getmetatable(self).__index
+  return mt.new(self, t)
 end
 
 local function get_lua_range(range)

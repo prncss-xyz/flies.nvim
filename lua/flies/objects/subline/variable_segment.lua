@@ -1,4 +1,7 @@
-local M = require('flies.objects.subline').new {}
+local M = require('flies.objects.subline'):new {
+  name = 'variable_segment',
+  blank_text_object = true,
+}
 
 local variable_segment_seek0_cb = M.any(
   M.lua_pattern '()%u+()$',
@@ -19,8 +22,5 @@ function M.seek_cb(line, init)
   end
   return os, is, ie, oe
 end
-
-M.name = 'variable_segment'
-M.blank_text_object = true
 
 return M

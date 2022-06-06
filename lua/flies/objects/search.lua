@@ -2,8 +2,11 @@ local M = {}
 
 local t = require('flies.utils').t
 
-function M.new()
-  return setmetatable({}, { __index = M })
+function M:new(o)
+  o = o or {}
+  setmetatable(o, self)
+  self.__index = self
+  return o
 end
 
 M.name = 'search'

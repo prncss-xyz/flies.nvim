@@ -6,8 +6,16 @@ local iter = require 'flies.util.iterator'
 -- local function search_backward(init, count) end
 -- selection_mode, os, is, ie, oe
 
-function M.new()
-  return setmetatable({}, { __index = M })
+function M:new(o)
+  o = o or {}
+  setmetatable(o, self)
+  self.__index = self
+  return o
+end
+
+function M:super(method, ...)
+  local mt = getmetatable(self).__index
+  return mt[method](self, ...)
 end
 
 function M:search_forward(domain, pos, count)
