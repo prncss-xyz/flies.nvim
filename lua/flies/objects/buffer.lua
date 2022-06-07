@@ -54,9 +54,4 @@ function M:np_iterator(domain, _, forward, start)
   end
 end
 
-local line = require 'flies.objects.subline.line'
-function M:up_cb(domain, init, count)
-  return line:up_cb(domain, init, count)
-end
-
 return M

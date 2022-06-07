@@ -190,6 +190,9 @@ function M:up_cb(domain, pos, count)
   local query = self.blank_text_object and domain == 'inner' and self.query2
     or self.query1
   local matches = search(query, filter_cb, shortest_earliest)
+  if count == 'last' then
+    count = #matches
+  end
   local match = matches[count]
   if not match then
     return

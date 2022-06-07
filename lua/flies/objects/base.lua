@@ -19,47 +19,49 @@ function M:super(method, ...)
 end
 
 function M:search_forward(domain, pos, count)
-  return iter.nth(count)(self:np_iterator(domain, pos, true, true))
+  local s, e, w
+  if count == 'last' then
+    s, e, w = iter.last((self:np_iterator(domain, pos, true, true)))
+  else
+    s, e, w = iter.nth(count)(self:np_iterator(domain, pos, true, true))
+  end
+  return s, e, w
 end
 
 function M:search_backward(domain, pos, count)
-  return iter.nth(count)(self:np_iterator(domain, pos, false, false))
+  local s, e, w
+  if count == 'last' then
+    s, e, w = iter.last((self:np_iterator(domain, pos, false, false)))
+  else
+    s, e, w = iter.last((self:np_iterator(domain, pos, false, false)))
+  end
+  return s, e, w
 end
 
 function M:search_plain(domain, init, count)
-  if count then
-    if self.up_cb then
-      local s, e, w = self:up_cb(domain, init, count)
-      if s then
-        return s, e, w
-      end
-    elseif self.up_iterator then
-      local s, e, w = iter.nth(count)(self:up_iterator(domain, init))
-      if s then
-        return s, e, w
-      end
+  if self.up_cb then
+    local s, e, w = self:up_cb(domain, init, count)
+    if s then
+      return s, e, w
     end
-  else
-    if self.up_iterator then
-      local s, e, w = iter.head(self:up_iterator(domain, init))
-      if s then
-        return s, e, w
-      end
-    elseif self.up_cb then
-      local s, e, w = self:up_cb(domain, init, 1)
-      if s then
-        return s, e, w
-      end
+  elseif self.up_iterator then
+    local s, e, w
+    if count == 'last' then
+      s, e, w = iter.last(self:up_iterator(domain, init))
+    else
+      s, e, w = iter.nth(count)(self:up_iterator(domain, init))
+    end
+    if s then
+      return s, e, w
     end
   end
-  return self:search_forward(domain, init, 1)
+  return self:search_forward(domain, init, count)
 end
 
 function M:search(domain, qualifier, init, count)
   if qualifier == 'plain' then
     return self:search_plain(domain, init, count)
   end
-  count = count or 1
   if qualifier == 'next' then
     return self:search_forward(domain, init, count)
   end
@@ -89,13 +91,8 @@ end
 function M:textobject(domain, qualifier, mode)
   require('flies.repeater').init()
   local pos = require('flies.utils').get_cursor()
-  self:search_cb(
-    domain,
-    qualifier,
-    pos,
-    vim.v.count1 == vim.v.count and vim.v.count,
-    M.select
-  )
+  local count = vim.v.count == 1 and 'last' or vim.v.count1
+  self:search_cb(domain, qualifier, pos, count, M.select)
 end
 
 function M.jump(start)
@@ -113,26 +110,21 @@ function M.jump(start)
   end
 end
 
-function M:move_current(domain, start)
-  local init = require('flies.utils').get_cursor()
-  local count = vim.v.count1
-  M.jump(start)(self:search_upward(domain, init, count))
-end
-
 function M:motion(domain, qualifier, start)
   if qualifier == 'hint' then
     self:hint(domain, M.jump(start))
     return
   end
   local pos = require('flies.utils').get_cursor()
-  if vim.v.count > 0 and self.up_cb then
-    local s, e = self:up_cb(domain, pos, vim.v.count)
-    M.jump(start)(s, e)
-    return
+  local count = vim.v.count == 1 and 'last' or vim.v.count1
+  local s, e
+  if count == 'last' then
+    s, e = iter.last(self:np_iterator(domain, pos, qualifier == 'next', start))
+  else
+    s, e = iter.nth(count)(
+      self:np_iterator(domain, pos, qualifier == 'next', start)
+    )
   end
-  local s, e, w = iter.head(
-    self:np_iterator(domain, pos, qualifier == 'next', start)
-  )
   if s then
     M.jump(start)(s, e)
   end
