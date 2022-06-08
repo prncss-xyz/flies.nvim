@@ -4,9 +4,9 @@ local f = require 'flies.util.iterator'
 
 function M.format_result(domain, row, res)
   if domain == 'outer' then
-    return res[1] and { row, res[1] }, res[4] and { row, res[4] }
+    return res[1] and { row, res[1] }, res[4] and { row, res[4] }, 'charwise'
   elseif domain == 'inner' then
-    return res[2] and { row, res[2] }, res[3] and { row, res[3] }
+    return res[2] and { row, res[2] }, res[3] and { row, res[3] }, 'charwise'
   else
     assert(false, string.format('unknown domain %q', domain))
   end
@@ -266,6 +266,12 @@ M.bigword = M:new {
   blank_text_object = true,
 }
 
+M.number = M:new {
+  name = 'number',
+  seek_cb = M.lua_pattern '()%d+()',
+  blank_text_object = true,
+}
+
 local function str_seek_cb(delims)
   local d = require('flies.utils').invert(delims)
   return function(line, init)
@@ -294,12 +300,35 @@ end
 
 M.string = M:new()
 
+-- TODO: refact: refere to object's field at call time
 function M.string:new(o)
   local chars = o
   -- local cb = any(unpack(map(chars, search_str)))
-  local seek_cb = str_seek_cb(chars)
-  local name = string.format('quoted string: %s', table.concat(chars, ', '))
-  return self:super('new', { name = name, seek_cb = seek_cb })
+  o.seek_cb = str_seek_cb(chars)
+  o.name = string.format('quoted string: %s', table.concat(chars, ', '))
+  return self:super('new', o)
+end
+
+function M.string:wrap(s, e, w)
+  local char = self[1]
+  require('flies.utils').strip(s, s, e, e, char, char)
+end
+
+function M.string:substitute(os, is, ie, oe, w)
+  local char = self[1]
+  require('flies.utils').strip(os, is, ie, oe, char, char)
+end
+
+function M.string:innerize(os, oe, w)
+  local is, ie
+  if os[2] + 1 == oe[2] then
+    is = os
+    ie = nil
+  else
+    is = {os[1], os[2] + 1}
+    ie = {oe[1], oe[2] - 1}
+  end
+  return is, ie
 end
 
 return M
