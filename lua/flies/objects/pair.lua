@@ -234,17 +234,17 @@ function M:up_iterator(domain, init)
   return f.chain(main)(util.char_forward_iterator(init, limit_direct))
 end
 
-function M:wrap(s, e, w)
+function M:wrap(s, e, w, reversed)
   local l, r = self.wrap_l, self.wrap_r
-  if self.reversed then
+  if not self.reversed ~= not reversed then
     l, r = r, l
   end
   require('flies.utils').strip(s, s, e, e, l, r)
 end
 
-function M:substitute(os, is, ie, oe, w)
+function M:substitute(os, is, ie, oe, w, reversed)
   local l, r = self.wrap_l, self.wrap_r
-  if self.reversed then
+  if not self.reversed ~= not reversed then
     l, r = r, l
   end
   require('flies.utils').strip(os, is, ie, oe, l, r)

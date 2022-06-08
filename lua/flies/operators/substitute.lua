@@ -36,7 +36,7 @@ function M:op(mode)
         return
       end
       if q_.query and q_.query.substitute then
-        q_.query:substitute(os, is, ie, oe, w)
+        q_.query:substitute(os, is, ie, oe, w, q.qualifier == 'previous')
       end
     else
       -- TODO:

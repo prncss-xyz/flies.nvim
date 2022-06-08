@@ -34,7 +34,7 @@ function M:op(mode)
     return
   end
   if q.query and q.query.wrap then
-    q.query:wrap(s, e, w)
+    q.query:wrap(s, e, w, q.qualifier == 'previous')
   end
 end
 
