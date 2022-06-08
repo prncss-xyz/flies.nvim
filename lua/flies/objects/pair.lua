@@ -235,11 +235,19 @@ function M:up_iterator(domain, init)
 end
 
 function M:wrap(s, e, w)
-  require('flies.utils').strip(s, s, e, e, self.wrap_l, self.wrap_r)
+  local l, r = self.wrap_l, self.wrap_r
+  if self.reversed then
+    l, r = r, l
+  end
+  require('flies.utils').strip(s, s, e, e, l, r)
 end
 
 function M:substitute(os, is, ie, oe, w)
-  require('flies.utils').strip(os, is, ie, oe, self.wrap_l, self.wrap_r)
+  local l, r = self.wrap_l, self.wrap_r
+  if self.reversed then
+    l, r = r, l
+  end
+  require('flies.utils').strip(os, is, ie, oe, l, r)
 end
 
 return M
