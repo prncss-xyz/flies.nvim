@@ -45,7 +45,7 @@ local function map_texobjects()
             domain,
             qualifier
           ),
-          {}
+          { noremap = true }
         )
       end
     end
@@ -81,8 +81,8 @@ function M.setup(user_conf)
   -- map_move()
 
   M.repeater = require 'flies.repeater'
-  M.operations_register = require('flies.operations.base').reg
-  require 'flies.operations.init'
+  M.operators_register = require('flies.operators.base').operators_register
+  require('flies.operators').setup()
 end
 
 return M

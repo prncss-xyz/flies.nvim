@@ -1,4 +1,4 @@
-local M = require('flies.operations.base').new()
+local M = require('flies.operators.base'):new()
 
 local repeater = require 'flies.repeater'
 local query_obj = require('flies.utils').query_obj

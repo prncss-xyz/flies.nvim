@@ -1,17 +1,12 @@
-local M = {}
+local M = require 'flies.util.object':new()
 
 local t = require('flies.utils').t
 
-M.reg = {}
+M.operators_register = {}
 
 M.op_xs = {}
 
 -- interface: op(mode), query_n(), name
-
-function M.new(o)
-  o = o or {}
-  return setmetatable(o, { __index = M })
-end
 
 function M:op_n()
   local str = self:query_n()
@@ -19,14 +14,14 @@ function M:op_n()
     return
   end
   vim.cmd(
-    'set operatorfunc=v:lua.package.loaded.flies.operations_register.'
+    'set operatorfunc=v:lua.package.loaded.flies.operators_register.'
       .. self.name
   )
   vim.api.nvim_feedkeys(t('g@' .. str), 'n', true)
 end
 
 function M:register()
-  M.reg[self.name] = function()
+  M.operators_register[self.name] = function()
     self:op 'o'
   end
   vim.keymap.set('n', string.format('<Plug>(flies-%s)', self.name), function()
@@ -39,7 +34,7 @@ function M:register()
     'x',
     string.format('<Plug>(flies-%s)', self.name),
     string.format(
-      ':lua require "flies.operations.base".op_xs[%q]()<cr>',
+      ':lua require "flies.operators.base".op_xs[%q]()<cr>',
       self.name
     ),
     { noremap = true }

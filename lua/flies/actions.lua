@@ -139,6 +139,10 @@ function M.append_insert()
   end
 end
 
+--- wrapper for vim operators
+---@param op string operator
+---@param domain_param string default domain ('inner' or 'outer')
+---@param noremap boolean
 function M.op(op, domain_param, noremap)
   repeater.init()
   local q = repeater.querier(query_obj)
