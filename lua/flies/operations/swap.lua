@@ -6,10 +6,11 @@ local query_obj = require('flies.utils').query_obj
 M.name = 'swap'
 
 local pos
+local s2, e2, w2
 local domain
 local query
-local count
 local qualifier
+
 function M:query_n()
   repeater.init()
   local q = repeater.querier(query_obj)
@@ -18,23 +19,14 @@ function M:query_n()
   end
   query = q.query
   domain = query.blank_text_object and 'inner' or 'outer'
-
-  if q.qualifier == 'plain' then
-    qualifier = 'next'
-  else
-    qualifier = q.qualifier
-  end
-  count = vim.v.count1
-  vim.v.count = 0
-  vim.v.count1 = 1
+  qualifier = q.qualifier
 
   pos = require('flies.utils').get_cursor()
-  pos = query:search(domain, 'smart', pos, 1)
-  if not pos then
+  s2, e2, w2 = query:search(domain, 'plain', pos, 1)
+  if not s2 then
     return
   end
-  -- local s, e = query:search(domain, qualifier, pos, vim.v.count1)
-  require('flies.utils').set_cursor(pos)
+  require('flies.utils').set_cursor(s2)
   local str = string.format(
     ':<c-u>lua require"flies".textobject(%q, %q, %q)<cr>',
     q.query_char,
@@ -65,9 +57,9 @@ end
 function M:op(mode)
   local s1, e1 = require('flies.utils').get_marks_pos(mode)
   if mode == 'o' then
-    local s2, e2 = query:search(domain, 'smart', pos, 1)
     post(s2, e2, s1, e1)
   elseif mode == 'x' then
+    assert(false)
     local q = require('flies.repeater').querier(
       require('flies.utils').query_obj
     )
@@ -75,6 +67,9 @@ function M:op(mode)
       return
     end
     query = q.query
+    if not q.query then
+      return
+    end
     domain = query.blank_text_object and 'inner' or 'outer'
     -- domain = require('flies.utils').get_path(query, 'operator', M.name, 'domain')
     --   or 'inner'
@@ -83,7 +78,7 @@ function M:op(mode)
       if vim.v.count == vim.v.count1 then
         qualifier = 'up'
       else
-        qualifier = 'smart'
+        qualifier = 'plain'
       end
     else
       qualifier = q.qualifier

@@ -146,8 +146,7 @@ function M.query_obj()
 end
 
 function M.set_cursor(pos)
-  pos[2] = pos[2] - 1
-  vim.api.nvim_win_set_cursor(0, pos)
+  vim.api.nvim_win_set_cursor(0, { pos[1], pos[2] - 1 })
 end
 
 function M.get_cursor()
@@ -197,8 +196,16 @@ end
 
 function M.to_lsp_range(s, e)
   local rtn = {}
-  rtn.start = { line = s[1] - 1, character = s[2] - 1 }
-  rtn['end'] = { line = e[1] - 1, character = e[2] }
+  if vim.deep_equal(s, {}) then
+    rtn.start = { line = e[1] - 1, character = e[2] }
+  else
+    rtn.start = { line = s[1] - 1, character = s[2] - 1 }
+  end
+  if vim.deep_equal(e, {}) then
+    rtn['end'] = { line = s[1] - 1, character = s[2] - 1 }
+  else
+    rtn['end'] = { line = e[1] - 1, character = e[2] }
+  end
   return rtn
 end
 
@@ -212,73 +219,60 @@ function M.lsp_edit(ls, cs, le, ce, text)
   }
 end
 
-function M.strip0(os, is, ie, oe)
-  is[2] = is[2] - 1
-  ie[2] = ie[2] + 1
-
-  local bufnr = vim.api.nvim_get_current_buf()
-
-  local edits = {}
-  if os[1] == is[1] then
-    table.insert(edits, M.lsp_edit(os[1] - 1, os[2] - 1, is[1] - 1, is[2], ''))
-  else
-    table.insert(edits, M.lsp_edit(os[1] - 1, 0, is[1] - 1, 0, ''))
-  end
-  for r = os[1], ie[1] - 1 do
-    table.insert(edits, M.lsp_edit(r, os[2] - 3, r, is[2], '.'))
-  end
-  table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
-  vim.lsp.util.apply_text_edits(edits, bufnr, 'utf-8')
+function M.get_row(line)
+  return vim.api.nvim_buf_get_lines(0, line, line + 1, false)[1]
 end
 
-function M.strip1(os, is, ie, oe)
-  is[2] = is[2] - 1
-  ie[2] = ie[2] + 1
-
-  local bufnr = vim.api.nvim_get_current_buf()
-
-  local edits = {}
-  if os[1] == is[1] then
-    table.insert(edits, M.lsp_edit(os[1] - 1, os[2] - 1, is[1] - 1, is[2], ''))
+function M.previous_char(s)
+  local l, c = unpack(s)
+  if c == 1 then
+    l = l - 1
+    c = M.get_row(l):len()
   else
-    table.insert(edits, M.lsp_edit(os[1] - 1, 0, is[1] - 1, 0, ''))
+    c = c - 1
   end
-  for r = os[1], ie[1] - 1 do
-    table.insert(edits, M.lsp_edit(r, os[2] - 1, r, is[2], '.'))
-  end
-  table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
-  vim.lsp.util.apply_text_edits(edits, bufnr, 'utf-8')
+  return { l, c }
 end
 
-function M.strip2(os, is, ie, oe)
-  is[2] = is[2] - 1
-  ie[2] = ie[2] + 1
-
-  local bufnr = vim.api.nvim_get_current_buf()
-
-  local edits = {}
-  if os[1] == is[1] then
-    table.insert(edits, M.lsp_edit(os[1] - 1, os[2] - 1, is[1] - 1, is[2], ''))
+function M.next_char(s)
+  local l, c = unpack(s)
+  if c == M.get_row(l):len() then
+    l = l + 1
+    c = 1
   else
-    table.insert(edits, M.lsp_edit(os[1] - 1, 0, is[1] - 1, 0, ''))
+    c = c + 1
   end
-  for r = os[1], ie[1] - 1 do
-    table.insert(edits, M.lsp_edit(r, os[2] - 1, r, is[2], ''))
-  end
-  local str = util.get_row(oe[1])
-  str = str:sub(oe[2] + 1)
-  -- table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
-  if str:len() > 0 then
-    table.insert(edits, M.lsp_edit(ie[1] - 1, os[2] - 1, oe[1], oe[2], str))
-  else
-    local r = ie[1] - 1
-    table.insert(edits, M.lsp_edit(r, os[2] - 1, r, is[2], ''))
-    table.insert(edits, M.lsp_edit(ie[1] - 1, ie[2] - 1, oe[1] - 1, oe[2], ''))
-  end
-  vim.lsp.util.apply_text_edits(edits, bufnr, 'utf-8')
+  return { l, c }
 end
 
-M.strip = M.strip1
+function M.strip(os, is, ie, oe, c1, c2)
+  local s, e
+  if vim.deep_equal(os, is) then
+    s = {}
+  else
+    s = M.previous_char(is)
+  end
+  if vim.deep_equal(ie, oe) then
+    e = {}
+  else
+    e = M.next_char(ie)
+  end
+  local range1 = M.to_lsp_range(os, s)
+  local range2 = M.to_lsp_range(e, oe)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local edit1 = { range = range1, newText = c1 or '' }
+  local edit2 = { range = range2, newText = c2 or '' }
+  vim.lsp.util.apply_text_edits({ edit1, edit2 }, bufnr, 'utf-8')
+end
+
+function M.wrap(s, e, c1, c2)
+  local range1 = M.to_lsp_before(s)
+  local range2 = M.to_lsp_after(e)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local edit1 = { range = range1, newText = c1 }
+  local edit2 = { range = range2, newText = c2 }
+  vim.lsp.util.apply_text_edits({ edit1, edit2 }, bufnr, 'utf-8')
+end
 
 function M.swap(s1, e1, s2, e2, cursor_to_second)
   local range1 = M.to_lsp_range(s1, e1)

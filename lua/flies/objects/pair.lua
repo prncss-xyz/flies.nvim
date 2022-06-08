@@ -5,20 +5,25 @@ local cmp = util.cmp
 
 -- TODO: zero length range
 
-function M:new(p)
+function M:new(o)
   local l = {}
   local r = {}
+  local wrap_l, wrap_r = unpack(o[1])
+  if wrap_l == wrap_r then
+    wrap_r = ''
+  end
+  o.wrap_l = wrap_l
+  o.wrap_r = wrap_r
   local name = ''
-  for _, v in ipairs(p) do
+  for _, v in ipairs(o) do
     l[v[1]] = v[2]
     r[v[2]] = v[1]
     name = name .. v[1] .. v[2]
   end
-  return self:super('new', {
-    l = l,
-    r = r,
-    name = name,
-  })
+  o.l = l
+  o.r = r
+  o.name = name
+  return self:super('new', o)
 end
 
 M.lookup_lines = 200
@@ -227,6 +232,14 @@ function M:up_iterator(domain, init)
     return f.null
   end
   return f.chain(main)(util.char_forward_iterator(init, limit_direct))
+end
+
+function M:wrap(s, e, w)
+  require('flies.utils').strip(s, s, e, e, self.wrap_l, self.wrap_r)
+end
+
+function M:substitute(os, is, ie, oe, w)
+  require('flies.utils').strip(os, is, ie, oe, self.wrap_l, self.wrap_r)
 end
 
 return M

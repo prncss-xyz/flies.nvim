@@ -1,7 +1,5 @@
 local M = {}
 
-local iter = require 'flies.util.iterator'
-
 -- adapted from https://github.com/nvim-treesitter/nvim-treesitter/blob/master/lua/nvim-treesitter/ts_utils.lua
 -- Set visual selection to range
 -- @param selection_mode One of "charwise" (default) or "v", "linewise" or "V",
@@ -63,6 +61,8 @@ function M.update_selection(s, e, wiseness)
 end
 
 function M.cmp(c1, c2)
+  c2 = c2 or c1
+  c1 = c1 or c2
   if c1[1] < c2[1] then
     return -1
   end
@@ -76,6 +76,41 @@ function M.cmp(c1, c2)
     return 1
   end
   return 0
+end
+
+function M.fwd_range(r)
+  if M.cmp(r[1], r[2]) > 0 then
+    r[1], r[2] = r[2], r[1]
+  end
+end
+
+function M.cmp_ranges(a, b)
+  M.fwd_range(a)
+  M.fwd_range(b)
+  if vim.deep_equal(a, b) then
+    return 0
+  end
+  if M.cmp(a[1], b[1] <= 0) and M.cmp(a[2], a[2] >= 0) then
+    return 1
+  end
+  if M.cmp(a[1], b[1] >= 0) and M.cmp(a[2], a[2] <= 0) then
+    return -1
+  end
+end
+
+function M.is_inside(r, c)
+  M.fwd_range(r)
+  if M.cmp(r[1], c) <= 0 and M.cmp(c, r[2]) <= 0 then
+    return true
+  end
+end
+
+function M.shortest_earliest(r1, r2)
+  local c = M.cmp_ranges(r1, r2)
+  if c ~= 0 then
+    return c
+  end
+  return M.cmp(r1[1], r2[1])
 end
 
 function M.get_row(row)
