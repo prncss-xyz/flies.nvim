@@ -8,7 +8,16 @@ function M:new(o)
 end
 
 function M:super(method, ...)
-  local mt = getmetatable(self).__index
+  local mt = self
+  mt = getmetatable(mt).__index
+  mt = getmetatable(mt)
+  if not mt then
+    return
+  end
+  mt = mt.__index
+  if not mt then
+    return
+  end
   return mt[method](self, ...)
 end
 
