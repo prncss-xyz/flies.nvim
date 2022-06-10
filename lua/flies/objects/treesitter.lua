@@ -3,6 +3,7 @@ local M = require('flies.objects.base'):new()
 local ts_utils = require 'nvim-treesitter.ts_utils'
 local ts_query = require 'nvim-treesitter.query'
 local cmp = require('flies.objects.utils').cmp
+local get_row = require('flies.utils').get_row
 
 function M:new(t)
   if type(t) == 'string' then
@@ -39,13 +40,27 @@ local function get_lua_range(range)
       ts_utils.get_vim_range({ range.node:range() }, 0),
     }
   end
+  local row = get_row(vim_range[1] - 1)
+  if true then
+    if vim_range[2] > row:len() then
+      vim_range[1] = vim_range[1] + 1
+      vim_range[2] = 1
+    end
+    row = get_row(vim_range[3] - 1)
+    if vim_range[4] > row:len() then
+      dump { vim_range[3], vim_range[4] }
+      vim_range[3] = vim_range[3] + 1
+      vim_range[4] = 1
+      dump { vim_range[3], vim_range[4] }
+    end
+  end
   return { vim_range[1], vim_range[2] }, { vim_range[3], vim_range[4] }
 end
 
 function M:is_node_inside_range(strict, os, oe, inner_node)
   local i_start_line, i_start_col, i_end_line, i_end_col = inner_node:range()
   local cstart = cmp({ i_start_line, i_start_col }, { os[1] - 1, os[2] - 1 })
-  local cend = cmp({ i_end_line, i_end_col }, { oe[1] - 1, oe[2] }) -- HACK: why?
+  local cend = cmp({ i_end_line, i_end_col }, { oe[1] - 1, oe[2] })
   if strict and cstart == 0 and cend == 0 then
     return false
   end
