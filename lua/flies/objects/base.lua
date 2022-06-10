@@ -1,4 +1,4 @@
-local M = require 'flies.util.object'
+local M = require 'flies.util.object':new()
 
 local iter = require 'flies.util.iterator'
 local cmp = require('flies.objects.utils').cmp
@@ -91,14 +91,12 @@ function M.jump(start)
   end
 end
 
-function M:motion(domain, qualifier, start)
+function M:motion(domain, qualifier, start, count)
   if qualifier == 'hint' then
     self:hint(domain, M.jump(start))
     return
   end
   local pos = require('flies.utils').get_cursor()
-  -- local count = vim.v.count == 1 and 'last' or vim.v.count1
-  local count = vim.v.count1
   local s, e
   s, e = iter.nth(count)(
     self:np_iterator(domain, pos, qualifier == 'next', start)

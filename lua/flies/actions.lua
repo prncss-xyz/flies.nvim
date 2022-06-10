@@ -8,13 +8,13 @@ local t = require('flies.utils').t
 local flies = require 'flies'
 local jump = require('flies.utils').jump
 
-function M.move(query_map, qualifier, domain, start)
+function M.move(query_map, qualifier, domain, start, count)
   if qualifier == 'plain' then
     qualifier = 'next'
   end
   local query = flies.queries[t(query_map)]
   if query then
-    return query.motion(query, domain, qualifier, start)
+    return query.motion(query, domain, qualifier, start, count)
   end
 end
 
@@ -60,17 +60,20 @@ function M.meta_move(mode)
         start = (qualifier == 'previous')
       end
     end
+    if query_o.name == 'moeity' or query_o.name == 'reversed moeity' then
+      start = false
+    end
     if query_o.name == 'line' and qualifier == 'previous' then
       start = true
     end
     if mode == 'n' then
       require('flies.move_again').register(function()
-        M.move(char, 'previous', domain, start)
+        M.move(char, 'previous', domain, start, 1)
       end, function()
-        M.move(char, 'next', domain, start)
+        M.move(char, 'next', domain, start, 1)
       end)
     end
-    query_o:motion(domain, qualifier, start)
+    query_o:motion(domain, qualifier, start, vim.v.count1)
   else
     if mode == 'n' then
       require('flies.move_again').register(function()
@@ -121,7 +124,7 @@ function M.append_insert()
   local char = q.query_char
   local query_o = q.query
   if query_o then
-    M.move(char, qualifier, 'inner', qualifier == 'previous')
+    M.move(char, qualifier, 'inner', qualifier == 'previous', vim.v.count1)
   else
     jump(char, qualifier, true, vim.v.count1)
   end
