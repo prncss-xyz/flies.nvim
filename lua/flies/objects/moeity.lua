@@ -3,18 +3,21 @@ local M = require('flies.objects.base'):new()
 local util = require 'flies.objects.utils'
 local repeater = require 'flies.repeater'
 local query_obj = require('flies.utils').query_obj
+local iter = require 'flies.util.iterator'
 
-local function get_right(init, s, e)
+M.name = 'moeity'
+
+local function get_right(cursor, s, e, wiseness)
   local rs, re
-  local wiseness = util.infer_wiseness(s, e)
-  if wiseness == 'linewise' then
-    local line = util.get_row(init[1])
-    rs = { init[1], util.line_inner_start(line) }
+  wiseness = wiseness or util.infer_wiseness(s, e)
+  if wiseness == 'V' or 'linewise' then
+    local line = util.get_row(cursor[1])
+    rs = { cursor[1], util.line_inner_start(line) }
   else
-    rs = init
+    rs = cursor
   end
-  if util.cmp(init, s) < 0 then
-    if wiseness == 'linewise' then
+  if util.cmp(cursor, s) < 0 then
+    if wiseness == 'V' then
       -- TODO: take care or 1-line wide intervals
       re = { s[1] - 1, s[2] }
     else
@@ -24,25 +27,26 @@ local function get_right(init, s, e)
   else
     re = e
   end
-  return rs, re
+  return rs, re, wiseness
 end
 
-local function get_left(init, s, e)
+local function get_left(cursor, s, e, wiseness)
   local rs, re
-  local wiseness = util.infer_wiseness(s, e)
-  if wiseness == 'linewise' then
-    local row = init[1] - 1
+  wiseness = wiseness or util.infer_wiseness(s, e)
+  if wiseness == 'V' or 'linewise' then
+    local row = cursor[1] - 1
     local line = util.get_row(row)
     rs = { row, util.line_inner_end(line) }
   else
-    rs = { init[1], init[2] - 1 }
+    -- TODO: prevchar
+    rs = { cursor[1], cursor[2] - 1 }
   end
   if util.cmp(s, rs) >= 0 then
     return
   end
-  if util.cmp(init, e) > 0 then
-    if wiseness == 'linewise' then
-      -- TODO: take care or 1-line wide intervals
+  if util.cmp(cursor, e) > 0 then
+    if wiseness == 'V' then
+      -- TODO: take care of 1-line wide intervals
       re = { e[1] + 1, e[2] }
     else
       -- TODO: take care of first char case
@@ -51,133 +55,56 @@ local function get_left(init, s, e)
   else
     re = s
   end
-  return rs, re
+  return rs, re, wiseness
 end
 
-local k = 0
-function M:np_iterator0(_, init, forward, _, extremum)
-  k = k + 1
-  local domain = 'inner'
-  local pos = require('flies.utils').get_cursor()
-  local q = repeater.querier(query_obj)
-  if not q then
-    return
-  end
-  local query = q.query
-  local f, state, i = query:up_iterator(domain, init, true, false, extremum)
-  local s, e
-  local j = 0
-  return function()
-    j = j + 1
-    i, s, e = f(state, i)
-    if forward then
-      return j, get_right(pos, s, e)
-    else
-      return j, get_left(pos, s, e)
-    end
-  end
-end
-
-function M:np_iterator1(_, init, forward, _, extremum)
-  local domain = 'inner'
-  local pos = require('flies.utils').get_cursor()
-  local q = repeater.querier(query_obj)
-  if not q then
-    return
-  end
-  local query = q.query
-  local f, state, i = query:up_iterator(domain, init, true, false, extremum)
-  local s, e
-  local j = 0
-  local res = {}
-  local t = 0
-  local function ncmp(a, b)
-    if forward then
-      return util.cmp(a, b)
-    else
-      return util.cmp(b, a)
-    end
-  end
-  while true do
-    i, s, e = f(state, i)
-    if i then
-      table.insert(res, { s, e })
-      if forward then
-        if util.cmp(s, init) > 0 then
-          return
-        end
-      else
-        if util.cmp(init, e) < 0 then
-          return
-        end
-      end
-    else
-      break
-    end
-  end
-  local get_dir, get_rev
-  if forward then
-    get_dir, get_rev = get_right, get_left
+local function up_iter(query, domain, cursor)
+  if query.up_cb then
+    return iter.map(function(count)
+      return query:up_cb(domain, cursor, count)
+    end)(iter.range())
+  elseif query.up_iterator then
+    return query:up_iterator(domain, cursor)
   else
-    get_dir, get_rev = get_left, get_right
-  end
-  local n = #res
-  return function()
-    j = j + 1
-    local ndx = n - j + 1
-    if ndx > 0 then
-      local r = res[ndx]
-      return j, get_rev(pos, r[1], r[2])
-    end
-    ndx = j - n
-    if ndx <= n then
-      local r = res[ndx]
-      return j, get_dir(pos, r[1], r[2])
-    end
-    if i then
-      i, s, e = f(state, i)
-      return j, get_dir(pos, s, e)
-    end
+    return function() end
   end
 end
 
-function M:np_iterator2(_, init, forward, _, extremum)
-  local domain = 'inner'
-  local pos = require('flies.utils').get_cursor()
+-- with this limited and slightly out of specs implementation,
+-- moeity forward from right surrouding actualy moves backward;
+-- this will be overcome with a complete implementation
+
+function M:np_iterator(_, init, forward, _, extremum)
+  local cursor = require('flies.utils').get_cursor()
   local q = repeater.querier(query_obj)
+  local domain = 'inner'
   if not q then
     return
   end
-  local query = q.query
-  local f, state, i = query:up_iterator(domain, init, true, false, extremum)
-  local s, e
-  local res = {}
-  repeat
-    i, s, e = f(state, i)
-    table.insert(res, { s, e })
-  until not s or i == 2
-  local j = 0
-  local n = #res
-  return function()
-    j = j + 1
-    local ndx = j
-    if ndx <= n then
-      local r = res[ndx]
-      if forward then
-        return j, get_right(pos, r[1], r[2])
-      else
-        return j, get_left(pos, r[1], r[2])
-      end
-    end
-    i, s, e = f(state, i)
-    if forward then
-      return j, get_right(pos, s, e)
-    else
-      return j, get_left(pos, s, e)
-    end
+
+  if q.qualifier == 'previous' then
+    forward = not forward
   end
+  local query = q.query
+  return iter.compose(
+    iter.filter(function(s, e, w)
+      return util.cmp(cursor, e) ~= 0
+    end),
+    iter.chain(function(s, e, w)
+      if forward then
+        return get_right(cursor, s, e, w)
+      else
+        return get_left(cursor, s, e, w)
+      end
+    end)
+  )(up_iter(query, domain, cursor))
 end
 
-M.np_iterator = M.np_iterator1
+M.reversed = M:new()
+M.reversed.name = 'reversed moeity'
+
+function M.reversed:np_iterator(domain, init, forward, start, extremum)
+  return self:super('np_iterator', domain, init, not forward, start, extremum)
+end
 
 return M
