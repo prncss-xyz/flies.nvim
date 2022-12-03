@@ -4,6 +4,7 @@ local f = require 'flies.util.iterator'
 local cmp = util.cmp
 
 -- TODO: zero length range
+-- TODO: wiseness
 
 function M:new(o)
   local l = {}

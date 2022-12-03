@@ -10,7 +10,7 @@ M.name = 'moeity'
 local function get_right(cursor, s, e, wiseness)
   local rs, re
   wiseness = wiseness or util.infer_wiseness(s, e)
-  if wiseness == 'V' or 'linewise' then
+  if wiseness == 'V' then
     local line = util.get_row(cursor[1])
     rs = { cursor[1], util.line_inner_start(line) }
   else
@@ -33,7 +33,7 @@ end
 local function get_left(cursor, s, e, wiseness)
   local rs, re
   wiseness = wiseness or util.infer_wiseness(s, e)
-  if wiseness == 'V' or 'linewise' then
+  if wiseness == 'V' then
     local row = cursor[1] - 1
     local line = util.get_row(row)
     rs = { row, util.line_inner_end(line) }
@@ -88,9 +88,13 @@ function M:np_iterator(_, init, forward, _, extremum)
   local query = q.query
   return iter.compose(
     iter.filter(function(s, e, w)
-      return util.cmp(cursor, e) ~= 0
+      if forward then
+        return util.cmp(cursor, e) < 0
+      else
+        return util.cmp(cursor, s) > 0
+      end
     end),
-    iter.chain(function(s, e, w)
+    iter.map(function(s, e, w)
       if forward then
         return get_right(cursor, s, e, w)
       else
@@ -99,6 +103,12 @@ function M:np_iterator(_, init, forward, _, extremum)
     end)
   )(up_iter(query, domain, cursor))
 end
+
+M.actions = {
+  move = {
+    start = false,
+  },
+}
 
 M.reversed = M:new()
 M.reversed.name = 'reversed moeity'

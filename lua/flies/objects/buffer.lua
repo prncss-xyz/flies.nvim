@@ -38,18 +38,18 @@ end
 
 function M:up_iterator(domain, _)
   return require('flies.utils').from_list {
-    { starting(domain), ending(domain) },
+    { starting(domain), ending(domain), 'V' },
   }
 end
 
 function M:np_iterator(domain, _, forward, start)
   if forward and start then
     return require('flies.utils').from_list {
-      { ending(domain), starting(domain) },
+      { ending(domain), starting(domain), 'V' },
     }
   else
     return require('flies.utils').from_list {
-      { starting(domain), ending(domain) },
+      { starting(domain), ending(domain), 'V' },
     }
   end
 end

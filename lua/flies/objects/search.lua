@@ -57,7 +57,7 @@ end
 
 function M:motion(_, qualifier, _)
   if qualifier == 'hint' then
-    local pattern = vim.fn.getreg '/'
+    local pattern = vim.fn.getreg('/', nil, nil)
     require('hop').hint_patterns({}, pattern)
   elseif qualifier == 'previous' then
     M.n(false)

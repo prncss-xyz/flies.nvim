@@ -332,12 +332,16 @@ function M.once(...)
   end
 end
 
-function M.range(b, e, s)
-  s = s or 1
-  b = b or 1
-  if not e then
-    b, e = 1, b
+function M.range(a_, b_, c_)
+  local b, e, s
+  if a_ and b_ and c_ then
+    b, e, s = a_, b_, c_
+  elseif a_ and b_ then
+    b, e, s = a_, b_, 1
+  elseif a_ then
+    b, e, s = 1, e, 1
   else
+    b, e, s = 1, nil, 1
   end
   return function(_, v)
     v = v + s

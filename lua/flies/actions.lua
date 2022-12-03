@@ -4,111 +4,45 @@ local repeater = require 'flies.repeater'
 local query_obj = require('flies.utils').query_obj
 
 local t = require('flies.utils').t
--- TODO: bad dependancy scheme, find better way to share config
-local flies = require 'flies'
-local jump = require('flies.utils').jump
 
-function M.move(query_map, qualifier, domain, start, count)
-  if qualifier == 'plain' then
-    qualifier = 'next'
-  end
-  local query = flies.queries[t(query_map)]
-  if query then
-    return query.motion(query, domain, qualifier, start, count)
-  end
-end
-
--- TODO: reusable: accept a callback to set parameters
--- TODO: escape hatch
--- TODO: o mode: if inside an object, actual behavior, if outside, reverse start, end
-function M.meta_move(mode)
+function M.move(mode, opts)
   repeater.init()
   local q = repeater.querier(query_obj)
   if not q then
     return
   end
+  local query_o = q.query
   local qualifier = q.qualifier
+  opts = require('flies.util').get_opts(opts, query_o, 'move')
+  local domain = opts.domain
+  if domain then
+  elseif qualifier == 'next' then
+    domain = 'inner'
+  elseif query_o.blank_text_object then
+    domain = 'inner'
+  elseif mode == 'n' then
+    domain = 'outer'
+  else
+    domain = 'inner'
+  end
   if qualifier == 'plain' then
     qualifier = 'next'
   end
-  local char = q.query_char
-  local query_o = q.query
   if mode == 'o' and qualifier == 'next' then
     vim.cmd 'normal! v'
   end
-  if query_o then
-    local domain = require('flies.utils').get_path(
-      query_o,
-      'meta_move',
-      'domain'
-    )
-    if domain then
-    elseif query_o.blank_text_object and mode == 'n' then
-      domain = 'inner'
-    elseif query_o.blank_text_object and mode ~= 'n' then
-      domain = 'outer'
-    elseif mode == 'n' then
-      domain = 'outer'
-    else
-      domain = 'inner'
-    end
-    local start = require('flies.utils').get_path(query_o, 'meta_move', 'start')
-    if start == nil then
-      if mode == 'n' then
-        start = true
-      else
-        start = (qualifier == 'previous')
-      end
-    end
-    if query_o.name == 'moeity' or query_o.name == 'reversed moeity' then
-      start = false
-    end
-    if query_o.name == 'line' and qualifier == 'previous' then
-      start = true
-    end
-    if mode == 'n' then
-      require('flies.move_again').register(function()
-        M.move(char, 'previous', domain, start, 1)
-      end, function()
-        M.move(char, 'next', domain, start, 1)
-      end)
-    end
-    query_o:motion(domain, qualifier, start, vim.v.count1)
-  else
-    if mode == 'n' then
-      require('flies.move_again').register(function()
-        jump(char, 'previous', false, vim.v.count1)
-      end, function()
-        jump(char, 'next', false, vim.v.count1)
-      end)
-    end
-    jump(char, qualifier, mode ~= 'n', vim.v.count1)
-  end
-end
-
-function M.move_current(domain)
-  repeater.init()
-  local q = repeater.querier(query_obj)
-  if not q then
-    return
-  end
-  local qualifier = q.qualifier
-  local start
-  if qualifier == 'plain' then
-    start = false
-  elseif qualifier == 'previous' then
+  local start = opts.start
+  if start == nil then
     start = true
-  else
-    return
   end
-  local query_o = q.query
-  local char = q.query_char
-  if query_o then
-    query_o:move_current('inner', start)
-  else
-    jump(char, qualifier, true, vim.v.count1)
+  if mode == 'n' then
+    require('flies.move_again').register(function()
+      query_o:motion(domain, 'previous', start, vim.v.count1)
+    end, function()
+      query_o:motion(domain, 'next', start, vim.v.count1)
+    end)
   end
-  q.query:move_current(domain, start)
+  query_o:motion(domain, qualifier, start, vim.v.count1)
 end
 
 function M.append_insert()
@@ -121,44 +55,89 @@ function M.append_insert()
   if qualifier == 'plain' then
     qualifier = 'next'
   end
-  local char = q.query_char
   local query_o = q.query
-  if query_o then
-    M.move(char, qualifier, 'inner', qualifier == 'previous', vim.v.count1)
-  else
-    jump(char, qualifier, true, vim.v.count1)
-  end
-  -- TODO: linewiseness
-  -- TODO: one space padding ??
-  -- TODO: escape hatch
-  if not query_o then
-    vim.api.nvim_feedkeys('i', 'n', false)
-  else
-    if qualifier == 'previous' then
-      vim.api.nvim_feedkeys('i', 'n', false)
-    else
-      vim.api.nvim_feedkeys('a', 'n', false)
+  query_o:search_cb(
+    'inner',
+    'plain',
+    require('flies.utils').get_cursor(),
+    vim.v.count1,
+    function(s, e, w)
+      local pos = qualifier == 'next' and e or s
+      require('flies.utils').set_cursor(pos)
+      local cmd_char = qualifier == 'previous' and 'i' or 'a'
+      if w == 'V' then
+        cmd_char = cmd_char:upper()
+      end
+      vim.api.nvim_feedkeys(cmd_char, 'n', false)
     end
-  end
+  )
 end
 
---- wrapper for vim operators
----@param op string operator
----@param domain_param string default domain ('inner' or 'outer')
----@param noremap boolean
-function M.op(op, domain_param, noremap)
+local utils = require 'flies.utils'
+local cmp = require('flies.objects.utils').cmp
+
+function M.extremity()
   repeater.init()
   local q = repeater.querier(query_obj)
   if not q then
     return
   end
+  local qualifier = q.qualifier
+  local query_o = q.query
   local domain
-  if type(domain_param) == 'string' then
-    domain = domain_param
-  elseif type(domain_param) == 'function' then
-    domain = domain_param(q)
+  if qualifier == 'next' or query_o.blank_text_object then
+    domain = 'inner'
   else
     domain = 'outer'
+  end
+  query_o:search_cb(
+    domain,
+    'plain',
+    require('flies.utils').get_cursor(),
+    1,
+    function(s, e, w)
+      -- FIXME: should be order 2 after applying once; cf treesitter objects
+      if w == 'V' then
+        local row = require('flies.objects.utils').get_row(e[1])
+        e[2] = require('flies.objects.utils').line_inner_start(row)
+      end
+      local cursor = require('flies.utils').get_cursor()
+      local pos
+      if qualifier == 'previous' then
+        pos = s
+      else
+        pos = e
+      end
+      if w == 'V' then
+        if cursor[1] == s[1] then
+          pos = e
+        elseif cursor[1] == e[1] then
+          pos = s
+        end
+      else
+        if cmp(cursor, s) == 0 then
+          pos = e
+        elseif cmp(cursor, e) == 0 then
+          pos = s
+        end
+      end
+      utils.set_cursor(pos)
+    end
+  )
+end
+
+--- wrapper for vim operators
+function M.op(op, opts)
+  repeater.init()
+  local q = repeater.querier(query_obj)
+  if not q then
+    return
+  end
+  opts = require('flies.util').get_opts(opts, q.query)
+  local domain = opts.domain or 'outer'
+  local noremap = opts.noremap
+  if noremap == nil then
+    noremap = true
   end
   vim.api.nvim_feedkeys(t(op), noremap and 'n' or 'm', true)
   local str = string.format(
@@ -170,12 +149,13 @@ function M.op(op, domain_param, noremap)
   vim.api.nvim_feedkeys(t(str), 'n', true)
 end
 
-function M.bind_op(op, domain_param, name, noremap)
+function M.bind_op(op, opts, name)
+  local noremap = opts.noremap
   if noremap == nil then
     noremap = true
   end
   vim.api.nvim_set_keymap('n', string.format('<Plug>(%s)', name), function()
-    M.op(op, domain_param, noremap)
+    M.op(op, opts)
   end, {})
   vim.api.nvim_set_keymap(
     'x',

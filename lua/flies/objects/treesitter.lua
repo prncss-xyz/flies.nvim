@@ -5,6 +5,8 @@ local ts_query = require 'nvim-treesitter.query'
 local cmp = require('flies.objects.utils').cmp
 local get_row = require('flies.utils').get_row
 
+local infer_wiseness = require('flies.objects.utils').infer_wiseness
+
 function M:new(t)
   if type(t) == 'string' then
     t = { t }
@@ -48,10 +50,8 @@ local function get_lua_range(range)
     end
     row = get_row(vim_range[3] - 1)
     if vim_range[4] > row:len() then
-      dump { vim_range[3], vim_range[4] }
       vim_range[3] = vim_range[3] + 1
       vim_range[4] = 1
-      dump { vim_range[3], vim_range[4] }
     end
   end
   return { vim_range[1], vim_range[2] }, { vim_range[3], vim_range[4] }
@@ -100,7 +100,9 @@ local function search(query, filter_cb, sort_cb)
     query,
     'textobjects'
   )
-  matches = vim.tbl_filter(filter_cb, matches)
+  if filter_cb then
+    matches = vim.tbl_filter(filter_cb, matches)
+  end
   if sort_cb then
     table.sort(matches, sort_cb)
   end
@@ -121,10 +123,6 @@ local function latest(m1, m2)
   return end_byte1 > end_byte2
 end
 
-local function earliest(m1, m2)
-  return latest(m2, m1)
-end
-
 local function widest_latest(m1, m2)
   local node_length = ts_utils.node_length
   local length1 = node_length(m1.node)
@@ -143,7 +141,13 @@ local function shortest_earliest(m1, m2)
   return widest_latest(m2, m1)
 end
 
-function M:innerize(os, oe)
+function M:create_cache()
+  local cache = search(self.query2, nil, widest_latest)
+  dump(1, cache)
+  return cache
+end
+
+function M:innerize(os, oe, cache)
   if not self.query2 then
     return os, oe
   end
@@ -191,6 +195,10 @@ function M:np_iterator(domain, pos, forward, start, extremum)
     end
   end
   table.sort(res, sort_cb)
+  vim.tbl_map(function(args)
+    s, e = unpack(args)
+    return s, e, infer_wiseness(s, e)
+  end, res)
   return require('flies.utils').from_list(res)
 end
 
@@ -215,7 +223,7 @@ function M:up_cb(domain, pos, count)
 
   local os, oe = get_lua_range(match)
   if domain == 'outer' or self.blank_text_object then
-    return os, oe
+    return os, oe, infer_wiseness(os, oe)
   end
   if not self.query2 then
     return
@@ -225,7 +233,7 @@ function M:up_cb(domain, pos, count)
     return
   end
   if domain == 'inner' then
-    return is, ie
+    return is, ie, infer_wiseness(is, ie)
   end
   assert(false, string.format('unknown domain %q', domain))
 end

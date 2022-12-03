@@ -135,12 +135,15 @@ function M.query_obj()
     elseif char == M.t '<esc>' then
       return
     else
-      return {
-        query = require('flies').queries[char],
-        query_char = char,
-        qualifier = qualifier or 'plain',
-        qualifier_char = qualifier_char,
-      }
+      local query = require('flies').queries[char]
+      if query then
+        return {
+          query = query,
+          query_char = char,
+          qualifier = qualifier or 'plain',
+          qualifier_char = qualifier_char,
+        }
+      end
     end
   end
 end
@@ -245,6 +248,7 @@ function M.next_char(s)
   return { l, c }
 end
 
+-- maybe infer wiseness from treesitter range
 function M.strip(os, is, ie, oe, c1, c2)
   local s, e
   if vim.deep_equal(os, is) then
@@ -257,6 +261,7 @@ function M.strip(os, is, ie, oe, c1, c2)
   else
     e = M.next_char(ie)
   end
+  -- 88 a 88
   local range1 = M.to_lsp_range(os, s)
   local range2 = M.to_lsp_range(e, oe)
   local bufnr = vim.api.nvim_get_current_buf()

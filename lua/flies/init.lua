@@ -10,6 +10,7 @@ local default_conf = {
     i = 'inner',
     a = 'outer',
   },
+  actions = {},
 }
 
 local t = require('flies.utils').t
@@ -54,6 +55,7 @@ end
 
 function M.setup(user_conf)
   local conf = vim.tbl_extend('force', default_conf, user_conf or {})
+  M.conf = conf
   require('flies.repeater').setup()
   M.domains = conf.domains
   local queries = {}

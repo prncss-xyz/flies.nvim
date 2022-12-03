@@ -4,9 +4,9 @@ local f = require 'flies.util.iterator'
 
 function M.format_result(domain, row, res)
   if domain == 'outer' then
-    return res[1] and { row, res[1] }, res[4] and { row, res[4] }, 'charwise'
+    return res[1] and { row, res[1] }, res[4] and { row, res[4] }, 'v'
   elseif domain == 'inner' then
-    return res[2] and { row, res[2] }, res[3] and { row, res[3] }, 'charwise'
+    return res[2] and { row, res[2] }, res[3] and { row, res[3] }, 'v'
   else
     assert(false, string.format('unknown domain %q', domain))
   end

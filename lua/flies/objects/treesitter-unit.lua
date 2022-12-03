@@ -91,7 +91,7 @@ function M:up_cb(domain, cursor, count)
       if text == '' then
         end_row = move_row_while_empty(bufnr, end_row + 1, 1)
         start_col = 0
-        mode = 'linewise'
+        mode = 'V'
       end
     end
   end

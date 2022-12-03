@@ -1,3 +1,5 @@
+local f = require 'flies.util.iterator'
+
 local function line_seek_cb(line, _)
   local len = line:len()
   if len == 0 then
@@ -15,19 +17,12 @@ local M = require('flies.objects.subline'):new {
   meta_move = { start = false },
 }
 
--- TODO: iterator
-function M:up_cb(domain, pos, count)
-  local line_no
-  if count == 'last' then
-    line_no = pos[1]
-  else
-    line_no = pos[1] + count - 1
-  end
-  local line = require('flies.objects.utils').get_row(line_no)
+function M:up_iterator(domain, pos)
+  local line = require('flies.objects.utils').get_row(pos[1])
   local s, e = M.format_result(domain, pos[1], {
-    line_seek_cb(line, line_no),
+    line_seek_cb(line, pos[1]),
   })
-  return s, e, domain == 'inner' and 'charwise' or 'linewise'
+  return f.once(s, e, domain == 'inner' and 'v' or 'V')
 end
 
 return M

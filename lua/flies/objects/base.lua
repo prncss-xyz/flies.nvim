@@ -1,4 +1,4 @@
-local M = require 'flies.util.object':new()
+local M = require('flies.util.object'):new()
 
 local iter = require 'flies.util.iterator'
 local cmp = require('flies.objects.utils').cmp
@@ -91,19 +91,23 @@ function M.jump(start)
   end
 end
 
-function M:motion(domain, qualifier, start, count)
+function M:move_cb(domain, qualifier, start, count, cb)
   if qualifier == 'hint' then
-    self:hint(domain, M.jump(start))
+    self:hint(domain, cb)
     return
   end
-  local pos = require('flies.utils').get_cursor()
+  local cursor = require('flies.utils').get_cursor()
   local s, e
-  s, e = iter.nth(count)(
-    self:np_iterator(domain, pos, qualifier == 'next', start)
+  s, e, w = iter.nth(count)(
+    self:np_iterator(domain, cursor, qualifier == 'next', start)
   )
   if s then
-    M.jump(start)(s, e)
+    cb(start)(s, e, w)
   end
+end
+
+function M:motion(domain, qualifier, start, count)
+  self:move_cb(domain, qualifier, start, count, M.jump)
 end
 
 function M:jump_target_gtr(domain)
@@ -134,7 +138,7 @@ function M:jump_target_gtr(domain)
   for _, target in ipairs(jump_targets) do
     local s, e = unpack(target.object)
     if cmp(s, cursor_pos) <= 0 and cmp(cursor_pos, e or s) <= 0 then
-      dump(s, e)
+      -- dump(s, e)
     end
   end
   return {
@@ -154,5 +158,7 @@ function M:hint(domain, cb)
     end
   )
 end
+
+M.actions = {}
 
 return M

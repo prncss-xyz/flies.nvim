@@ -21,17 +21,17 @@ function M.infer_wiseness(s, e)
   end
   if s[1] == e[1] then
     if s[2] == 1 and e[2] == line:len() then
-      return 'linewise'
+      return 'V'
     end
     if s[2] < is then
-      return 'linewise'
+      return 'V'
     end
     if e[2] > ie then
-      return 'linewise'
+      return 'V'
     end
-    return 'charwise'
+    return 'v'
   end
-  return 'linewise'
+  return 'V'
 end
 
 -- Start visual selection in appropriate mode
@@ -262,7 +262,7 @@ function M.line_bounds(domain, line)
   end
 end
 
-function M.line_ending_col(row)
+function M.line_outer_end(row)
   local line = vim.api.nvim_buf_get_lines(0, row - 1, row, true)[1]
   if line == '' then
     return 1
@@ -272,12 +272,12 @@ function M.line_ending_col(row)
 end
 
 function M.line_ending_pos(row)
-  local col = M.line_ending_col(row)
+  local col = M.line_outer_end(row)
   return M.to_pos(row, col)
 end
 
 function M.select_line_range(start, ending)
-  local len = M.line_ending_col(ending)
+  local len = M.line_outer_end(ending)
   M.set_selection(M.to_pos(start, 1), M.to_pos(ending, len), 'V')
 end
 
