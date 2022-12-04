@@ -1,8 +1,20 @@
 local M = require "flies2.utils.init"
 
+describe("min", function()
+	local function cmp(a, b) return a - b end
+	it("should return the non nil value", function()
+		assert.are.equals(1, M.min(cmp, 1, nil))
+		assert.are.equals(1, M.min(cmp, nil, 1))
+	end)
+	it("should return the smallest value", function()
+		assert.are.equals(1, M.min(cmp, 1, 2))
+		assert.are.equals(1, M.min(cmp, 2, 1))
+	end)
+end)
+
 describe("correct_indent", function()
 	it("should normalize indentation", function()
-		assert.are.same(
+		assert.are.equals(
 			M.correct_indent(
 				[[
           aaa
@@ -19,7 +31,7 @@ describe("correct_indent", function()
         bbb
       ccc
     ]]
-		assert.are.same(
+		assert.are.equals(
 			M.correct_indent(input, "!"),
 			table.concat({ "!aaa", "!  bbb", "!ccc" }, "\n")
 		)
@@ -33,7 +45,7 @@ describe("correct_indent", function()
     ee
       ccc
     ]]
-			assert.are.same(M.correct_indent(input, "!"), input)
+			assert.are.equals(M.correct_indent(input, "!"), input)
 		end
 	)
 end)

@@ -1,0 +1,18 @@
+require "flies2.utils.load_asserts"
+
+describe("greater", function()
+	it("should compare", function() assert.is_greater(2, 1) end)
+		assert.has_error(function() assert.is_greater(1, 2) end)
+end)
+
+describe("smaller", function()
+	it("should compare", function() assert.is_smaller(1, 2) end)
+		assert.has_error(function() assert.is_smaller(2, 1) end)
+end)
+
+describe("nil", function()
+	it("should test", function()
+		assert.is_nil(nil)
+		assert.has_error(function() assert.is_nil(1) end)
+	end)
+end)
