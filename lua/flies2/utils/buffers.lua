@@ -75,11 +75,13 @@ function M.set_cursor(winnr, cursor)
 	vim.api.nvim_win_set_cursor(winnr, new_cursor)
 end
 
+function M.get_eob(bufnr) return vim.api.nvim_buf_line_count(bufnr) end
+
 function M.get_line(bufnr, row)
 	return vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1]
 end
 
-function M.get_zone(bufnr, s, e)
+function M.get_text(bufnr, s, e)
 	return table.concat(
 		vim.api.nvim_buf_get_text(bufnr, s[1] - 1, s[2] - 1, e[1] - 1, e[2], {}),
 		"\n"
@@ -107,7 +109,8 @@ local function get_lsp_edit(edit)
 	return { range = to_lsp_range(from, to_), newText = new_text }
 end
 
-function M.text_replace(bufnr, edits)
+-- edits are triplets {}
+function M.edit(bufnr, edits)
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")
 end
 
