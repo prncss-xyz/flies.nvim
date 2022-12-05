@@ -30,3 +30,16 @@ describe("is_in_range", function()
 		assert.is_false(M.is_in_range({ 1, 1 }, { 1, 3 }, { 1, 0 }))
 	end)
 end)
+
+describe("ripairs", function()
+	it("should iterate pairs in reverse order", function()
+		local table_in = { 4, 5, 6 }
+		local table_out = {}
+		local i_
+		for i, v in M.ripairs(table_in) do
+			table_out[i] = v
+			if i_ then assert.is_greater(i, i_) end
+		end
+		assert.are.same(table_in, table_out)
+	end)
+end)

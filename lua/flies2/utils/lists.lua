@@ -27,4 +27,15 @@ function M.is_in_range(s, e, x)
   return M.cmp(s, x) <= 0 and M.cmp(x, e) <= 0
 end
 
+local function ripairs(s, i)
+  i = i - 1
+  if i > 0 then
+    return i, s[i]
+  end
+end
+
+function M.ripairs(t)
+  return ripairs, t, #t + 1
+end
+
 return M

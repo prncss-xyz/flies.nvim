@@ -1,5 +1,6 @@
 local M = require("flies2.utils.objects"):new {}
 local buffers = require "flies2.utils.buffers"
+local iterators = require "flies2.utils.iterators"
 
 M.lonely_wiseness = "v"
 
@@ -82,6 +83,16 @@ function M:borough(s, e)
 	if e_ then return s, e_ end
 	local s_ = self:_pre(wiseness, s)
 	return s_, e
+end
+
+function M:find_upwards(count, pos)
+	return iterators.nth(count)(self:iterate_upwards(pos))
+end
+function M:find_backwards(count, pos)
+	return iterators.nth(count)(self:iterate_backwards(pos))
+end
+function M:find_forwards(count, pos)
+	return iterators.nth(count)(self:iterate_forwards(pos))
 end
 
 return M
