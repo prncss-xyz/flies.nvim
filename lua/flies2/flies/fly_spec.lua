@@ -61,11 +61,11 @@ bbbbbbbbb
 		assert.are.equals(wiseness, "V")
 		assert.are.same({ { 3, 1 }, { 6, 1 } }, { f:borough(0, { 3, 1 }, { 4, 3 }) })
 
-		local wiseness = f:get_wiseness(0, { 7, 1 }, { 7, 9 })
+		wiseness = f:get_wiseness(0, { 7, 1 }, { 7, 9 })
 		assert.are.equals(wiseness, "V")
 		assert.are.same({ { 5, 1 }, { 7, 9 } }, { f:borough(0, { 7, 1 }, { 7, 9 }) })
 
-		local wiseness = f:get_wiseness(0, { 1, 1 }, { 1, 9 })
+		wiseness = f:get_wiseness(0, { 1, 1 }, { 1, 9 })
 		assert.are.equals(wiseness, "V")
 		assert.are.same({ { 1, 1 }, { 2, 1 } }, { f:borough(0, { 1, 1 }, { 1, 9 }) })
 	end)
