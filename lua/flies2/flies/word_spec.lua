@@ -1,4 +1,5 @@
 local M = require "flies2.flies.word"
+local iterators = require "flies2.utils.iterators"
 
 local tests = require "flies2.utils.tests"
 
@@ -39,7 +40,7 @@ ddd
 	end)
 	describe("find_upwards", function()
 		it("should find upwards word", function()
-			assert.is_nil( M:find_upwards(2, { 3, 3 }))
+			assert.is_nil(M:find_upwards(2, { 3, 3 }))
 			assert.is_nil(M:find_upwards(1, { 3, 4 }))
 			assert.are.same(
 				{ { 3, 1 }, { 3, 1 }, { 3, 3 }, { 3, 3 } },

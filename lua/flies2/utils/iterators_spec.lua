@@ -8,19 +8,17 @@ describe("to_list_single", function()
 			coroutine.yield(6)
 		end
 		assert.are.same({ 4, 5, 6 }, M.to_list_single(coroutine.wrap(producer)))
+		assert.are.same({}, M.to_list_single(M.null()))
+		assert.are.same({ 3 }, M.to_list_single(M.unit(3)))
 	end)
 end)
 
 describe("from_list_single", function()
-	it(
-		"should invert to_list_single",
-		function()
-			assert.are.same(
-				{ 4, 5, 6 },
-				M.to_list_single(M.from_list_single { 4, 5, 6 })
-			)
-		end
-	)
+	it("should invert to_list_single", function()
+		assert.are.same({ 4, 5, 6 }, M.to_list_single(M.from_list_single { 4, 5, 6 }))
+		assert.are.same({}, M.to_list_many(M.null()))
+		assert.are.same({ { 1, 2 } }, M.to_list_many(M.unit(1, 2)))
+	end)
 end)
 
 describe("to_list_many", function()
@@ -63,5 +61,6 @@ describe("nth", function()
 		assert.is_nil(M.nth(0)(ipairs { 4, 5, 6 }))
 		assert.is_nil(M.nth(7)(ipairs { 4, 5, 6 }))
 		assert.is_nil(M.nth(1)(M.null()))
+		assert.is_nil(M.nth(2)(ipairs { 4 }))
 	end)
 end)

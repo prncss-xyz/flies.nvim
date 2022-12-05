@@ -33,8 +33,8 @@ function M:iterate_upwards(pos)
 	for _, match in ipairs(get_matches(self, line)) do
 		local s = { row, match[1] }
 		local e = { row, match[2] }
-		if lists.cmp(s, pos) < 0 then
-			if lists.cmp(pos, e) < 0 then return iterators.once { s, s, e, e } end
+		if lists.cmp(s, pos) <= 0 then
+			if lists.cmp(pos, e) <= 0 then return iterators.unit { s, s, e, e } end
 		elseif lists.cmp(pos, s) < 0 then
 			break
 		end
