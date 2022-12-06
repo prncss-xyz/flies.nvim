@@ -1,6 +1,6 @@
 local M = require("flies2.flies.fly"):new {}
 
--- TODO: quote, line, variable_segment, dot_segment,
+-- TODO: variable_segment, dot_segment,
 
 local buffers = require "flies2.utils.buffers"
 local lists = require "flies2.utils.lists"
