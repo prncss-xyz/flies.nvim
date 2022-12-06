@@ -2,6 +2,6 @@ local M = require("flies2.flies.subline"):new {}
 
 M.solid = true
 
-M.patterns = { "%w+", "%p+" }
+M.patterns = { "%S.*%S", "%S" }
 
- return M
+return M

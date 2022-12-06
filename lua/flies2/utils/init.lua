@@ -1,19 +1,23 @@
 local M = {}
 
+-- TODO: pattern_escape (string)
+function M.pattern_escape_char(char)
+	if char == "%" then
+		char = "%%"
+	elseif char == "^" then
+		char = "%^"
+	end
+	return string.format("[%s]", char)
+end
+
 function M.min(cmp, v1, v2)
-  if v1 == nil then
-    if v2 == nil then
-      return
-    end
-    return v2
-  end
-  if v2 == nil then
-    return v1
-  end
-  if cmp(v1, v2) <= 0 then
-    return v1
-  end
-  return v2
+	if v1 == nil then
+		if v2 == nil then return end
+		return v2
+	end
+	if v2 == nil then return v1 end
+	if cmp(v1, v2) <= 0 then return v1 end
+	return v2
 end
 
 function M.correct_indent(in_str, new_indent)
@@ -25,18 +29,12 @@ function M.correct_indent(in_str, new_indent)
 		local line_indent = line:match "^%s*"
 		-- if line contains only splace characters
 		if line == line_indent then
-			if i == #lines then
-				break
-			end
+			if i == #lines then break end
 			new_line = ""
 		else
-			if not old_indent then
-				old_indent = line_indent
-			end
+			if not old_indent then old_indent = line_indent end
 			-- if line does not start with commont indent, don't transform anything
-			if not vim.startswith(line_indent, old_indent) then
-				return in_str
-			end
+			if not vim.startswith(line_indent, old_indent) then return in_str end
 			-- replace common indent with provided indent
 			new_line = new_indent .. line:sub(old_indent:len() + 1)
 		end
