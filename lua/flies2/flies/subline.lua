@@ -7,48 +7,52 @@ local lists = require "flies2.utils.lists"
 local iterators = require "flies2.utils.iterators"
 
 M.lookahead = 200
+
 function M:map(bufnr, row, s, e) return s, e end
 -- M.patterns = {}
 
-local function get_matches(self, line)
+function M:get_matches(patterns, line)
 	local matches = {}
-	local s
-	local e = 0
-	local ss = {}
-	local ee = {}
+	local res = {}
+	local init = 1
 	while true do
-		local init = e + 1
-		s = nil
-		for i, pattern in ipairs(self.patterns) do
-			if ss[i] == nil or ss[i] < init then
+		local i
+		for i_, pattern in ipairs(patterns) do
+			if res[i_] == nil or type(res[i_]) == "table" and res[i_][2] < init then
+				local s, e, m
 				if type(pattern) == "string" then
-					ss[i], ee[i] = line:find(pattern, init)
+					s, e, m = line:find(pattern, init)
 				else
-					ss[i], ee[i] = pattern(self, line, init)
+					s, e, m = pattern(self, line, init)
+				end
+				if s then
+					res[i_] = { i_, s, e, m }
+				else
+					res[i_] = "done"
 				end
 			end
-			if not s or ss[i] and ss[i] < s then
-				s, e = ss[i], ee[i]
+			if type(res[i_]) == "table" then
+				if not i or res[i_][2] < res[i][2] then i = i_ end
+			else
+				assert(res[i_] == "done", "faulty logic")
 			end
 		end
-		if s then
-			table.insert(matches, { s, e })
-		else
-			break
-		end
+		if not i then return matches end
+		table.insert(matches, res[i])
+		init = res[i][3] + 1
 	end
-	return matches
 end
 
 function M:iterate_upwards(bufnr, pos)
 	local row = pos[1]
 	local line = buffers.get_line(bufnr, row)
-	for _, match in ipairs(get_matches(self, line)) do
-		local os = { row, match[1] }
-		local oe = { row, match[2] }
+	for _, match in ipairs(self:get_matches(self.patterns, line)) do
+		local _, s, e = unpack(match)
+		local os = { row, s }
+		local oe = { row, e }
 		if lists.cmp(os, pos) <= 0 then
 			if lists.cmp(pos, oe) <= 0 then
-				local isc, iec = self:map(bufnr, row, match[1], match[2])
+				local isc, iec = self:map(bufnr, row, s, e)
 				if isc then
 					return iterators.unit { os, { row, isc }, { row, iec }, oe }
 				else
@@ -66,11 +70,12 @@ local function forwards_co(self, bufnr, pos)
 	local last = math.min(pos[1] + self.lookahead - 1, buffers.get_eob(bufnr))
 	for row = pos[1], last do
 		local line = buffers.get_line(bufnr, row)
-		for _, match in ipairs(get_matches(self, line)) do
-			local os = { row, match[1] }
+		for _, match in ipairs(self:get_matches(self.patterns, line)) do
+			local _, s, e = unpack(match)
+			local os = { row, s }
 			if lists.cmp(pos, os) < 0 then
-				local oe = { row, match[2] }
-				local isc, iec = self:map(bufnr, row, match[1], match[2])
+				local oe = { row, e }
+				local isc, iec = self:map(bufnr, row, s, e)
 				if isc then coroutine.yield { os, { row, isc }, { row, iec }, oe } end
 			end
 		end
@@ -85,11 +90,12 @@ local function backwards_co(self, bufnr, pos)
 	local last = math.max(pos[1] - self.lookahead + 1, 1)
 	for row = pos[1], last, -1 do
 		local line = buffers.get_line(bufnr, row)
-		for _, match in lists.ripairs(get_matches(self, line)) do
-			local oe = { row, match[2] }
+		for _, match in lists.ripairs(self:get_matches(self.patterns, line)) do
+			local _, s, e = unpack(match)
+			local oe = { row, e }
 			if lists.cmp(oe, pos) < 0 then
-				local os = { row, match[1] }
-				local isc, iec = self:map(bufnr, row, match[1], match[2])
+				local os = { row, s }
+				local isc, iec = self:map(bufnr, row, s, e)
 				if isc then coroutine.yield { os, { row, isc }, { row, iec }, oe } end
 			end
 		end
