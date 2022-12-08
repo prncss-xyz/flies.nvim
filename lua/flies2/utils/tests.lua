@@ -15,7 +15,7 @@ function M.get_buf()
 	local row = buffers.get_eob(0)
 	local line = buffers.get_line(0, row)
 	local col = line:len()
-	return buffers.get_text(0, { 1, 1 }, { row, col })
+	return buffers.get_range(0, { 1, 1 }, { row, col })
 end
 
 return M
