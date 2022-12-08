@@ -23,24 +23,28 @@ local function is_opening(fwd, left_len, i)
 	return not is_left
 end
 
-function inner_outer(fwd, line, prev_line, row, s, e)
-	local inner, outer
-	if fwd then
+local function get_half_range(fwd, opening, row, line, line_, s, e)
+	local inner, outer, find_next
+	if fwd == opening then
+		outer = { row, s }
 		if line:sub(e + 1):match "^%s*$" then
 			inner = { row + 1, 1 }
 		else
 			inner = { row, e + 1 }
 		end
-		outer = { row, s }
 	else
+		outer = { row, e }
 		if line:sub(1, s - 1):match "^%s*$" then
-			inner = { row - 1, prev_line and prev_line:len() or 0 } -- TODO: define semantics
+			if fwd then
+				inner = { row - 1, line_:len() }
+			else
+				find_next = true
+			end
 		else
 			inner = { row, s - 1 }
 		end
-		outer = { row, e }
 	end
-	return inner, outer
+	return inner, outer, find_next
 end
 
 local function np_co(self, fwd, bufnr, pos)
@@ -50,47 +54,31 @@ local function np_co(self, fwd, bufnr, pos)
 		or math.max(pos[1] - self.lookahead + 1, 1)
 	local sgn = fwd and 1 or -1
 	local _ipairs = fwd and ipairs or lists.ripairs
-	local stack = {}
-	local stack2 = {}
+	local finding = {}
+	local found = {}
 	local opening
 	local prev_line, line
+	local find_next
 	for row = pos[1], last, sgn do
 		prev_line = line
 		line = buffers.get_line(bufnr, row)
+		if find_next then opening.inner = { row, line:len() } end
 		local matches = self:get_matches(patterns, line)
 		for _, match in _ipairs(matches) do
 			local i, s, e, m = unpack(match)
 			if lists.cmp({ row, s }, pos) == sgn then
 				if is_opening(fwd, #self.left_patterns, i) then
 					-- current match is an opening pattern (left)
-					if opening then table.insert(stack, opening) end
-					if fwd then
-						local inner_open
-						if line:sub(e + 1):match "^%s*$" then
-							inner_open = { row + 1, 1 }
-						else
-							inner_open = { row, e + 1 }
-						end
-						opening = {
-							i = i,
-							m = m,
-							outer_open = { row, s },
-							inner_open = inner_open,
-						}
-					else
-						local inner_close
-						if line:sub(1, s - 1):match "^%s*$" then
-							inner_close = { row - 1, 1 }
-						else
-							inner_close = { row, s - 1 }
-						end
-						opening = {
-							i = i,
-							m = m,
-							outer_close = { row, s },
-							inner_close = inner_close,
-						}
-					end
+					if opening then table.insert(finding, opening) end
+					local inner, outer
+					inner, outer, find_next =
+						get_half_range(fwd, true, row, line, prev_line, s, e)
+					opening = {
+						i = i,
+						m = m,
+						inner = inner,
+						outer = outer,
+					}
 				else
 					-- current match is a closing pattern (right)
 					-- does current match corresponds to opening pattern we are looking for?
@@ -99,49 +87,36 @@ local function np_co(self, fwd, bufnr, pos)
 						if fwd then
 							valid = self.validator(opening.i, opening.m, i - #self.left_patterns, m)
 						else
-							valid = self.validator(opening.m, i, m, opening.i - #self.left_patterns)
+							valid = self.validator(i, m, opening.i - #self.left_patterns, opening.m)
 						end
 						if valid then
+							local inner, outer =
+								get_half_range(fwd, false, row, line, prev_line, s, e)
 							if fwd then
-								local inner_close
-								if line:sub(1, s - 1):match "^%s*$" then
-									assert(prev_line, "TODO") -- TODO: handle not defined case
-									inner_close = { row - 1, prev_line:len() }
-								else
-									inner_close = { row, s - 1 }
-								end
-								local outer_close = { row, e }
-								table.insert(stack2, {
-									opening.outer_open,
-									opening.inner_open,
-									inner_close,
-									outer_close,
+								table.insert(found, {
+									opening.outer,
+									opening.inner,
+									inner,
+									outer,
 								})
 							else
-								local inner_open
-								if line:sub(1, s - 1):match "^%s*$" then
-									assert(prev_line, "TODO") -- TODO: handle not defined case
-									inner_open = { row - 1, prev_line:len() }
-								else
-									inner_open = { row, s - 1 }
-								end
-								local outer_open = { row, e }
-								table.insert(stack2, {
-									opening.outer_open,
-									opening.inner_open,
-									inner_open,
-									outer_open,
+								table.insert(found, {
+									outer,
+									inner,
+									opening.inner,
+									opening.outer,
 								})
 							end
-							opening = table.remove(stack)
-
+							opening = table.remove(finding)
 							if not opening then
-								for _, res in lists.ripairs(stack2) do
+								for _, res in lists.ripairs(found) do
 									coroutine.yield(res)
 								end
-								stack2 = {}
+								found = {}
 							end
 						end
+					else
+						-- return match if upward
 					end
 				end
 			end
@@ -153,77 +128,8 @@ function M:iterate_forwards(bufnr, pos)
 	return coroutine.wrap(function() np_co(self, true, bufnr, pos) end)
 end
 
-local function backwards_co(self, bufnr, pos)
-	local patterns = process_pair_patterns(self)
-	local last = math.max(pos[1] - self.lookahead + 1, 1)
-	local stack = {}
-	local stack2 = {}
-	local opening
-	local prev_line, line
-	for row = pos[1], last do
-		prev_line = line
-		line = buffers.get_line(bufnr, row)
-		local matches = self:get_matches(patterns, line)
-		for _, match in lists.ripairs(matches) do
-			local i, s, e, m = unpack(match)
-			if lists.cmp(pos, { row, s }) > 0 then
-				if i > #self.left_patterns then
-					-- current match is an opening pattern (left)
-					if opening then table.insert(stack, opening) end
-					local inner_open
-					if line:sub(e - 1):match "^%s*$" then
-						inner_open = { row - 1, 1 }
-					else
-						inner_open = { row, e - 1 }
-					end
-					opening = {
-						i = i,
-						m = m,
-						outer_open = { row, s },
-						inner_open = inner_open,
-					}
-				else
-					-- current match is a closing pattern (right)
-					-- does current match corresponds to opening pattern we are looking for?
-					local valid
-					local j = i - #self.left_patterns
-					if self.validator then
-						valid = self.validator(opening.i, opening.m, j, m)
-					else
-						valid = opening.i == j and opening.m == m
-					end
-					if valid then
-						local inner_close
-						if line:sub(1, s - 1):match "^%s*$" then
-							assert(prev_line, "TODO") -- TODO: handle not defined case
-							inner_close = { row - 1, prev_line:len() }
-						else
-							inner_close = { row, s - 1 }
-						end
-						local outer_close = { row, e }
-						table.insert(stack2, {
-							opening.outer_open,
-							opening.inner_open,
-							inner_close,
-							outer_close,
-						})
-						opening = table.remove(stack)
-
-						if not opening then
-							for _, res in lists.ripairs(stack2) do
-								coroutine.yield(res)
-							end
-							stack2 = {}
-						end
-					end
-				end
-			end
-		end
-	end
-end
-
 function M:iterate_backwards(bufnr, pos)
-	return coroutine.wrap(function() backwards_co(self, bufnr, pos) end)
+	return coroutine.wrap(function() np_co(self, false, bufnr, pos) end)
 end
 
 return M
