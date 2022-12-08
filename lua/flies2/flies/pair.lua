@@ -62,7 +62,10 @@ local function np_co(self, fwd, bufnr, pos)
 	for row = pos[1], last, sgn do
 		prev_line = line
 		line = buffers.get_line(bufnr, row)
-		if find_next then opening.inner = { row, line:len() } end
+		if find_next then
+			find_next = false
+			opening.inner = { row, line:len() }
+		end
 		local matches = self:get_matches(patterns, line)
 		for _, match in _ipairs(matches) do
 			local i, s, e, m = unpack(match)
