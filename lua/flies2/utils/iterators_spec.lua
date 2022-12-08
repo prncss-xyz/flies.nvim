@@ -64,3 +64,31 @@ describe("nth", function()
 		assert.is_nil(M.nth(2)(ipairs { 4 }))
 	end)
 end)
+
+describe("range", function()
+	it("should iterate the range with index", function()
+		assert.are.same({ 1, 2, 3 }, (M.to_list_single(M.range(1, 3))))
+		assert.are.same({ 1, 3, 5 }, (M.to_list_single(M.range(1, 5, 2))))
+		assert.are.same({ 5, 3, 1 }, (M.to_list_single(M.range(5, 1, -2))))
+	end)
+end)
+
+describe("flatten", function()
+	it("description", function()
+		local n = 0
+		local function fu()
+			n = n + 1
+			if n < 4 then return M.range(n) end
+		end
+		assert.are.same({ 1, 1, 2, 1, 2, 3 }, M.to_list_single(M.flatten(fu)))
+	end)
+	it(
+		"should respect multiple values",
+		function()
+			assert.are.same(
+				{ { 4, 5 }, { 6, 7 } },
+				M.to_list_many(M.flatten(M.unit(M.from_list_many { { 4, 5 }, { 6, 7 } })))
+			)
+		end
+	)
+end)

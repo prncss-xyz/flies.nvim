@@ -27,6 +27,8 @@ function M.relative_pos(pos, s, e)
 	return "upward"
 end
 
+---given a function that maps values to tuples, returns a comparing function
+---for values that corresponds to lexicoraphical order of resulting tuples
 function M.cmp_gen(cb)
 	return function(a, b) return M.cmp(cb(a), cb(b)) end
 end

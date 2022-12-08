@@ -1,10 +1,18 @@
+---buffers operation
+---the aim of this module is to wrap different buffer operations
+---to provide operations normalized to (1, 1) coordinates
+
 local M = {}
 
+---feeds given key sequece (interprenting escaped values), noremap
+---@param str string
 local function feedkeys(str)
 	local k = vim.api.nvim_replace_termcodes(str, true, true, true)
 	vim.api.nvim_feedkeys(k, "n", true)
 end
 
+---wrapper function used to get visual selection range
+---@param cb function
 function M.with_x(cb)
 	feedkeys "<esc>"
 	vim.defer_fn(function() cb() end, 0)
@@ -64,26 +72,50 @@ local function get_marks(bufnr, mode)
 	return pos1, pos2
 end
 
+--- get cursor position
+---@param winnr number window's number or 0 for current
+---@return table
 function M.get_cursor(winnr)
 	local cursor = vim.api.nvim_win_get_cursor(winnr)
 	cursor[2] = cursor[2] + 1
 	return cursor
 end
 
+--- set cursor's position
+---@param winnr number window's number or 0 for current
+---@param cursor table
 function M.set_cursor(winnr, cursor)
 	local new_cursor = { cursor[1], cursor[2] - 1 }
 	vim.api.nvim_win_set_cursor(winnr, new_cursor)
 end
 
+--- gets last line of buffer
+---@param bufnr number buffer's number or 0 for current
+---@return number
 function M.get_eob(bufnr) return vim.api.nvim_buf_line_count(bufnr) end
 
+--- gets line's contents
+---@param bufnr number buffer's number or 0 for current
+---@param row number
+---@return string
 function M.get_line(bufnr, row)
 	return vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1]
 end
 
-function M.get_text(bufnr, s, e)
+--- gets range's contents
+---@param bufnr number buffer's number or 0 for current
+---@param start table
+---@param end_ table
+function M.get_range(bufnr, start, end_)
 	return table.concat(
-		vim.api.nvim_buf_get_text(bufnr, s[1] - 1, s[2] - 1, e[1] - 1, e[2], {}),
+		vim.api.nvim_buf_get_text(
+			bufnr,
+			start[1] - 1,
+			start[2] - 1,
+			end_[1] - 1,
+			end_[2],
+			{}
+		),
 		"\n"
 	)
 end
@@ -109,7 +141,10 @@ local function get_lsp_edit(edit)
 	return { range = to_lsp_range(from, to_), newText = new_text }
 end
 
--- edits are triplets {}
+---concurently apply edits operations to a buffer
+---(this means you don't have to worry about how an operation changes the coordonates needed to perform the next one)
+---@param bufnr number buffer's number or 0 for current
+---@param edits table a list of triplets {start, end_, new_text}
 function M.edit(bufnr, edits)
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")
 end

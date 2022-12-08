@@ -10,16 +10,6 @@ function M.pattern_escape_char(char)
 	return string.format("[%s]", char)
 end
 
-function M.min(cmp, v1, v2)
-	if v1 == nil then
-		if v2 == nil then return end
-		return v2
-	end
-	if v2 == nil then return v1 end
-	if cmp(v1, v2) <= 0 then return v1 end
-	return v2
-end
-
 function M.correct_indent(in_str, new_indent)
 	local out_str
 	local old_indent

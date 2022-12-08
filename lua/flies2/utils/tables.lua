@@ -1,5 +1,7 @@
 local M = {}
 
+---recursivly merges an array into another
+---updates first array, unlike vim.tbl_deep_extend, which creates a new one
 function M.deep_merge(t1, t2)
 	local offset = #t1
 	for k, v in pairs(t2) do
