@@ -66,14 +66,18 @@ function M:iterate_upwards(bufnr, pos)
 	return iterators.null()
 end
 
-local function forwards_co(self, bufnr, pos)
-	local last = math.min(pos[1] + self.lookahead - 1, buffers.get_eob(bufnr))
-	for row = pos[1], last do
+local function np_co(self, bufnr, fwd, pos)
+	local sgn = fwd and 1 or -1
+	local last = fwd
+			and math.min(pos[1] + self.lookahead - 1, buffers.get_eob(bufnr))
+		or math.max(pos[1] - self.lookahead + 1, 1)
+	local _ipairs = fwd and ipairs or lists.ripairs
+	for row = pos[1], last, sgn do
 		local line = buffers.get_line(bufnr, row)
-		for _, match in ipairs(self:get_matches(self.patterns, line)) do
+		for _, match in _ipairs(self:get_matches(self.patterns, line)) do
 			local _, s, e = unpack(match)
 			local os = { row, s }
-			if lists.cmp(pos, os) < 0 then
+			if lists.cmp(os, pos) == sgn then
 				local oe = { row, e }
 				local isc, iec = self:map(bufnr, row, s, e)
 				if isc then coroutine.yield { os, { row, isc }, { row, iec }, oe } end
@@ -83,27 +87,11 @@ local function forwards_co(self, bufnr, pos)
 end
 
 function M:iterate_forwards(bufnr, pos)
-	return coroutine.wrap(function() forwards_co(self, bufnr, pos) end)
-end
-
-local function backwards_co(self, bufnr, pos)
-	local last = math.max(pos[1] - self.lookahead + 1, 1)
-	for row = pos[1], last, -1 do
-		local line = buffers.get_line(bufnr, row)
-		for _, match in lists.ripairs(self:get_matches(self.patterns, line)) do
-			local _, s, e = unpack(match)
-			local oe = { row, e }
-			if lists.cmp(oe, pos) < 0 then
-				local os = { row, s }
-				local isc, iec = self:map(bufnr, row, s, e)
-				if isc then coroutine.yield { os, { row, isc }, { row, iec }, oe } end
-			end
-		end
-	end
+	return coroutine.wrap(function() np_co(self, bufnr, true, pos) end)
 end
 
 function M:iterate_backwards(bufnr, pos)
-	return coroutine.wrap(function() backwards_co(self, bufnr, pos) end)
+	return coroutine.wrap(function() np_co(self, bufnr, false, pos) end)
 end
 
 return M
