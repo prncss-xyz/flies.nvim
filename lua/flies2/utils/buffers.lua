@@ -102,6 +102,23 @@ function M.get_line(bufnr, row)
 	return vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1]
 end
 
+function M.get_lines(bufnr, fwd, row)
+	local lookahead = require("flies2").config.lookahead
+	local sgn = fwd and 1 or -1
+	local max = fwd and math.min(row + lookahead - 1, M.get_eob(bufnr))
+	local min = not fwd and math.max(row - lookahead + 1, 1)
+	row = row - sgn
+	return function()
+		row = row + sgn
+		if fwd then
+			if row > max then return end
+		else
+			if row < min then return end
+		end
+		return row, M.get_line(bufnr, row)
+	end
+end
+
 --- gets range's contents
 ---@param bufnr number buffer's number or 0 for current
 ---@param start table

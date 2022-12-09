@@ -57,4 +57,14 @@ end
 ---@param t table list
 function M.ripairs(t) return ripairs, t, #t + 1 end
 
+--- bidirectional ipairs
+---@param t table list
+function M.bipairs(fwd, t)
+	if fwd then
+		return ipairs(t)
+	else
+		return M.ripairs(t)
+	end
+end
+
 return M

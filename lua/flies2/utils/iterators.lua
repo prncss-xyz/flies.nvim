@@ -124,4 +124,24 @@ function M.flatten(gen1, param1, state1)
 	return function() return d(gen2(param2, state2)) end
 end
 
+function M.map(cb)
+	return function(gen, param, state)
+		local s = state
+		local function map0(k, ...)
+			if k then
+				s = k
+				return cb(k, ...)
+			end
+		end
+
+		return function() return map0(gen(param, s)) end
+	end
+end
+
+function M.chain(cb)
+	return function(gen, param, state)
+    return M.flatten(M.map(cb)(gen, param, state))
+  end
+end
+
 return M

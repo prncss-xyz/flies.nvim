@@ -68,13 +68,8 @@ end
 
 local function np_co(self, bufnr, fwd, pos)
 	local sgn = fwd and 1 or -1
-	local last = fwd
-			and math.min(pos[1] + self.lookahead - 1, buffers.get_eob(bufnr))
-		or math.max(pos[1] - self.lookahead + 1, 1)
-	local _ipairs = fwd and ipairs or lists.ripairs
-	for row = pos[1], last, sgn do
-		local line = buffers.get_line(bufnr, row)
-		for _, match in _ipairs(self:get_matches(self.patterns, line)) do
+	for row, line in buffers.get_lines(bufnr, fwd, pos[1]) do
+		for _, match in lists.bipairs(fwd, self:get_matches(self.patterns, line)) do
 			local _, s, e = unpack(match)
 			local os = { row, s }
 			if lists.cmp(os, pos) == sgn then
