@@ -102,8 +102,7 @@ function M.get_line(bufnr, row)
 	return vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1]
 end
 
-function M.get_lines(bufnr, fwd, row)
-	local lookahead = require("flies2").config.lookahead
+function M.get_lines(bufnr, fwd, row, lookahead)
 	local sgn = fwd and 1 or -1
 	local max = fwd and math.min(row + lookahead - 1, M.get_eob(bufnr))
 	local min = not fwd and math.max(row - lookahead + 1, 1)
@@ -134,6 +133,17 @@ function M.get_range(bufnr, start, end_)
 			{}
 		),
 		"\n"
+	)
+end
+
+function M.set_range(bufnr, start, end_, text)
+	vim.api.nvim_buf_set_text(
+		bufnr,
+		start[1] - 1,
+		start[2] - 1,
+		end_[1] - 1,
+		end_[2],
+		vim.split(text, "\n")
 	)
 end
 

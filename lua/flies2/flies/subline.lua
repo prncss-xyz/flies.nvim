@@ -6,8 +6,6 @@ local buffers = require "flies2.utils.buffers"
 local lists = require "flies2.utils.lists"
 local iterators = require "flies2.utils.iterators"
 
-M.lookahead = 200
-
 function M:map(bufnr, row, s, e) return s, e end
 -- M.patterns = {}
 
@@ -44,22 +42,20 @@ function M:get_matches(patterns, line)
 end
 
 function M:iterate_upwards(bufnr, pos)
-	local row = pos[1]
+	local row, col = unpack(pos)
 	local line = buffers.get_line(bufnr, row)
 	for _, match in ipairs(self:get_matches(self.patterns, line)) do
 		local _, s, e = unpack(match)
-		local os = { row, s }
-		local oe = { row, e }
-		if lists.cmp(os, pos) <= 0 then
-			if lists.cmp(pos, oe) <= 0 then
-				local isc, iec = self:map(bufnr, row, s, e)
-				if isc then
-					return iterators.unit { os, { row, isc }, { row, iec }, oe }
-				else
-					break
-				end
+		if s <= col and col <= e then
+			local isc, iec = self:map(bufnr, row, s, e)
+			if isc then
+				local os = { row, s }
+				local oe = { row, e }
+				return iterators.unit { os, { row, isc }, { row, iec }, oe }
+			else
+				break
 			end
-		elseif lists.cmp(pos, os) < 0 then
+		elseif col < e then
 			break
 		end
 	end
@@ -68,7 +64,7 @@ end
 
 local function np_co(self, bufnr, fwd, pos)
 	local sgn = fwd and 1 or -1
-	for row, line in buffers.get_lines(bufnr, fwd, pos[1]) do
+	for row, line in buffers.get_lines(bufnr, fwd, pos[1], self.lookahead) do
 		for _, match in lists.bipairs(fwd, self:get_matches(self.patterns, line)) do
 			local _, s, e = unpack(match)
 			local os = { row, s }

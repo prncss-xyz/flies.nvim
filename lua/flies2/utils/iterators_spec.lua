@@ -92,3 +92,40 @@ describe("flatten", function()
 		end
 	)
 end)
+
+-- describe("chain", function()
+-- 	-- TODO: import: compose, comp
+-- 	it("should chain", function()
+-- 		local function t(n) return M.range(n) end
+--
+-- 		assert.are.same(
+-- 			{ 1, 1, 2, 1, 2, 3 },
+-- 			M.compose(M.chain(t), M.to_list_single)(M.range(3))
+-- 		)
+-- 	end)
+-- 	it("should chain", function()
+-- 		local t = { 1, 2, 1, 2 }
+-- 		assert.are.same(
+-- 			t,
+-- 			M.comp { 1, 2 }(
+-- 				ipairs,
+-- 				M.chain(function(_, _) return ipairs(t) end),
+-- 				M.to_list_single
+-- 			)
+-- 		)
+-- 	end)
+-- end)
+
+describe("match_zip", function()
+	it("description", function()
+		assert.are.same(
+			{ { 0, 0 }, { 2, 6 }, { 4, 12 } },
+			M.to_list_single(
+				M.match_zip(
+					function(a, b) return a * 3 == b and { a, b } end,
+					M.range(0, 12, 2)
+				)(M.range(0, 12, 3))
+			)
+		)
+	end)
+end)

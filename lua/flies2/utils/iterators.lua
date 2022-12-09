@@ -139,9 +139,22 @@ function M.map(cb)
 end
 
 function M.chain(cb)
-	return function(gen, param, state)
-    return M.flatten(M.map(cb)(gen, param, state))
-  end
+	return function(gen, param, state) return M.flatten(M.map(cb)(gen, param, state)) end
+end
+
+function M.zip_match(match, gen2, param2, state2)
+	return function(gen1, param1, state1)
+		return function()
+			state2 = gen2(param2, state2)
+			if state2 == nil then return end
+			while true do
+				state1 = gen1(param1, state1)
+				if state1 == nil then return end
+				local res = match(state2, state1)
+				if res then return res end
+			end
+		end
+	end
 end
 
 return M

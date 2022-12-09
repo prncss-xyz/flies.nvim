@@ -7,7 +7,8 @@ function M.set_buf(text)
 	local row = buffers.get_eob(0)
 	local line = buffers.get_line(0, row)
 	local col = line:len() + 1
-	buffers.edit(0, { { { 1, 1 }, { row, col }, text } })
+	buffers.set_range(0, { 1, 1 }, { row, col - 1 }, text)
+	-- buffers.edit(0, { { { 1, 1 }, { row, col }, text } })
 end
 
 ---gets the whole buffer

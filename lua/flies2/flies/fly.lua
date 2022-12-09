@@ -5,6 +5,7 @@ local iterators = require "flies2.utils.iterators"
 M.lonely_wiseness = "v"
 M.borough_char_pattern = "%s+"
 M.borough_line_pattern = "^%s*$"
+M.lookahead = 200
 
 function M:get_wiseness(bufnr, s, e)
 	local line = buffers.get_line(bufnr, s[1])
