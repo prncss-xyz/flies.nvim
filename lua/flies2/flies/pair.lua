@@ -47,6 +47,7 @@ end
 -- TODO: extend scope of `if lat then`
 -- TODO: reduce ifs nesting
 -- TODO: comment the algorythm
+-- TODO: add tests for uneven matching
 local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 	local sgn = fwd and 1 or -1
 	local finding = {}
@@ -143,14 +144,13 @@ function M:_np_iter(bufnr, patterns, fwd, pos, up, lat)
 end
 
 function M:iterate_upwards(bufnr, pos)
-	local row, col = unpack(pos)
 	local patterns = process_pair_patterns(self)
 	return iterators.zip_match(function(right, left)
 		if self.validator(left.i, left.m, right.i - #self.left_patterns, right.m) then
 			return { left.outer, left.inner, right.inner, right.outer }
 		end
-	end, self:_np_iter(bufnr, patterns, true, { row, col }, true, false))(
-		self:_np_iter(bufnr, patterns, false, { row, col }, true, false)
+	end, self:_np_iter(bufnr, patterns, true, pos, true, false))(
+		self:_np_iter(bufnr, patterns, false, pos, true, false)
 	)
 end
 

@@ -14,7 +14,6 @@ describe("tags", function()
 ]]
 		tests.set_buf(text)
 		it("should find tags forward", function()
-      -- FIXME:
 			assert.are.same(
 				{ { 2, 1 }, { 3, 1 }, { 5, 9 }, { 6, 7 } },
 				M:find_forwards(0, 1, { 1, 1 })
