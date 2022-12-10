@@ -1,4 +1,4 @@
-local M = require("flies2.flies.pair"):new {}
+local M = require("flies2.flies._pair"):new {}
 
 M.left_patterns = { "<(%w+)[^/>]*>" }
 M.right_patterns = { "</(%w+)>" }

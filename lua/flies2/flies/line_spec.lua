@@ -16,10 +16,10 @@ describe("quote", function()
 		local text = [[ 234 67 ]]
 		tests.set_buf(text)
 		assert.are.same(r(1, 2, 7), M:find_forwards(0, 1, { 1, 1 }))
-		local text = [[     67 ]]
+		text = [[     67 ]]
 		tests.set_buf(text)
 		assert.are.same(r(1, 6, 7), M:find_forwards(0, 1, { 1, 1 }))
-		local text = [[
+		text = [[
 
  23 
 ]]

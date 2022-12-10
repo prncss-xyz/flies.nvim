@@ -1,4 +1,4 @@
-local M = require("flies2.flies.subline"):new {}
+local M = require("flies2.flies._subline"):new {}
 
 function M.validator(i, m, j, m_) return i == j and m == m_ end
 

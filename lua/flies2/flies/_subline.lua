@@ -1,4 +1,4 @@
-local M = require("flies2.flies.fly"):new {}
+local M = require("flies2.flies._fly"):new {}
 
 -- TODO: variable_segment, dot_segment,
 
