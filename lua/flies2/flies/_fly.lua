@@ -94,8 +94,11 @@ end
 function M:find_backwards(bufnr, count, pos)
 	return iterators.nth(count)(self:iterate_backwards(bufnr, pos))
 end
+
 function M:find_forwards(bufnr, count, pos)
 	return iterators.nth(count)(self:iterate_forwards(bufnr, pos))
 end
+
+function M:find_best(bufnr, pos) return self:find_upwards(bufnr, 1, pos) end
 
 return M

@@ -20,17 +20,6 @@ describe("cmp", function()
 	end)
 end)
 
-describe("is_in_range", function()
-	it(
-		"should be true when in range",
-		function() assert.is_true(M.is_in_range({ 1, 1 }, { 1, 3 }, { 1, 2 })) end
-	)
-	it("should be true when not in range", function()
-		assert.is_false(M.is_in_range({ 1, 1 }, { 1, 3 }, { 1, 4 }))
-		assert.is_false(M.is_in_range({ 1, 1 }, { 1, 3 }, { 1, 0 }))
-	end)
-end)
-
 describe("ripairs", function()
 	it("should iterate pairs in reverse order", function()
 		local table_in = { 4, 5, 6 }

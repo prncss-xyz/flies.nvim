@@ -21,9 +21,10 @@ end
 ---@param s table start of range
 ---@param e table end of range
 ---@return string backward\forward\upward
-function M.relative_pos(pos, s, e)
-	if M.cmp(e, pos) then return "backward" end
-	if M.cmp(pos, s) then return "forward" end
+function M.relative_pos(pos, to)
+	local range = to.outer
+	if M.cmp(range[2], pos) < 0 then return "backward" end
+	if M.cmp(pos, range[1]) < 0 then return "forward" end
 	return "upward"
 end
 
@@ -33,20 +34,24 @@ function M.cmp_gen(cb)
 	return function(a, b) return M.cmp(cb(a), cb(b)) end
 end
 
---- ordering for upward axis
-M.cmp_upwards = M.cmp_gen(
-	function(a) return { a[1][1], a[1][2], -a[2][1], -a[2][2] } end
-)
-
---- ordering for backward axis
-M.cmp_backwards = M.cmp_gen(
-	function(a) return { -a[2][1], -a[2][2], -a[1][1], -a[1][2] } end
-)
-
---- ordering for forward axis
-M.cmp_forwards = M.cmp_gen(
-	function(a) return { a[1][1], a[1][2], a[2][1], a[2][2] } end
-)
+function M.cmp_axis(dir)
+	if dir == "upward" then
+		return M.cmp_gen(function(to)
+			local a = to.outer
+			return { a[1][1], a[1][2], -a[2][1], -a[2][2] }
+		end)
+	elseif dir == "forward" then
+		return M.cmp_gen(function(to)
+			local a = to.outer
+			return { -a[2][1], -a[2][2], -a[1][1], -a[1][2] }
+		end)
+	elseif dir == "backward" then
+		return M.cmp_gen(function(to)
+			local a = to.outer
+			return { a[1][1], a[1][2], a[2][1], a[2][2] }
+		end)
+	end
+end
 
 local function ripairs(s, i)
 	i = i - 1

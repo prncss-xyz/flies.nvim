@@ -120,34 +120,23 @@ end
 
 --- gets range's contents
 ---@param bufnr number buffer's number or 0 for current
----@param start table
----@param end_ table
-function M.get_range(bufnr, start, end_)
+---@param range table
+function M.get_range(bufnr, range)
 	return table.concat(
 		vim.api.nvim_buf_get_text(
 			bufnr,
-			start[1] - 1,
-			start[2] - 1,
-			end_[1] - 1,
-			end_[2],
+			range[1][1] - 1,
+			range[1][2] - 1,
+			range[2][1] - 1,
+			range[2][2],
 			{}
 		),
 		"\n"
 	)
 end
 
-function M.set_range(bufnr, start, end_, text)
-	vim.api.nvim_buf_set_text(
-		bufnr,
-		start[1] - 1,
-		start[2] - 1,
-		end_[1] - 1,
-		end_[2],
-		vim.split(text, "\n")
-	)
-end
-
-local function to_lsp_range(s, e)
+local function to_lsp_range(range)
+	local s, e = unpack(range)
 	local start
 	if vim.deep_equal(s, {}) then
 		start = { line = e[1] - 1, character = e[2] }
@@ -164,8 +153,8 @@ local function to_lsp_range(s, e)
 end
 
 local function get_lsp_edit(edit)
-	local from, to_, new_text = unpack(edit)
-	return { range = to_lsp_range(from, to_), newText = new_text }
+	local range, new_text = unpack(edit)
+	return { range = to_lsp_range(range), newText = new_text }
 end
 
 ---concurently apply edits operations to a buffer
@@ -174,6 +163,55 @@ end
 ---@param edits table a list of triplets {start, end_, new_text}
 function M.edit(bufnr, edits)
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")
+end
+
+function M.prev_char(bufnr, pos)
+	local row, col = unpack(pos)
+	if col == 1 then
+		row = row - 1
+		local line = M.get_line(bufnr, row)
+		return { row, line:len() }
+	else
+		return { row, col - 1 }
+	end
+end
+
+function M.next_char(bufnr, pos)
+	local row, col = unpack(pos)
+	local line = M.get_line(bufnr, row)
+	if col == line:len() then
+		return { row + 1, 1 }
+	else
+		return { row, col + 1 }
+	end
+end
+
+---substitute surrouding
+---@param bufnr number
+---@param inner table
+---@param outer table
+---@param left_text string
+---@param right_text string
+function M.substitute(bufnr, inner, outer, left_text, right_text)
+	--TODO: handle multi-line text
+	local edits = {}
+	left_text = left_text or ""
+	right_text = right_text or ""
+	if inner[2][2] == M.get_line(0, inner[2][1]):len() then
+		right_text = right_text .. "\n"
+	else
+		table.insert(edits, { { M.next_char(bufnr, inner[2]), outer[2] }, "" })
+	end
+	table.insert(edits, { { outer[1], M.prev_char(bufnr, inner[1]) }, left_text })
+	table.insert(edits, { { M.next_char(bufnr, inner[2]), inner[2] }, right_text })
+
+	-- TODO: what about tabs?
+	local tab = vim.api.nvim_buf_get_option(bufnr, "shiftwidth")
+	--TODO: is there a lsp_edit way to get to last char of a line
+	for row = inner[1][1] + 1, inner[2][1] do
+		table.insert(edits, { { { row, 1 }, { row, tab } }, "" })
+	end
+	M.edit(bufnr, edits)
 end
 
 -- cf. "lua/luasnip/init.lua"
