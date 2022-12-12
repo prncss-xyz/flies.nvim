@@ -28,28 +28,52 @@ function M.relative_pos(pos, to)
 	return "upward"
 end
 
----given a function that maps values to tuples, returns a comparing function
----for values that corresponds to lexicoraphical order of resulting tuples
-function M.cmp_gen(cb)
-	return function(a, b) return M.cmp(cb(a), cb(b)) end
-end
 
-function M.cmp_axis(dir)
-	if dir == "upward" then
-		return M.cmp_gen(function(to)
-			local a = to.outer
-			return { a[1][1], a[1][2], -a[2][1], -a[2][2] }
-		end)
-	elseif dir == "forward" then
-		return M.cmp_gen(function(to)
-			local a = to.outer
-			return { -a[2][1], -a[2][2], -a[1][1], -a[1][2] }
-		end)
-	elseif dir == "backward" then
-		return M.cmp_gen(function(to)
-			local a = to.outer
-			return { a[1][1], a[1][2], a[2][1], a[2][2] }
-		end)
+--- returns a sorting function for axis
+---@param axis "upward", "forward", "backward"
+function M.sort_axis(axis)
+	if axis == "upward" then
+		return function(a, b)
+			a = a.outer
+			b = b.outer
+			local r
+			r = a[1][1] - b[1][1]
+			if r ~= 0 then return r > 0 end
+			r = a[1][2] - b[1][2]
+			if r ~= 0 then return r > 0 end
+			r = a[2][1] - b[2][1]
+			if r ~= 0 then return r < 0 end
+			r = a[2][2] - b[2][2]
+			if r ~= 0 then return r < 0 end
+		end
+	elseif axis == "forward" then
+		return function(a, b)
+			a = a.outer
+			b = b.outer
+			local r
+			r = a[1][1] - b[1][1]
+			if r ~= 0 then return r < 0 end
+			r = a[1][2] - b[1][2]
+			if r ~= 0 then return r < 0 end
+			r = a[2][1] - b[2][1]
+			if r ~= 0 then return r < 0 end
+			r = a[2][2] - b[2][2]
+			if r ~= 0 then return r < 0 end
+		end
+	elseif axis == "backward" then
+		return function(a, b)
+			a = a.outer
+			b = b.outer
+			local r
+			r = a[1][1] - b[1][1]
+			if r ~= 0 then return r > 0 end
+			r = a[1][2] - b[1][2]
+			if r ~= 0 then return r > 0 end
+			r = a[2][1] - b[2][1]
+			if r ~= 0 then return r > 0 end
+			r = a[2][2] - b[2][2]
+			if r ~= 0 then return r > 0 end
+		end
 	end
 end
 
