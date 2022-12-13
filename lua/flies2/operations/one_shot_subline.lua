@@ -1,0 +1,30 @@
+local M = require("flies2.operations.one_shot"):new {}
+
+local buffers = require "flies2.utils.buffers"
+
+-- TODO: multiple captures
+-- TODO: reuse
+-- TODO: remove bufnr from buffers edits
+-- TODO: update tests
+-- TODO: github/url
+
+function M:new(t)
+	local o = self:super("new", { cbs = {} })
+	local patterns = {}
+	for i, v in ipairs(t) do
+		patterns[i] = v[1]
+		o.cbs[i] = v[2]
+	end
+	o.target = require("flies2.flies._subline"):new {
+		patterns = patterns,
+	}
+	return o
+end
+
+function M:op_func(match)
+	if not match then return end
+	local cb = self.cbs[match.index]
+	if cb then cb(match) end
+end
+
+return M

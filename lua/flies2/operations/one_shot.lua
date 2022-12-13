@@ -3,6 +3,7 @@ local M = require("flies2.utils.objects"):new {}
 local buffers = require "flies2.utils.buffers"
 
 local match
+local count
 
 function M:select()
 	local pos = buffers.get_cursor(0)
@@ -12,8 +13,13 @@ function M:select()
 end
 
 function M:exec()
+	count = vim.v.count
+	if count == 0 then count = nil end
 	require("flies2")._op_func = function()
-		if match then self:op_func(match) end
+		if match then
+			match.count = count
+			self:op_func(match)
+		end
 	end
 	require("flies2")._select = function() self:select() end
 	vim.o.operatorfunc = "v:lua.package.loaded.flies2._op_func"

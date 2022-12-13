@@ -136,6 +136,8 @@ function M.get_range(bufnr, range)
 end
 
 local function to_lsp_range(range)
+	print("to_lsp_range range:", vim.inspect(range)) -- __AUTO_GENERATED_PRINT_VAR__
+
 	local s, e = unpack(range)
 	local start
 	if vim.deep_equal(s, {}) then
@@ -153,6 +155,7 @@ local function to_lsp_range(range)
 end
 
 local function get_lsp_edit(edit)
+	print("get_lsp_edit edit:", vim.inspect(edit)) -- __AUTO_GENERATED_PRINT_VAR__
 	local range, new_text = unpack(edit)
 	return { range = to_lsp_range(range), newText = new_text }
 end
@@ -162,6 +165,7 @@ end
 ---@param bufnr number buffer's number or 0 for current
 ---@param edits table a list of triplets {start, end_, new_text}
 function M.edit(bufnr, edits)
+	print(" edits:", vim.inspect(edits)) -- __AUTO_GENERATED_PRINT_VAR__
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")
 end
 
