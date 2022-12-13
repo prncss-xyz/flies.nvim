@@ -23,7 +23,7 @@ local function iter_axis(axis)
 				if match then table.insert(matches_, match) end
 			end
 		end
-		table.sort(matches_, lists.cmp_axis(axis))
+		table.sort(matches_, lists.sort_axis(axis))
 		return iterators.from_list_single(matches_)
 	end
 end

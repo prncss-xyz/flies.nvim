@@ -7,7 +7,8 @@ M.borough_char_pattern = "%s+"
 M.borough_line_pattern = "^%s*$"
 M.lookahead = 200
 
-function M:get_wiseness(bufnr, s, e)
+function M:get_wiseness(bufnr, range)
+	local s, e = unpack(range)
 	local line = buffers.get_line(bufnr, s[1])
 	local _, col = line:find "^%s*"
 	if s[2] > col + 1 then return "v" end
@@ -74,8 +75,9 @@ local function borough_pre_linewise(self, bufnr, s)
 	end
 end
 
-function M:borough(bufnr, s, e)
-	local wiseness = self:get_wiseness(bufnr, s, e)
+function M:borough(bufnr, range)
+	local s, e = unpack(range)
+	local wiseness = self:get_wiseness(bufnr, range)
 	if wiseness == "v" then
 		return borough_charwise(self, bufnr, s, e)
 	else
@@ -100,8 +102,7 @@ function M:find_forwards(bufnr, count, pos)
 end
 
 function M:find_best(bufnr, pos)
-	return self:find_upwards(bufnr, 1, pos)
- or self:find_forwards(bufnr, 1, pos)
+	return self:find_upwards(bufnr, 1, pos) or self:find_forwards(bufnr, 1, pos)
 end
 
 return M

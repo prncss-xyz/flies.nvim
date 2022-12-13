@@ -226,4 +226,16 @@ function M.snip_replace(bufnr, snippet, from, to_, expand_params)
 	})
 end
 
+function M.select(range, wiseness)
+	local s, e = unpack(range)
+	vim.fn.setpos(".", { 0, s[1], s[2], 0 })
+	vim.cmd("normal! " .. wiseness)
+	vim.fn.setpos(".", { 0, e[1], e[2], 0 })
+end
+
+function M.feed_keys(str)
+	str = vim.api.nvim_replace_termcodes(str, true, true, true)
+	vim.api.nvim_feedkeys(str, "n", true)
+end
+
 return M
