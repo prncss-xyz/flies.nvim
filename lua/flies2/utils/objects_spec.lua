@@ -14,3 +14,13 @@ describe("new", function()
 		function() assert.are.equals(3, derived:super "i_") end
 	)
 end)
+describe("instance", function()
+	it("should determine if provided object is an instance", function()
+		local a = M:new {}
+		local b = a:new {}
+		assert.is.falsy(b:is_instance(a))
+		assert.is.truthy(a:is_instance(b))
+		assert.is.truthy(M:is_instance(b))
+		assert.is.truthy(a:is_instance(a))
+	end)
+end)

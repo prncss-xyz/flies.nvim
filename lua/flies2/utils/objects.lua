@@ -14,4 +14,12 @@ function M:super(method, ...)
 	return __index[method](self, ...)
 end
 
+function M:is_instance(o)
+	while o do
+		if o == self then return true end
+		o = getmetatable(self).__index
+	end
+	return false
+end
+
 return M

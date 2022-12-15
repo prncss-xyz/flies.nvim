@@ -57,11 +57,10 @@ end)
 
 describe("nth", function()
 	it("description", function()
-		assert.are.same({ 2, 5 }, { M.nth(2)(ipairs { 4, 5, 6 }) })
-		assert.is_nil(M.nth(0)(ipairs { 4, 5, 6 }))
-		assert.is_nil(M.nth(7)(ipairs { 4, 5, 6 }))
-		assert.is_nil(M.nth(1)(M.null()))
-		assert.is_nil(M.nth(2)(ipairs { 4 }))
+		assert.is_nil(M.nth(0)(M.range(2, 3)))
+		assert.are.same(2, M.nth(1)(M.range(2, 3)))
+		assert.are.same(3, M.nth(2)(M.range(2, 3)))
+		assert.is_nil(M.nth(3)(M.range(2, 3)))
 	end)
 end)
 
@@ -116,12 +115,12 @@ end)
 -- 	end)
 -- end)
 
-describe("match_zip", function()
+describe("zip_match", function()
 	it("description", function()
 		assert.are.same(
 			{ { 0, 0 }, { 2, 6 }, { 4, 12 } },
 			M.to_list_single(
-				M.match_zip(
+				M.zip_match(
 					function(a, b) return a * 3 == b and { a, b } end,
 					M.range(0, 12, 2)
 				)(M.range(0, 12, 3))

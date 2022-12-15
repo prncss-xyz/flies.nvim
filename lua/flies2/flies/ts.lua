@@ -18,7 +18,7 @@ local function iter_axis(axis)
 		end
 		local matches_ = {}
 		for _, match in ipairs(matches) do
-			if lists.relative_pos(pos, match) == axis then
+			if lists.relative_pos(pos, match.outer) == axis then
 				match = self:map(match)
 				if match then table.insert(matches_, match) end
 			end

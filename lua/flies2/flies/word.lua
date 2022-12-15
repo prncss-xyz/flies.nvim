@@ -4,4 +4,4 @@ M.solid = true
 
 M.patterns = { "%w+", "%p+" }
 
- return M
+return M

@@ -72,10 +72,9 @@ local function np_co(self, bufnr, fwd, pos)
 			local i, s, e, capture = unpack(match)
 			local os = { row, s }
 			if lists.cmp(os, pos) == sgn then
-				local oe = { row, e }
-				local isc, iec = self:map(bufnr, row, s, e)
+				local isc, iec = self:map(bufnr, row, i, s, e)
 				if isc then
-					return coroutine.yield {
+					coroutine.yield {
 						index = i,
 						capture = capture,
 						outer = { { row, s }, { row, e } },

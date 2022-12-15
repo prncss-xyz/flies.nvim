@@ -1,6 +1,6 @@
 local M = require "flies2.utils.tests"
 
-describe("borough", function()
+describe("around", function()
 	it("description", function()
 		local text = [[
     sadf

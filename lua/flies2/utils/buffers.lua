@@ -102,6 +102,15 @@ function M.get_line(bufnr, row)
 	return vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1]
 end
 
+function M.last_char(line)
+	local len = line:len()
+	if len == 0 then
+		return 1
+	else
+		return len
+	end
+end
+
 function M.get_lines(bufnr, fwd, row, lookahead)
 	local sgn = fwd and 1 or -1
 	local max = fwd and math.min(row + lookahead - 1, M.get_eob(bufnr))
@@ -136,8 +145,6 @@ function M.get_range(bufnr, range)
 end
 
 local function to_lsp_range(range)
-	print("to_lsp_range range:", vim.inspect(range)) -- __AUTO_GENERATED_PRINT_VAR__
-
 	local s, e = unpack(range)
 	local start
 	if vim.deep_equal(s, {}) then
@@ -155,7 +162,6 @@ local function to_lsp_range(range)
 end
 
 local function get_lsp_edit(edit)
-	print("get_lsp_edit edit:", vim.inspect(edit)) -- __AUTO_GENERATED_PRINT_VAR__
 	local range, new_text = unpack(edit)
 	return { range = to_lsp_range(range), newText = new_text }
 end
@@ -165,29 +171,35 @@ end
 ---@param bufnr number buffer's number or 0 for current
 ---@param edits table a list of triplets {start, end_, new_text}
 function M.edit(bufnr, edits)
-	print(" edits:", vim.inspect(edits)) -- __AUTO_GENERATED_PRINT_VAR__
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")
 end
 
-function M.prev_char(bufnr, pos)
+--- previous char or previous line position
+---@param bufnr number
+---@param pos table
+---@param wiseness string
+---@return table
+function M.prev(bufnr, pos, wiseness)
 	local row, col = unpack(pos)
-	if col == 1 then
-		row = row - 1
-		local line = M.get_line(bufnr, row)
-		return { row, line:len() }
-	else
-		return { row, col - 1 }
-	end
+	if wiseness == "v" and col > 1 then return { row, col - 1 } end
+	row = row - 1
+	local len = M.get_line(bufnr, row):len()
+	if len == 0 then len = 1 end
+	return { row, len }
 end
 
-function M.next_char(bufnr, pos)
+--- next char or next line position
+---@param bufnr number
+---@param pos table
+---@param wiseness string
+---@return table
+function M.next(bufnr, pos, wiseness)
 	local row, col = unpack(pos)
-	local line = M.get_line(bufnr, row)
-	if col == line:len() then
-		return { row + 1, 1 }
-	else
-		return { row, col + 1 }
+	if wiseness == "v" then
+		local line = M.get_line(bufnr, row)
+		if col < line:len() then return { row, col + 1 } end
 	end
+	return { row + 1, 1 }
 end
 
 ---substitute surrouding
@@ -204,10 +216,10 @@ function M.substitute(bufnr, inner, outer, left_text, right_text)
 	if inner[2][2] == M.get_line(0, inner[2][1]):len() then
 		right_text = right_text .. "\n"
 	else
-		table.insert(edits, { { M.next_char(bufnr, inner[2]), outer[2] }, "" })
+		table.insert(edits, { { M.next(bufnr, inner[2], "v"), outer[2] }, "" })
 	end
-	table.insert(edits, { { outer[1], M.prev_char(bufnr, inner[1]) }, left_text })
-	table.insert(edits, { { M.next_char(bufnr, inner[2]), inner[2] }, right_text })
+	table.insert(edits, { { outer[1], M.prev(bufnr, inner[1], "v") }, left_text })
+	table.insert(edits, { { M.next(bufnr, inner[2], "v"), inner[2] }, right_text })
 
 	-- TODO: what about tabs?
 	local tab = vim.api.nvim_buf_get_option(bufnr, "shiftwidth")
