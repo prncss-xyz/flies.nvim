@@ -4,6 +4,8 @@ local buffers = require "flies2.utils.buffers"
 local tables = require "flies2.utils.tables"
 local config = require("flies2").config
 
+--TODO: left, right
+
 local function select(opts, target, pos, match)
 	local wiseness
 	local range
@@ -52,8 +54,16 @@ function M.select(opts)
 		match = target:find_forwards(0, opts.count or 1, pos)
 	elseif opts.axis == "backward" then
 		match = target:find_backwards(0, opts.count or 1, pos)
-	elseif opts.axis == "hint" then
-		-- TODO:
+	elseif opts.axis == "hop" then
+		--TODO: hop + left/right
+		require("hop").hint_with_callback(
+			function() return target:hop_targets_generator(opts) end,
+			require("hop").opts,
+			function(res)
+				print("#if#function res:", vim.inspect(res)) -- __AUTO_GENERATED_PRINT_VAR__
+				select(opts, target, pos, res.object)
+			end
+		)
 	else
 		error(string.format("unknown axis: %s", opts.axis))
 	end

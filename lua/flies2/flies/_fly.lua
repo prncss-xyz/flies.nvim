@@ -106,6 +106,66 @@ function M:left(bufnr, cursor, inner, wiseness)
 	}
 end
 
+function M:hop_targets_generator(opts)
+	local domain = "outer"
+	if
+		opts.domain == "inner"
+		or opts.domain == "left"
+		or opts.domain == "right"
+	then
+		domain = "inner"
+	end
+	local use_start = opts.domain ~= "right"
+	local manh_dist = require("hop.jump_target").manh_dist
+	local context = require("hop.window").get_window_context()
+	context = context[1].contexts[1]
+	local cursor_pos = context.cursor_pos
+	local start
+	if opts.domain == "right" then
+		start = cursor_pos[1]
+	else
+		start = context.top_line + 1
+	end
+	local end_
+	if opts.domain == "left" then
+		end_ = cursor_pos[1] + 1
+	else
+		end_ = context.bot_line + 1
+	end
+	local jump_targets = {}
+	local indirect_jump_targets = {}
+	local index = 0
+	-- TODO: stop iterating a line end_
+  -- TODO: to be exact, we would need to add objects whose start is outside of screen for opts.domain == "right"
+	for to_ in self:iterate_forwards(0, { start, 0 }) do
+		if to_[domain][1][1] >= end_ then break end
+		local skip = false
+		local rel = lists.relative_pos(cursor_pos, to_[domain])
+		if opts.domain == "left" and rel == "forward" then skip = true end
+		if opts.domain == "right" and rel == "backward" then skip = true end
+		if not skip then
+			local h = to_[domain][use_start and 1 or 2]
+			index = index + 1
+			local line = h[1] - 1
+			local column = h[2]
+			table.insert(jump_targets, {
+				line = line,
+				column = column,
+				window = 0,
+				object = to_,
+			})
+			table.insert(indirect_jump_targets, {
+				index = index,
+				score = -manh_dist({ line, column }, cursor_pos),
+			})
+		end
+	end
+	return {
+		jump_targets = jump_targets,
+		indirect_jump_targets = indirect_jump_targets,
+	}
+end
+
 function M:find_upwards(bufnr, count, pos)
 	return iterators.nth(count)(self:iterate_upwards(bufnr, pos))
 end
