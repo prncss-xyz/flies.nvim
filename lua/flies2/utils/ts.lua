@@ -51,8 +51,6 @@ function M.query(bufnr, query_name)
 			lang,
 			table.concat({ domain, query_name }, "-")
 		)
-		-- print("#function files:", vim.inspect(files))
-
 		local cquery = vim.treesitter.query.get_query(
 			lang,
 			table.concat({ domain, query_name }, "-")

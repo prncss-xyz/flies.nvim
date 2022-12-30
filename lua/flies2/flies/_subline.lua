@@ -66,18 +66,18 @@ function M:iterate_upwards(bufnr, pos)
 end
 
 local function np_co(self, bufnr, fwd, pos)
-	local sgn = fwd and 1 or -1
 	for row, line in buffers.get_lines(bufnr, fwd, pos[1], self.lookahead) do
+		print(row, line)
 		for _, match in lists.bipairs(fwd, self:get_matches(self.patterns, line)) do
 			local i, s, e, capture = unpack(match)
-			local os = { row, s }
-			if lists.cmp(os, pos) == sgn then
+			local outer = { { row, s }, { row, e } }
+			if lists.relative_pos(pos, outer) == (fwd and "forward" or "backward") then
 				local isc, iec = self:map(bufnr, row, i, s, e)
 				if isc then
 					coroutine.yield {
 						index = i,
 						capture = capture,
-						outer = { { row, s }, { row, e } },
+						outer = outer,
 						inner = { { row, isc }, { row, iec } },
 					}
 				end

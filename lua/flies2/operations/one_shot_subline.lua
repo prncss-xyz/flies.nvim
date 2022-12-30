@@ -1,12 +1,9 @@
 local M = require("flies2.operations.one_shot"):new {}
 
-local buffers = require "flies2.utils.buffers"
-
 -- TODO: multiple captures
 -- TODO: reuse
 -- TODO: remove bufnr from buffers edits
 -- TODO: update tests
--- TODO: github/url
 
 function M:new(t)
 	local o = self:super("new", { cbs = {} })

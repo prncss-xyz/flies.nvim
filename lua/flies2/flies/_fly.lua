@@ -136,7 +136,7 @@ function M:hop_targets_generator(opts)
 	local indirect_jump_targets = {}
 	local index = 0
 	-- TODO: stop iterating a line end_
-  -- TODO: to be exact, we would need to add objects whose start is outside of screen for opts.domain == "right"
+	-- TODO: to be exact, we would need to add objects whose start is outside of screen for opts.domain == "right"
 	for to_ in self:iterate_forwards(0, { start, 0 }) do
 		if to_[domain][1][1] >= end_ then break end
 		local skip = false
@@ -167,15 +167,21 @@ function M:hop_targets_generator(opts)
 end
 
 function M:find_upwards(bufnr, count, pos)
-	return iterators.nth(count)(self:iterate_upwards(bufnr, pos))
+	if self.iterate_upwards then
+		return iterators.nth(count)(self:iterate_upwards(bufnr, pos))
+	end
 end
 
 function M:find_backwards(bufnr, count, pos)
-	return iterators.nth(count)(self:iterate_backwards(bufnr, pos))
+	if self.iterate_backwards then
+		return iterators.nth(count)(self:iterate_backwards(bufnr, pos))
+	end
 end
 
 function M:find_forwards(bufnr, count, pos)
-	return iterators.nth(count)(self:iterate_forwards(bufnr, pos))
+	if self.iterate_forwards then
+		return iterators.nth(count)(self:iterate_forwards(bufnr, pos))
+	end
 end
 
 function M:find_best(bufnr, pos)

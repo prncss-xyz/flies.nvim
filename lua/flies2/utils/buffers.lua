@@ -113,17 +113,21 @@ end
 
 function M.get_lines(bufnr, fwd, row, lookahead)
 	local sgn = fwd and 1 or -1
-	local max = fwd and math.min(row + lookahead - 1, M.get_eob(bufnr))
-	local min = not fwd and math.max(row - lookahead + 1, 1)
+	local ext
+	if fwd then
+		ext = M.get_eob(bufnr)
+		if lookahead then ext = math.min(ext, row + lookahead - 1) end
+		ext = ext + 1
+	else
+		ext = 1
+		if lookahead then ext = math.max(ext, row - lookahead + 1) end
+		ext = ext - 1
+	end
 	row = row - sgn
 	return function()
 		row = row + sgn
-		if fwd then
-			if row > max then return end
-		else
-			if row < min then return end
-		end
-		return row, M.get_line(bufnr, row)
+		if row == ext then return end
+		return row, vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1]
 	end
 end
 
@@ -247,6 +251,14 @@ function M.select(range, wiseness)
 	vim.fn.setpos(".", { 0, s[1], s[2], 0 })
 	vim.cmd("normal! " .. wiseness)
 	vim.fn.setpos(".", { 0, e[1], e[2], 0 })
+end
+
+function M.move(range, start)
+	local s, e = unpack(range)
+	local cursor = M.get_cursor(0)
+	local pos = start and s or e
+	if cursor == pos then pos = start and e or s end
+	vim.fn.setpos(".", { 0, pos[1], pos[2], 0 })
 end
 
 function M.feed_keys(str)

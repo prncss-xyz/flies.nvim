@@ -18,13 +18,14 @@ end
 
 --- axis of a range relative to position
 ---@param pos table reference (cursor) positon
----@param range table
+---@param to table textobject; will consiter .outer range
 ---@return string backward\forward\upward
-function M.relative_pos(pos, range)
-	if M.cmp(range[2], pos) < 0 then return "backward" end
-	if M.cmp(pos, range[1]) < 0 then return "forward" end
+function M.relative_pos(pos, to)
+	if M.cmp(to[2], pos) < 0 then return "backward" end
+	if M.cmp(pos, to[1]) < 0 then return "forward" end
 	return "upward"
 end
+
 
 --- returns a sorting function for axis
 ---@param axis "upward", "forward", "backward"
