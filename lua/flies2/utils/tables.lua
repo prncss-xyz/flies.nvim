@@ -5,7 +5,7 @@ local M = {}
 function M.deep_merge(t1, t2)
 	local offset = #t1
 	for k, v in pairs(t2) do
-		if (type(v) == "table") and (type(t1[k] or false) == "table") then
+		if (type(v) == "table") and (type(t1[k]) == "table") then
 			M.deep_merge(t1[k], t2[k])
 		elseif type(k) == "number" then
 			t1[offset + k] = v
@@ -14,6 +14,17 @@ function M.deep_merge(t1, t2)
 		end
 	end
 	return t1
+end
+
+function M.contains(t1, t2)
+	for k, v in pairs(t2) do
+		if (type(v) == "table") and (type(t1[k]) == "table") then
+			if not M.contains(t1[k], t2[k]) then return false end
+		else
+			if t1[k] ~= v then return false end
+		end
+	end
+	return true
 end
 
 return M

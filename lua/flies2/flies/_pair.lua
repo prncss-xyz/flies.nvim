@@ -99,6 +99,7 @@ local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 						inner, outer, last_char_close =
 							get_half_textobject(fwd, true, row, line, s, e)
 						finding = {
+							-- TODO: i, m
 							i = i,
 							m = m,
 							inner = inner,
@@ -120,19 +121,16 @@ local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 								get_half_textobject(fwd, false, row, line, s, e)
 							if last_char_open then inner = { row - 1, prev_line:len() } end
 							assert(not last_char_close, "faulty logic")
+							-- TODO: i, m
 							if fwd then
 								table.insert(found, {
-									finding.outer,
-									finding.inner,
-									inner,
-									outer,
+									outer = { finding.outer, outer },
+									inner = { finding.inner, inner },
 								})
 							else
 								table.insert(found, {
-									outer,
-									inner,
-									finding.inner,
-									finding.outer,
+									outer = { outer, finding.outer },
+									inner = { inner, finding.inner },
 								})
 							end
 							finding = table.remove(findings)
@@ -177,7 +175,10 @@ function M:iterate_upwards(bufnr, pos)
 	local patterns = process_pair_patterns(self)
 	return iterators.zip_match(function(right, left)
 		if self.validator(left.i, left.m, right.i - #self.left_patterns, right.m) then
-			return { left.outer, left.inner, right.inner, right.outer }
+			return {
+				outer = { left.outer, right.outer },
+				inner = { left.inner, right.inner },
+			}
 		end
 	end, self:_np_iter(bufnr, patterns, true, pos, true, false))(
 		self:_np_iter(bufnr, patterns, false, pos, true, false)
