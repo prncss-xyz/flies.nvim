@@ -11,6 +11,8 @@ function M.target:map(match)
 	return match
 end
 
+--TODO: use ts
+
 function M:op_func(match_)
 	if not match_ then return end
 	if match_.tag_open then

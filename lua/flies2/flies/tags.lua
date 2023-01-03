@@ -1,5 +1,7 @@
 local M = require("flies2.flies._pair"):new {}
 
+-- current limitation: tag must be single line
+
 M.left_patterns = { "<(%w+)[^/>]*>" }
 M.right_patterns = { "</(%w+)>" }
 M.validator = function(_, m1, _, m2)

@@ -30,7 +30,7 @@ describe("query", function()
 		tests.set_buf(text)
 		vim.bo.filetype = "javascriptreact"
 		-- vim.bo.filetype = "typescriptreact"
-		local matches = M.query(0, "open_close")
+		local matches = M.query_from_files(0, "open_close")
 		assert.are.same({
 			{
 				pattern = 2,
