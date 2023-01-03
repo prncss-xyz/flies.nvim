@@ -185,12 +185,21 @@ end
 ---@return table
 function M.prev(bufnr, pos, wiseness)
 	local row, col = unpack(pos)
-	if wiseness == "v" and col > 1 then return { row, col - 1 } end
-	row = row - 1
-	local len = M.get_line(bufnr, row):len()
-	if len == 0 then len = 1 end
-	return { row, len }
+	local line = M.get_line(bufnr, row)
+	if wiseness == "V" or line:sub(1, col - 1):match "^%s*$" then
+		row = row - 1
+		local len = M.get_line(bufnr, row):len()
+		if len == 0 then len = 1 end
+		return { row, len }
+	end
+	return { row, col - 1 }
 end
+
+-- if ecol < #eline and eline:sub(1, ecol):match "^%s*$" then
+-- 	erow = erow - 1
+-- 	eline = buffers.get_line(0, erow)
+-- 	ecol = #eline
+-- end
 
 --- next char or next line position
 ---@param bufnr number
