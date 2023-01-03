@@ -2,7 +2,7 @@ local M = require("flies2.operations.one_shot"):new {}
 
 local buffers = require "flies2.utils.buffers"
 
-M.target = require("flies2.flies.ts"):new {
+M.target = require("flies2.flies._ts"):new {
 	name = "open_close",
 }
 
