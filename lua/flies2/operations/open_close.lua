@@ -1,4 +1,4 @@
-local M = require("flies2.operations.one_shot"):new {}
+local M = require("flies2.operations._one_shot"):new {}
 
 local buffers = require "flies2.utils.buffers"
 

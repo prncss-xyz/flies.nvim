@@ -1,4 +1,4 @@
-local M = require("flies2.operations.one_shot"):new {}
+local M = require("flies2.operations._one_shot"):new {}
 
 -- TODO: multiple captures
 -- TODO: reuse

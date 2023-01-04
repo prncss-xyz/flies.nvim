@@ -1,6 +1,6 @@
 local buffers = require "flies2.utils.buffers"
 
-local M = require("flies2.operations.one_shot_subline"):new {
+local M = require("flies2.operations._one_shot_subline"):new {
 	{
 		"^#+ .*$",
 		function(match)
