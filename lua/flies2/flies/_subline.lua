@@ -67,7 +67,6 @@ end
 
 local function np_co(self, bufnr, fwd, pos)
 	for row, line in buffers.get_lines(bufnr, fwd, pos[1], self.lookahead) do
-		print(row, line)
 		for _, match in lists.bipairs(fwd, self:get_matches(self.patterns, line)) do
 			local i, s, e, capture = unpack(match)
 			local outer = { { row, s }, { row, e } }

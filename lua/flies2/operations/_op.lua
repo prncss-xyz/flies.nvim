@@ -13,8 +13,6 @@ end
 
 function M:pre() return true end
 
-local tab = "\t" -- TODO:
-
 local params
 
 local function select_(params_)

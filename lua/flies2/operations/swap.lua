@@ -1,0 +1,42 @@
+local M = require("flies2.operations._op"):new {}
+
+local buffers = require "flies2.utils.buffers"
+local editor = require "flies2.utils.editor"
+local lists = require "flies2.utils.lists"
+
+function M:run(params)
+	local domain = params.opts.domain
+	local obj1 = params.target:find_best(0, params.pos)
+	if not obj1 then return end
+	local range1 = obj1[domain]
+	local range2 = params.range
+	if
+		-- range1 equals range2
+		lists.cmp(range1[1], range2[1]) == 0
+		and lists.cmp(range1[2], range2[2]) == 0
+	then
+		return
+	end
+	if
+		-- range2 inside range1
+		lists.cmp(range1[1], range2[1]) <= 0
+		and lists.cmp(range2[2], range1[2]) <= 0
+	then
+		local wiseness = params.target:get_wiseness(0, range1)
+		buffers.subs(range1, range2, wiseness, "", "", editor.indent())
+		return
+	end
+	if
+		-- range1 inside range2
+		lists.cmp(range2[1], range1[1]) <= 0
+		and lists.cmp(range1[2], range2[2]) <= 0
+	then
+		local wiseness = params.target:get_wiseness(0, range2)
+		buffers.subs(range2, range1, wiseness, "", "", editor.indent())
+		return
+	end
+
+	buffers.swap(range1, range2, true)
+end
+
+return M
