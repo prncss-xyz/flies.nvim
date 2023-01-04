@@ -8,6 +8,20 @@ M.config = {
 	extends = {
 		tsx = { "javascript", "typescript" },
 	},
+	op = {
+		wrap = {
+			chars = {
+				["("] = { left = "(", right = ")" },
+				[")"] = { left = ")", right = "(" },
+				["["] = { left = "[", right = "]" },
+				["]"] = { left = "]", right = "[" },
+				["{"] = { left = "{", right = "}" },
+				["}"] = { left = "}", right = "{" },
+				["<"] = { left = "<", right = ">" },
+				[">"] = { left = ">", right = "<" },
+			},
+		},
+	},
 }
 
 function M.setup(user_config) tables.deep_merge(M.config, user_config or {}) end

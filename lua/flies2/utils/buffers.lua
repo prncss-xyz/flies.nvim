@@ -2,6 +2,8 @@
 ---the aim of this module is to wrap different buffer operations
 ---to provide operations normalized to (1, 1) coordinates
 
+local lists = require "flies2.utils.lists"
+
 local M = {}
 
 ---feeds given key sequece (interprenting escaped values), noremap
@@ -195,6 +197,12 @@ function M.prev(bufnr, pos, wiseness)
 	return { row, col - 1 }
 end
 
+function M.prev2(bufnr, pos, wiseness)
+	local row, col = unpack(pos)
+	if wiseness == "V" then return { row - 1, 1 } end
+	return { row, col - 1 }
+end
+
 -- if ecol < #eline and eline:sub(1, ecol):match "^%s*$" then
 -- 	erow = erow - 1
 -- 	eline = buffers.get_line(0, erow)
@@ -241,6 +249,42 @@ function M.substitute(bufnr, inner, outer, left_text, right_text)
 		table.insert(edits, { { { row, 1 }, { row, tab } }, "" })
 	end
 	M.edit(bufnr, edits)
+end
+
+function M.subs(outer, inner, wiseness, left_text, right_text, tab_text)
+	local edits = {}
+	if wiseness == "V" then
+		table.insert(edits, {
+			{ { outer[1][1], 1 }, { inner[1][1], 0 } },
+			left_text .. "\n",
+		})
+		table.insert(edits, {
+			{ { inner[2][1] + 1, 1 }, { outer[2][1] + 1, 0 } },
+			right_text .. "\n",
+		})
+		local create = not (left_text == "" and right_text == "")
+		local del = lists.cmp(outer[1], inner[1]) < 0
+			or lists.cmp(inner[2], outer[2]) < 0
+		if del and not create then
+			for i = inner[1][1], inner[2][1] do
+				table.insert(edits, { { { i, 1 }, { i, tab_text:len() } }, "" })
+			end
+		elseif create and not del then
+			for i = inner[1][1], inner[2][1] do
+				table.insert(edits, { { { i, 1 }, { i, 0 } }, tab_text })
+			end
+		end
+	else
+		table.insert(edits, {
+			{ { outer[1][1], outer[1][2] }, { inner[1][1], inner[1][2] - 1 } },
+			left_text,
+		})
+		table.insert(edits, {
+			{ { inner[2][1], inner[2][2] + 1 }, { outer[2][1], outer[2][2] } },
+			right_text,
+		})
+	end
+	M.edit(0, edits)
 end
 
 -- cf. "lua/luasnip/init.lua"

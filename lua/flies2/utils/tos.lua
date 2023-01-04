@@ -2,9 +2,8 @@ local M = {}
 
 local buffers = require "flies2.utils.buffers"
 local tables = require "flies2.utils.tables"
+local editor = require "flies2.utils.editor"
 local config = require("flies2").config
-
---TODO: left, right
 
 local function with_to(opts, target, pos, match, cb)
 	local wiseness
@@ -39,7 +38,14 @@ local function with_to(opts, target, pos, match, cb)
 	else
 		error(string.format("unknown domain: %s", opts.domain))
 	end
-	cb(range, wiseness)
+	cb {
+		range = range,
+		wiseness = wiseness,
+		opts = opts,
+		target = target,
+		pos = pos,
+		match = match,
+	}
 end
 
 local function with_to_(opts, cb)
@@ -67,8 +73,6 @@ local function with_to_(opts, cb)
 	with_to(opts, target, pos, match, cb)
 end
 
-function M.t(str) return vim.api.nvim_replace_termcodes(str, true, true, true) end
-
 local defaults = {
 	domain = "inner",
 	around = "solid",
@@ -76,40 +80,43 @@ local defaults = {
 }
 
 -- TODO: multiple char keys
-local function query_object(cb, user_opts, override)
-	local opts = {}
+function M.prepare(opts, cb, override)
+	local opts_ = {}
 	override = override or {}
-	tables.deep_merge(opts, user_opts or {})
+	tables.deep_merge(opts_, opts or {})
 	local count_str = ""
 	local cumul = ""
 	while true do
-		if opts.target then
-			opts.count = tonumber(count_str)
-			return cb(vim.tbl_extend("keep", opts, defaults))
+		if opts_.target then
+			opts_.count = tonumber(count_str)
+			opts_ = vim.tbl_extend("keep", opts_, defaults)
+			return function() with_to_(opts_, cb) end
 		end
 		local char = vim.fn.nr2char(vim.fn.getchar())
-		if char == M.t "<esc>" then return end
+		if char == editor.t "<esc>" then return end
 		cumul = cumul .. char
-		if override[cumul] then override[cumul](cb) end
+		if override[cumul] then
+			opts_.count = tonumber(count_str)
+			opts_ = vim.tbl_extend("keep", opts_, defaults)
+			return function() override[cumul](opts_) end
+		end
 		if char:find "%d" then count_str = count_str .. char end
-		if not opts.axis then
+		if not opts_.axis then
 			for key, axis in pairs(config.axis) do
-				if char == M.t(key) then opts.axis = axis end
+				if char == editor.t(key) then opts_.axis = axis end
 			end
 		end
-		if not opts.domain then
+		if not opts_.domain then
 			for key, domain in pairs(config.domains) do
-				if char == M.t(key) then opts.domain = domain end
+				if char == editor.t(key) then opts_.domain = domain end
 			end
 		end
 		for key, target in pairs(config.queries) do
-			if char == M.t(key) then opts.target = target end
+			if char == editor.t(key) then opts_.target = target end
 		end
 	end
 end
 
-function M.exec(opts, cb, override)
-	query_object(function(opts_) with_to_(opts_, cb) end, opts, override)
-end
+function M.exec(opts, cb, override) M.prepare(opts, cb, override)() end
 
 return M
