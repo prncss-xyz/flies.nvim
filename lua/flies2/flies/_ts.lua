@@ -38,7 +38,7 @@ local function find_best(pos, matches)
 		end
 	end
 	if best then return best end
-	local cmp = lists.sort_axis "forward"
+	cmp = lists.sort_axis "forward"
 	for _, match in ipairs(matches) do
 		if lists.relative_pos(pos, match.outer) == "forward" then
 			if not best or cmp(match, best) then best = match end
