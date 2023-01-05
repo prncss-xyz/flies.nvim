@@ -47,7 +47,7 @@ local function find_best(pos, matches)
 	return best
 end
 
-local function iter_axis(axis, ref)
+local function iter_axis(axis)
 	return function(self, bufnr, pos, ref)
 		local matches = ts.query_from_name(bufnr, self.name)
 		if matches == nil then
