@@ -23,7 +23,7 @@ function M:run(params)
 		and lists.cmp(range2[2], range1[2]) <= 0
 	then
 		local wiseness = params.target:get_wiseness(0, range1)
-		buffers.subs(range1, range2, wiseness, "", "", editor.indent())
+		buffers.subs(0, range1, range2, wiseness, "", "", editor.indent())
 		return
 	end
 	if
@@ -32,11 +32,11 @@ function M:run(params)
 		and lists.cmp(range1[2], range2[2]) <= 0
 	then
 		local wiseness = params.target:get_wiseness(0, range2)
-		buffers.subs(range2, range1, wiseness, "", "", editor.indent())
+		buffers.subs(0, range2, range1, wiseness, "", "", editor.indent())
 		return
 	end
 
-	buffers.swap(range1, range2, true)
+	buffers.swap(0, range1, range2)
 end
 
 return M

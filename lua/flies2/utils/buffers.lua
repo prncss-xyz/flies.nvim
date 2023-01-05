@@ -77,8 +77,8 @@ end
 --- get cursor position
 ---@param winnr number window's number or 0 for current
 ---@return table
-function M.get_cursor(winnr)
-	local cursor = vim.api.nvim_win_get_cursor(winnr)
+function M.get_cursor()
+	local cursor = vim.api.nvim_win_get_cursor(0)
 	cursor[2] = cursor[2] + 1
 	return cursor
 end
@@ -86,9 +86,9 @@ end
 --- set cursor's position
 ---@param winnr number window's number or 0 for current
 ---@param cursor table
-function M.set_cursor(winnr, cursor)
+function M.set_cursor(cursor)
 	local new_cursor = { cursor[1], cursor[2] - 1 }
-	vim.api.nvim_win_set_cursor(winnr, new_cursor)
+	vim.api.nvim_win_set_cursor(0, new_cursor)
 end
 
 --- gets last line of buffer
@@ -211,9 +211,9 @@ function M.next(bufnr, pos, wiseness)
 	return { row + 1, 1 }
 end
 
-function M.swap(range_a, range_b)
+function M.swap(bufnr, range_a, range_b)
 	M.edit(
-		0,
+		bufnr,
 		{ { range_a, M.get_range(0, range_b) }, { range_b, M.get_range(0, range_a) } }
 	)
 end
@@ -253,7 +253,7 @@ local function complete(str, wiseness)
 	return str .. "\n"
 end
 
-function M.subs(outer, inner, wiseness, left_text, right_text, tab_text)
+function M.subs(bufnr, outer, inner, wiseness, left_text, right_text, tab_text)
 	left_text = complete(left_text, wiseness)
 	right_text = complete(right_text, wiseness)
 	local edits = {}
@@ -289,12 +289,11 @@ function M.subs(outer, inner, wiseness, left_text, right_text, tab_text)
 			right_text,
 		})
 	end
-	M.edit(0, edits)
+	M.edit(bufnr, edits)
 end
 
 -- cf. "lua/luasnip/init.lua"
-function M.snip_replace(bufnr, snippet, from, to_, expand_params)
-	assert(bufnr == 0, "snip_replace can only be used with bufnr=0")
+function M.snip_replace(snippet, from, to_, expand_params)
 	require("luasnip").snip_expand(snippet, {
 		clear_region = {
 			from = { from[1] - 1, from[2] - 1 },
@@ -313,7 +312,7 @@ end
 
 function M.move(range, start)
 	local s, e = unpack(range)
-	local cursor = M.get_cursor(0)
+	local cursor = M.get_cursor()
 	local pos = start and s or e
 	if cursor == pos then pos = start and e or s end
 	vim.fn.setpos(".", { 0, pos[1], pos[2], 0 })

@@ -49,7 +49,7 @@ local function with_to(opts, target, pos, match, cb)
 end
 
 local function with_to_(opts, cb)
-	local pos = buffers.get_cursor(0)
+	local pos = buffers.get_cursor()
 	local match
 	local target = opts.target
 	if opts.axis == "best" then

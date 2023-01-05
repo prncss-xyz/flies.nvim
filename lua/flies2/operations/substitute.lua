@@ -24,7 +24,7 @@ function M:run(params)
 	end
 	local match = params.match
 	local wiseness = params.target:get_wiseness(0, match.outer)
-	buffers.subs(match.outer, match.inner, wiseness, left, right, editor.indent)
+	buffers.subs(0, match.outer, match.inner, wiseness, left, right, editor.indent)
 end
 
 return M
