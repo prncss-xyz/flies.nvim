@@ -76,8 +76,9 @@ local function around_pre_linewise(self, bufnr, s)
 	end
 end
 
-function M:around(bufnr, range, wiseness)
-	local s, e = unpack(range)
+function M:around(bufnr, match, wiseness)
+	if match.around then return match.around end
+	local s, e = unpack(match.outer)
 	if wiseness == "v" then
 		return { around_charwise(self, bufnr, s, e) }
 	else
@@ -106,7 +107,7 @@ function M:left(bufnr, cursor, inner, wiseness)
 	}
 end
 
-function M:hop_targets_generator(opts)
+function M:hop_targets_generator(opts, ref)
 	local domain = "outer"
 	if
 		opts.domain == "inner"
@@ -137,7 +138,7 @@ function M:hop_targets_generator(opts)
 	local index = 0
 	-- TODO: stop iterating a line end_
 	-- TODO: to be exact, we would need to add objects whose start is outside of screen for opts.domain == "right"
-	for to_ in self:iterate_forwards(0, { start, 0 }) do
+	for to_ in self:iterate_forwards(0, { start, 0 }, ref) do
 		if to_[domain][1][1] >= end_ then break end
 		local skip = false
 		local rel = lists.relative_pos(cursor_pos, to_[domain])

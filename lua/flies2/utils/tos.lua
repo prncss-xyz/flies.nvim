@@ -32,9 +32,7 @@ local function with_to(opts, target, pos, match, cb)
 		else
 			error(string.format("unknown around option: %s", opts.around))
 		end
-		if wants_around then
-			range = match.around or target:around(0, range, wiseness)
-		end
+		if wants_around then range = target:around(0, match, wiseness) end
 	else
 		error(string.format("unknown domain: %s", opts.domain))
 	end
@@ -62,7 +60,7 @@ local function with_to_(opts, cb)
 		match = target:find_backwards(0, opts.count or 1, pos)
 	elseif opts.axis == "hop" then
 		require("hop").hint_with_callback(
-			function() return target:hop_targets_generator(opts) end,
+			function() return target:hop_targets_generator(opts, pos) end,
 			require("hop").opts,
 			function(res) with_to(opts, target, pos, res.object, cb) end
 		)

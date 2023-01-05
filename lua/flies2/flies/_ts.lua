@@ -5,8 +5,6 @@ local ts = require "flies2.utils.ts"
 local iterators = require "flies2.utils.iterators"
 local buffers = require "flies2.utils.buffers"
 
-function M:map(match) return match end
-
 local function spice_match(bufnr, match)
 	local match_out = {}
 	for k, v in pairs(match) do
@@ -31,8 +29,26 @@ local function spice_match(bufnr, match)
 	return match_out
 end
 
-local function iter_axis(axis)
-	return function(self, bufnr, pos)
+local function find_best(pos, matches)
+	local best
+	local cmp = lists.sort_axis "upward"
+	for _, match in ipairs(matches) do
+		if lists.relative_pos(pos, match.outer) == "upward" then
+			if not best or cmp(match, best) then best = match end
+		end
+	end
+	if best then return best end
+	local cmp = lists.sort_axis "forward"
+	for _, match in ipairs(matches) do
+		if lists.relative_pos(pos, match.outer) == "forward" then
+			if not best or cmp(match, best) then best = match end
+		end
+	end
+	return best
+end
+
+local function iter_axis(axis, ref)
+	return function(self, bufnr, pos, ref)
 		local matches = ts.query_from_name(bufnr, self.name)
 		if matches == nil then
 			if self.no_tree then
@@ -40,16 +56,41 @@ local function iter_axis(axis)
 			end
 			return iterators.null()
 		end
-		local matches_ = {}
-		for _, match in ipairs(matches) do
-			match = spice_match(bufnr, match)
-			if lists.relative_pos(pos, match.outer) == axis then
-				match = self:map(match)
-				if match then table.insert(matches_, match) end
+		matches = vim.tbl_map(
+			function(match) return spice_match(bufnr, match) end,
+			matches
+		)
+		matches = vim.tbl_filter(
+			function(match) return lists.relative_pos(pos, match.outer) == axis end,
+			matches
+		)
+		table.sort(matches, lists.sort_axis(axis))
+		local context
+		if ref then
+			local base = find_best(ref, matches)
+			context = base and base.context
+		else
+			context = matches[1] and matches[1].context
+		end
+		if context then
+			matches = vim.tbl_filter(
+				function(match)
+					return lists.cmp(match.context[1], context[1]) == 0
+						and lists.cmp(match.context[2], context[2]) == 0
+				end,
+				matches
+			)
+			for i, match in ipairs(matches) do
+				local next = matches[i + 1] and matches[i + 1].outer[1] or context[2]
+				if lists.cmp(match.outer[2], next) then
+					match.arount = { match.outer[1], next }
+				else
+					local prev = matches[i - 1] and matches[i - 1].outer[2] or context[1]
+					match.around = { prev, match.outer[2] }
+				end
 			end
 		end
-		table.sort(matches_, lists.sort_axis(axis))
-		return iterators.from_list_single(matches_)
+		return iterators.from_list_single(matches)
 	end
 end
 
