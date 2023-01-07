@@ -10,8 +10,6 @@ local function UUu(self, line, init)
 	return s, e - 2
 end
 
-M.patterns = {}
-
 M.patterns = {
 	"%w+%f[_]",
 	"%f[^_]%w+",

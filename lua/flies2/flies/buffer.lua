@@ -1,5 +1,7 @@
 local M = require("flies2.flies._fly"):new {}
 
+M.solid = true
+
 local iterators = require "flies2.utils.iterators"
 local buffers = require "flies2.utils.buffers"
 

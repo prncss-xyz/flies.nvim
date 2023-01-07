@@ -1,5 +1,7 @@
 local M = require("flies2.flies._subline"):new {}
 
+M.solid = false
+
 local function quote_finder(self, line, init)
 	local delims = self.delims
 	local restrict = self.restrict or delims
