@@ -225,7 +225,6 @@ end
 ---@param left_text string
 ---@param right_text string
 function M.substitute(bufnr, inner, outer, left_text, right_text)
-	--TODO: handle multi-line text
 	local edits = {}
 	left_text = left_text or ""
 	right_text = right_text or ""
@@ -248,7 +247,7 @@ end
 
 local function complete(str, wiseness)
 	if str == "" then return str end
-	if wiseness ~= "V" then return end
+	if wiseness ~= "V" then return str end
 	if vim.endswith(str, "\n") then return str end
 	return str .. "\n"
 end
@@ -272,7 +271,7 @@ function M.subs(bufnr, outer, inner, wiseness, left_text, right_text, tab_text)
 		if del and not create then
 			local len = inner[1][2] - outer[1][2]
 			for i = inner[1][1], inner[2][1] do
-				table.insert(edits, { { { i, 1 }, { i, len } }, "" })
+				table.insert(edits, { { { i, 1 }, { i, tab_text:len() } }, "" })
 			end
 		elseif create and not del then
 			for i = inner[1][1], inner[2][1] do

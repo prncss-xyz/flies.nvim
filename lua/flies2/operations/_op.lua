@@ -20,11 +20,12 @@ local function select_(params_)
 	buffers.select(params.range, params.wiseness)
 end
 
-function M:normal()
-	local select = tos.prepare({}, select_, {})
+function M:normal(user_opts)
+	local opts, select__ = tos.prepare(user_opts or {}, select_, {})
+	if not opts then return end
 	local pre_ = self:pre()
 	if not pre_ then return end
-	require("flies2")._select = select
+	require("flies2")._select = function() select__(opts) end
 	local count = vim.v.count
 	if count == 0 then count = nil end
 	params = nil

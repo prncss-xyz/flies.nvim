@@ -88,7 +88,7 @@ function M.prepare(opts, cb, override)
 		if opts_.target then
 			opts_.count = tonumber(count_str)
 			opts_ = vim.tbl_extend("keep", opts_, defaults)
-			return function() with_to_(opts_, cb) end
+			return opts_, function(opts__) with_to_(opts__, cb) end
 		end
 		local char = vim.fn.nr2char(vim.fn.getchar())
 		if char == editor.t "<esc>" then return end
@@ -96,7 +96,7 @@ function M.prepare(opts, cb, override)
 		if override[cumul] then
 			opts_.count = tonumber(count_str)
 			opts_ = vim.tbl_extend("keep", opts_, defaults)
-			return function() override[cumul](opts_) end
+			return opts_, function(opts__) override[cumul](opts__) end
 		end
 		if char:find "%d" then count_str = count_str .. char end
 		if not opts_.axis then
@@ -115,6 +115,9 @@ function M.prepare(opts, cb, override)
 	end
 end
 
-function M.exec(opts, cb, override) M.prepare(opts, cb, override)() end
+function M.exec(opts, cb, override)
+	local opts, cb = M.prepare(opts, cb, override)
+	if opts then cb(opts) end
+end
 
 return M

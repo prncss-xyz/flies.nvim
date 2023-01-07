@@ -6,7 +6,11 @@ local editor = require "flies2.utils.editor"
 function M:run(params)
 	local match = params.match
 	local wiseness = params.target:get_wiseness(0, match.outer)
-	buffers.subs(0, match.outer, match.inner, wiseness, "", "", editor.indent)
+	buffers.subs(0, match.outer, match.inner, wiseness, "", "", editor.indent())
+end
+
+function M.exec(mode)
+	if mode == "n" then M:normal { domain = "outer", around = "never" } end
 end
 
 return M

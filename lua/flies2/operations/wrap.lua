@@ -10,6 +10,7 @@ function M:pre()
 end
 
 function M:run(params)
+	local range = params.range
 	local left, right
 	local char = params.pre
 	local c = self:get_config("wrap", char, params.target)
@@ -22,8 +23,12 @@ function M:run(params)
 	else
 		return
 	end
-	local wiseness = params.target:get_wiseness(0, params.range)
-	buffers.subs(params.range, params.range, wiseness, left, right, editor.indent)
+	local wiseness = params.target:get_wiseness(0, range)
+	buffers.subs(0, range, range, wiseness, left, right, editor.indent())
+end
+
+function M.exec(mode)
+	if mode == "n" then M:normal() end
 end
 
 return M

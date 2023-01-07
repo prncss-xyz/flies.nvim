@@ -39,4 +39,8 @@ function M:run(params)
 	buffers.swap(0, range1, range2)
 end
 
+function M.exec(mode)
+	if mode == "n" then M:normal { domain = "outer", around = "never" } end
+end
+
 return M
