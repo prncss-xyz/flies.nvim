@@ -65,14 +65,14 @@ local function iter_axis(axis)
 			matches
 		)
 		table.sort(matches, lists.sort_axis(axis))
-		local context
-		if ref then
-			local base = find_best(ref, matches)
-			context = base and base.context
-		else
-			context = matches[1] and matches[1].context
-		end
-		if context then
+		if self.context then
+			local context
+			if ref then
+				local base = find_best(ref, matches)
+				context = base and base.context
+			else
+				context = matches[1] and matches[1].context
+			end
 			matches = vim.tbl_filter(
 				function(match)
 					return lists.cmp(match.context[1], context[1]) == 0
