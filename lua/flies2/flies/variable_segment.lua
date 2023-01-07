@@ -2,6 +2,8 @@ local M = require("flies2.flies._subline"):new {}
 
 M.solid = true
 
+M.around_char_pattern = "_+"
+
 local function UUu(self, line, init)
 	local s, e = line:find("%u+%u%l", init)
 	if not s then return end

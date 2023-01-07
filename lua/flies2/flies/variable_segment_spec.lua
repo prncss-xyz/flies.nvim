@@ -9,8 +9,9 @@ describe("quote", function()
 		local text = [[ 234 de_fg ]]
 		tests.set_buf(text)
 		assert.are.same(r(6, 7), M:find_forwards(0, 1, { 1, 1 }).outer)
+		assert.are.same(r(6, 8), M:around(0, M:find_forwards(0, 1, { 1, 1 }), "v"))
 		assert.are.same(r(9, 10), M:find_forwards(0, 2, { 1, 1 }).outer)
-		assert.are.same(r(9, 11), M:around(0, M:find_forwards(0, 2, { 1, 1 }), "v"))
+		assert.are.same(r(8, 10), M:around(0, M:find_forwards(0, 2, { 1, 1 }), "v"))
 	end)
 	it("should find camel-case segments", function()
 		tests.set_buf " abCd"
