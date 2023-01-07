@@ -2,14 +2,22 @@ local M = require("flies2.flies._subline"):new {}
 
 M.solid = true
 
+local function UUu(self, line, init)
+	local s, e = line:find("%u+%u%l", init)
+	if not s then return end
+	return s, e - 2
+end
+
+M.patterns = {}
+
 M.patterns = {
 	"%w+%f[_]",
 	"%f[^_]%w+",
 	"%l+%f[%u]",
 	"%u%l+$",
 	"%u%l+%f[%u]",
-  "%f[%u]%u+"
-	--TODO: UUUUaa
+	"%f[%u]%u+",
+	UUu,
 }
 
 return M
