@@ -2,41 +2,60 @@ local M = require("flies2.utils.objects"):new {}
 
 local buffers = require "flies2.utils.buffers"
 local config = require("flies2").config
-local tos = require "flies2.utils.tos"
+local query = require "flies2.utils.query"
+local selection = require "flies2.flies.selection"
 
 function M:get_config(name, char, target)
 	local c = config.op[name] or {}
 	local d = c.chars and c.chars[char] or {}
-	local e = target.op and target.op[name] or {}
+	local e = target and target.op and target.op[name] or {}
 	return vim.tbl_extend("force", c, d, e)
 end
 
 function M:pre() return true end
 
-local params
-
-local function select_(params_)
-	params = params_
-	buffers.select(params.range, params.wiseness)
+local function op(self, mode, pre)
+	local params = require("flies2")._params
+	if not params.range then
+		local s, e, wiseness = buffers.get_marks(0, mode)
+		local range = { s, e }
+		params.range = range
+		params.wiseness = wiseness
+		params.match = params.match or {
+			outer = range,
+			inner = range,
+		}
+	end
+	params.pre = pre
+	self:run(params)
 end
 
-function M:normal(user_opts)
-	local opts, select__ = tos.prepare(user_opts or {}, select_, {})
+function M:normal(opts, override)
+	opts = query.query_obj(opts, override)
 	if not opts then return end
-	local pre_ = self:pre()
-	if not pre_ then return end
-	require("flies2")._select = function() select__(opts) end
+	local pre = self:pre()
+	if not pre then return end
+	require("flies2")._select = function() opts.target:select(opts) end
 	local count = vim.v.count
 	if count == 0 then count = nil end
-	params = nil
-	require("flies2")._op_func = function()
-		if params then
-			params.pre = pre_
-			self:run(params)
-		end
-	end
+	require("flies2")._op_func = function() op(self, "o", pre) end
 	vim.o.operatorfunc = "v:lua.package.loaded.flies2._op_func"
 	buffers.feed_keys 'g@:<c-u>lua require "flies2"._select()<cr>'
+end
+
+function M:visual(opts)
+	local pre = self:pre()
+	if not pre then return end
+	local count = vim.v.count
+	if count == 0 then count = nil end
+	opts = vim.tbl_extend("force", opts or {}, { target = selection })
+	buffers.with_x(function()
+		require("flies2")._params = {
+			pos = buffers.get_cursor(),
+			target = selection,
+		}
+		op(self, "x", pre)
+	end)
 end
 
 return M

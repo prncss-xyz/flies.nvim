@@ -24,6 +24,24 @@ M.config = {
 	},
 }
 
-function M.setup(user_config) tables.deep_merge(M.config, user_config or {}) end
+function M.setup(user_config)
+	tables.deep_merge(M.config, user_config or {})
+	print "mapping"
+	vim.keymap.set(
+		"n",
+		"<plug>(flies-select)",
+		":lua require'flies2.operations.select'.exec()<cr>"
+	)
+	vim.keymap.set(
+		"o",
+		"<plug>(flies-select)",
+		":<c-u>lua require'flies2.operations.select'.exec()<cr>"
+	)
+	vim.keymap.set(
+		"x",
+		"<plug>(flies-select)",
+		":lua require'flies2.operations.select'.exec()<cr>"
+	)
+end
 
 return M

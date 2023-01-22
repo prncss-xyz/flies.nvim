@@ -22,7 +22,7 @@ end
 
 -- adapted from https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/surround.lua
 -- Work with operator marks ---------------------------------------------------
-local function get_marks(bufnr, mode)
+function M.get_marks(bufnr, mode)
 	-- Region is inclusive on both ends
 	local mark1, mark2
 	if mode == "x" then
@@ -33,17 +33,6 @@ local function get_marks(bufnr, mode)
 
 	local pos1 = vim.api.nvim_buf_get_mark(bufnr, mark1)
 	local pos2 = vim.api.nvim_buf_get_mark(bufnr, mark2)
-
-	-- Tweak position in linewise mode as marks are placed on the first column
-	local is_linewise = (mode == "line")
-		or (mode == "x" and vim.fn.visualmode() == "V")
-	if is_linewise then
-		-- Move start mark past the indent
-		pos1[2] = vim.fn.indent(pos1[1])
-		-- Move end mark to the last character (` - 2` here because `col()` returns
-		-- column right after the last 1-based column)
-		pos2[2] = vim.fn.col { pos2[1], "$" } - 2
-	end
 
 	-- Make columns 1-based instead of 0-based. This is needed because
 	-- `nvim_buf_get_mark()` returns the first 0-based byte of mark symbol and
@@ -71,7 +60,7 @@ local function get_marks(bufnr, mode)
 		pos2[2] = vim.str_byteindex(line2, utf_index)
 	end
 
-	return pos1, pos2
+	return pos1, pos2, vim.fn.visualmode()
 end
 
 --- get cursor position

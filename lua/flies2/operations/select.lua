@@ -1,13 +1,13 @@
 local M = {}
 
-local buffers = require "flies2.utils.buffers"
-local tos = require "flies2.utils.tos"
+local query = require "flies2.utils.query"
 
-function M.exec()
-	tos.exec(
-		{ around = "solid" },
-		function(params) buffers.select(params.range, params.wiseness) end
-	)
+local function select(opts) opts.target:select(opts) end
+
+function M.exec(opts, override)
+	opts = query.query_obj(opts, override)
+	if not opts then return end
+	select(opts)
 end
 
 return M

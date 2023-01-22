@@ -31,6 +31,7 @@ function M.prev()
 end
 
 function M.next()
+	print "next"
 	if rep.next then rep.next() end
 end
 

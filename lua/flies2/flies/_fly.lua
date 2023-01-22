@@ -189,4 +189,83 @@ function M:find_best(bufnr, pos)
 	return self:find_upwards(bufnr, 1, pos) or self:find_forwards(bufnr, 1, pos)
 end
 
+local function apply_opts(self, opts, pos, match)
+	local wiseness
+	local range
+	if opts.domain == "inner" then
+		range = match.inner
+		wiseness = self:get_wiseness(0, range)
+	elseif opts.domain == "left" then
+		range = match.inner
+		wiseness = self:get_wiseness(0, range)
+		range = self:left(0, pos, range, wiseness)
+	elseif opts.domain == "right" then
+		range = match.inner
+		wiseness = self:get_wiseness(0, range)
+		range = self:right(0, pos, range, wiseness)
+	elseif opts.domain == "outer" then
+		range = match.outer
+		wiseness = self:get_wiseness(0, range)
+		local wants_around
+		if opts.around == "always" then
+			wants_around = true
+		elseif opts.around == "never" then
+			wants_around = false
+		elseif opts.around == "solid" then
+			wants_around = self.solid
+		else
+			error(string.format("unknown around option: %s", opts.around))
+		end
+		if wants_around then range = self:around(0, match, wiseness) end
+	else
+		error(string.format("unknown domain: %s", opts.domain))
+	end
+	return {
+		range = range,
+		wiseness = wiseness,
+		opts = opts,
+		target = self,
+		pos = pos,
+		match = match,
+	}
+end
+
+function M:with_opts(opts, cb)
+	local pos = buffers.get_cursor()
+	local match
+	if opts.axis == "best" then
+		match = self:find_best(0, pos)
+	elseif opts.axis == "upward" then
+		match = self:find_upwards(0, opts.count or 1, pos)
+	elseif opts.axis == "forward" then
+		match = self:find_forwards(0, opts.count or 1, pos)
+	elseif opts.axis == "backward" then
+		match = self:find_backwards(0, opts.count or 1, pos)
+	elseif opts.axis == "hint" then
+		require("hop").hint_with_callback(
+			function() return self:hop_targets_generator(opts, pos) end,
+			require("hop").opts,
+			function(res) cb(apply_opts(self, opts, pos, res.object)) end
+		)
+	else
+		error(string.format("unknown axis: %s", opts.axis))
+	end
+	if not match then return end
+	cb(apply_opts(self, opts, pos, match))
+end
+
+function M:move(opts)
+	self:with_opts(opts, function(params)
+		require("flies2")._params = params
+		buffers.move(params.range, true)
+	end)
+end
+
+function M:select(opts)
+	self:with_opts(opts, function(params)
+		require("flies2")._params = params
+		buffers.select(params.range, params.wiseness)
+	end)
+end
+
 return M

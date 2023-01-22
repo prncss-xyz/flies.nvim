@@ -23,12 +23,15 @@ function M:run(params)
 	else
 		return
 	end
-	local wiseness = params.target:get_wiseness(0, range)
-	buffers.subs(0, range, range, wiseness, left, right, editor.indent())
+	buffers.subs(0, range, range, params.wiseness, left, right, editor.indent())
 end
 
 function M.exec(mode)
-	if mode == "n" then M:normal() end
+	if mode == "n" then
+		M:normal()
+	elseif mode == "x" then
+		M:visual()
+	end
 end
 
 return M
