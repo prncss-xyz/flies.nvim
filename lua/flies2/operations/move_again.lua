@@ -21,6 +21,22 @@ function M.recompose(prev, next_, fwd)
 	return fp, fn
 end
 
+function M.recompose2(prev, next_, fwd)
+	if type(prev) == "string" then prev = editor.feedkeys(prev) end
+	if type(next_) == "string" then next_ = editor.feedkeys(next_) end
+	if fwd then
+		return function()
+			M.register(prev, next_)
+			prev()
+		end
+	else
+		return function()
+			M.register(prev, next_)
+			next_()
+		end
+	end
+end
+
 function M.register(previous, next_)
 	rep.prev = previous
 	rep.next = next_
