@@ -7,7 +7,7 @@ local rep = {
 	next = function(_) end,
 }
 
-function M.recompose(prev, next_)
+function M.recompose(prev, next_, fwd)
 	if type(prev) == "string" then prev = editor.feedkeys(prev) end
 	if type(next_) == "string" then next_ = editor.feedkeys(next_) end
 	local fp = function()
@@ -31,7 +31,6 @@ function M.prev()
 end
 
 function M.next()
-	print "next"
 	if rep.next then rep.next() end
 end
 

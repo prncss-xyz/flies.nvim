@@ -4,7 +4,7 @@ M.solid = true
 
 M.around_char_pattern = "_+"
 
-local function UUu(self, line, init)
+local function uul(self, line, init)
 	local s, e = line:find("%u+%u%l", init)
 	if not s then return end
 	return s, e - 2
@@ -17,7 +17,7 @@ M.patterns = {
 	"%u%l+$",
 	"%u%l+%f[%u]",
 	"%f[%u]%u+",
-	UUu,
+	uul,
 }
 
 return M

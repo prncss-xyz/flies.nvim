@@ -26,7 +26,6 @@ M.config = {
 
 function M.setup(user_config)
 	tables.deep_merge(M.config, user_config or {})
-	print "mapping"
 	vim.keymap.set(
 		"n",
 		"<plug>(flies-select)",

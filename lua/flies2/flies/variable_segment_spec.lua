@@ -24,5 +24,7 @@ describe("quote", function()
 		assert.are.same(r(4, 7), M:find_forwards(0, 2, { 1, 1 }).outer)
 		tests.set_buf " HTMLno"
 		assert.are.same(r(2, 5), M:find_forwards(0, 1, { 1, 1 }).outer)
+		tests.set_buf " H"
+		assert.is_nil(M:find_forwards(0, 1, { 1, 1 }).outer)
 	end)
 end)

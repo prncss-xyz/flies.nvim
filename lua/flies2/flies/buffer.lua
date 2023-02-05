@@ -15,7 +15,7 @@ end
 
 local function inner_end(bufnr)
 	local eob = buffers.get_eob(bufnr)
-	for row, line in buffers.get_lines(buffers, false, eob) do
+	for row, line in buffers.get_lines(bufnr, false, eob) do
 		local end_ = string.find(line, ".%s*$")
 		if end_ then return { row, end_ } end
 	end
@@ -29,10 +29,10 @@ local function outer_end(bufnr)
 	return { eob, col }
 end
 
-function M.iterate_upwards(bufnr)
+function M:iterate_upwards(bufnr)
 	local outer = { { 1, 1 }, outer_end(0) }
 	local inner = { inner_start(bufnr), inner_end(bufnr) }
-	return iterators.once { outer = outer, inner = inner }
+	return iterators.unit { outer = outer, inner = inner }
 end
 
 M.iterate_forwards = iterators.null()

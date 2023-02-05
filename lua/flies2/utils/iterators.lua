@@ -63,7 +63,7 @@ end
 
 ---iterates (singe value) over a range
 ---range(a) iterates from 1 to a
----ranbe(a, b) iterates from a to b
+---range(a, b) iterates from a to b
 ---range(a, b, c) iterates from a to b by steps of c
 function M.range(a_, b_, c_)
 	local b, e, s

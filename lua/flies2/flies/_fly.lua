@@ -91,8 +91,11 @@ function M:around(bufnr, match, wiseness)
 end
 
 function M:right(bufnr, cursor, inner, wiseness)
+	print(" wiseness:", vim.inspect(wiseness)) -- __AUTO_GENERATED_PRINT_VAR__
 	local s, e = unpack(inner)
+	print(" inner:", vim.inspect(inner)) -- __AUTO_GENERATED_PRINT_VAR__
 	local rp = lists.relative_pos(cursor, inner)
+	print(" rp:", vim.inspect(rp)) -- __AUTO_GENERATED_PRINT_VAR__
 	if rp == "backward" then return end
 	return { cursor, rp == "upward" and e or buffers.prev(bufnr, s, wiseness) }
 end
