@@ -30,7 +30,7 @@ function M.query_obj(opts, override)
 		if override[cumul] then
 			opts_.count = tonumber(count_str)
 			opts_ = vim.tbl_extend("keep", opts_, defaults)
-			override[cumul](opts__)
+			override[cumul](opts_)
 			return
 		end
 		if char:find "%d" then count_str = count_str .. char end

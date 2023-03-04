@@ -6,7 +6,7 @@ describe("get_wiseness", function()
 	it("should get_wiseness (same line)", function()
 		local text = " 234  7 "
 		tests.set_buf(text)
-		local f = M:new { lonely_wiseness = "V" }
+		local f = M:new { lonely_wiseness_inner = "V" }
 		assert.are.equals("V", f:get_wiseness(0, { { 1, 2 }, { 1, 7 } }))
 		assert.are.equals("v", f:get_wiseness(0, { { 1, 3 }, { 1, 7 } }))
 	end)
@@ -73,7 +73,7 @@ describe("around (linewise)", function()
 
 bbbbbbbbb
 ]]
-		local f = M:new { lonely_wiseness = "V" }
+		local f = M:new { lonely_wiseness_inner = "V" }
 		local wiseness = f:get_wiseness(0, { { 3, 1 }, { 4, 3 } })
 		assert.are.equals(wiseness, "V")
 		assert.are.same(

@@ -13,7 +13,7 @@ function M.recompose(prev, next_, fwd)
 	local fp = function()
 		M.register(prev, next_)
 		prev()
-	end
+  end
 	local fn = function()
 		M.register(prev, next_)
 		next_()
@@ -25,15 +25,11 @@ function M.recompose2(prev, next_, fwd)
 	if type(prev) == "string" then prev = editor.feedkeys(prev) end
 	if type(next_) == "string" then next_ = editor.feedkeys(next_) end
 	if fwd then
-		return function()
-			M.register(prev, next_)
-			prev()
-		end
+		M.register(prev, next_)
+		next_()
 	else
-		return function()
-			M.register(prev, next_)
-			next_()
-		end
+		M.register(prev, next_)
+		prev()
 	end
 end
 

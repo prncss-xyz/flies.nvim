@@ -22,7 +22,7 @@ function M:run(params)
 		lists.cmp(range1[1], range2[1]) <= 0
 		and lists.cmp(range2[2], range1[2]) <= 0
 	then
-		local wiseness = params.target:get_wiseness(0, range1)
+		local wiseness = params.target:get_wiseness(0, range1, true)
 		buffers.subs(0, range1, range2, wiseness, "", "", editor.indent())
 		return
 	end
@@ -31,7 +31,7 @@ function M:run(params)
 		lists.cmp(range2[1], range1[1]) <= 0
 		and lists.cmp(range1[2], range2[2]) <= 0
 	then
-		local wiseness = params.target:get_wiseness(0, range2)
+		local wiseness = params.target:get_wiseness(0, range2, true)
 		buffers.subs(0, range2, range1, wiseness, "", "", editor.indent())
 		return
 	end

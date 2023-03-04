@@ -5,7 +5,7 @@ local editor = require "flies2.utils.editor"
 
 function M:run(params)
 	local match = params.match
-	local wiseness = params.target:get_wiseness(0, match.outer)
+	local wiseness = params.target:get_wiseness(0, match.outer, true)
 	buffers.subs(0, match.outer, match.inner, wiseness, "", "", editor.indent())
 end
 

@@ -3,12 +3,13 @@ local buffers = require "flies2.utils.buffers"
 local iterators = require "flies2.utils.iterators"
 local lists = require "flies2.utils.lists"
 
-M.lonely_wiseness = "v"
+M.lonely_wiseness_inner = "v"
+M.lonely_wiseness_outer = "v"
 M.around_char_pattern = "%s+"
 M.around_line_pattern = "^%s*$"
 M.lookahead = 200
 
-function M:get_wiseness(bufnr, range)
+function M:get_wiseness(bufnr, range, outer)
 	local s, e = unpack(range)
 	local line = buffers.get_line(bufnr, s[1])
 	local _, col = line:find "^%s*"
@@ -16,7 +17,9 @@ function M:get_wiseness(bufnr, range)
 	line = buffers.get_line(bufnr, e[1])
 	col = line:find "%s*$"
 	if e[2] < col - 1 then return "v" end
-	if s[1] == e[1] then return self.lonely_wiseness end
+	if s[1] == e[1] then
+		return outer and self.lonely_wiseness_outer or self.lonely_wiseness_inner
+	end
 	return "V"
 end
 
@@ -197,18 +200,18 @@ local function apply_opts(self, opts, pos, match)
 	local range
 	if opts.domain == "inner" then
 		range = match.inner
-		wiseness = self:get_wiseness(0, range)
+		wiseness = self:get_wiseness(0, range, false)
 	elseif opts.domain == "left" then
 		range = match.inner
 		wiseness = self:get_wiseness(0, range)
-		range = self:left(0, pos, range, wiseness)
+		range = self:left(0, pos, range, wiseness, false)
 	elseif opts.domain == "right" then
 		range = match.inner
 		wiseness = self:get_wiseness(0, range)
-		range = self:right(0, pos, range, wiseness)
+		range = self:right(0, pos, range, wiseness, false)
 	elseif opts.domain == "outer" then
 		range = match.outer
-		wiseness = self:get_wiseness(0, range)
+		wiseness = self:get_wiseness(0, range, true)
 		local wants_around
 		if opts.around == "always" then
 			wants_around = true

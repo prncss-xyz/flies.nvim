@@ -2,10 +2,11 @@ local M = require("flies2.flies._subline"):new {}
 
 M.solid = true
 
--- --FIX: 
-M.lonely_wiseness = "v"
+-- --FIX:
+M.lonely_wiseness_inner = "v"
+M.lonely_wiseness_outer = "V"
 
-function pattern(self, line, init)
+local function pattern(_, line, init)
 	if init > 1 then return end
 	local len = line:len()
 	if len == 0 then len = 1 end
