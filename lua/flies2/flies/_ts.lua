@@ -5,31 +5,7 @@ local ts = require "flies2.utils.ts"
 local iterators = require "flies2.utils.iterators"
 local buffers = require "flies2.utils.buffers"
 
-local function spice_match(bufnr, match)
-	local match_out = {}
-	for k, v in pairs(match) do
-		local name, mod = unpack(vim.split(k, ".", { plain = true }))
-		if mod == "node_inside" then
-			match_out[name] = ts.get_node_inside(bufnr, v)
-		elseif mod == "node_second" then
-			match_out[name] = ts.get_node_second(bufnr, v)
-		elseif mod == "before" then
-			local r = match_out[name] or {}
-			r[1] = buffers.next(bufnr, v[2], "v")
-			match_out[name] = r
-		elseif mod == "after" then
-			local r = match_out[name] or {}
-			r[2] = buffers.prev(bufnr, v[1], "v")
-			match_out[name] = r
-		else
-			match_out[k] = v
-		end
-	end
-	match_out.inner = match_out.inner or match_out.outer
-	return match_out
-end
-
-local function find_best(pos, matches)
+local function find_best(pos, matches, axis)
 	local best
 	local cmp = lists.sort_axis "upward"
 	for _, match in ipairs(matches) do
@@ -37,14 +13,47 @@ local function find_best(pos, matches)
 			if not best or cmp(match, best) then best = match end
 		end
 	end
-	if best then return best end
-	cmp = lists.sort_axis "forward"
+	if best or axis == "upward" then return best end
+	cmp = lists.sort_axis(axis)
 	for _, match in ipairs(matches) do
-		if lists.relative_pos(pos, match.outer) == "forward" then
+		if lists.relative_pos(pos, match.outer) == axis then
 			if not best or cmp(match, best) then best = match end
 		end
 	end
 	return best
+end
+
+-- TODO: wiseness
+local function get_around(bufnr, match, matches)
+	local as, ae
+	local context = match.context
+	local match_s, match_e = unpack(match.outer)
+	for _, m in ipairs(matches) do
+		if vim.deep_equal(m.context, context) then
+			-- ie, as < match_s < match_e < ae, is
+			local is, ie = unpack(m.outer)
+			if lists.cmp(ie, match_s) < 0 then
+				if not as or lists.cmp(ie, as) > 0 then as = ie end
+			end
+			if lists.cmp(match_e, is) < 0 then
+				if not ae or lists.cmp(is, ae) < 0 then ae = is end
+			end
+		end
+	end
+	if ae then
+		local wiseness = "v"
+		ae = buffers.prev(bufnr, ae, wiseness)
+	else
+		ae = context[2]
+	end
+	if lists.cmp(match_e, ae) < 0 then return { match_s, ae } end
+	if as then
+		local wiseness = "v"
+		as = buffers.next(bufnr, as, wiseness)
+	else
+		as = context[1]
+	end
+	return { as, match_e }
 end
 
 local function iter_axis(axis)
@@ -56,41 +65,27 @@ local function iter_axis(axis)
 			end
 			return iterators.null()
 		end
-		matches = vim.tbl_map(
-			function(match) return spice_match(bufnr, match) end,
-			matches
-		)
-		matches = vim.tbl_filter(
-			function(match) return lists.relative_pos(pos, match.outer) == axis end,
-			matches
-		)
-		table.sort(matches, lists.sort_axis(axis))
-		if self.context then
-			local context
-			if ref then
-				local base = find_best(ref, matches)
-				context = base and base.context
-			else
-				context = matches[1] and matches[1].context
+		local ctx = matches[1] and matches[1].context
+		local best_context
+		if ref and ctx then
+			local best = find_best(ref, matches, axis)
+			if not best then return iterators.null() end
+			if best then best_context = best.context end
+		end
+		local matches_filtered = vim.tbl_filter(function(match)
+			if best_context then
+				if not vim.deep_equal(best_context, match.context) then return false end
 			end
-			matches = vim.tbl_filter(
-				function(match)
-					return lists.cmp(match.context[1], context[1]) == 0
-						and lists.cmp(match.context[2], context[2]) == 0
-				end,
-				matches
-			)
-			for i, match in ipairs(matches) do
-				local next = matches[i + 1] and matches[i + 1].outer[1] or context[2]
-				if lists.cmp(match.outer[2], next) then
-					match.arount = { match.outer[1], next }
-				else
-					local prev = matches[i - 1] and matches[i - 1].outer[2] or context[1]
-					match.around = { prev, match.outer[2] }
-				end
+			return lists.relative_pos(pos, match.outer) == axis
+		end, matches)
+		table.sort(matches_filtered, lists.sort_axis(axis))
+
+		if ctx then
+			for _, match in ipairs(matches_filtered) do
+				match.around = get_around(bufnr, match, matches)
 			end
 		end
-		return iterators.from_list_single(matches)
+		return iterators.from_list_single(matches_filtered)
 	end
 end
 

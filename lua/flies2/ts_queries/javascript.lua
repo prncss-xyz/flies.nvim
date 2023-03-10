@@ -10,11 +10,6 @@ M.argument = [[
   (object_pattern (shorthand_property_identifier_pattern) @outer) @context.node_inside
   (named_imports ((import_specifier name: (identifier) @key alias: (identifier)? @inner) @outer)) @context.node_inside
 
-  ; ts
-  (object_type (property_signature name:_ @key type: (type_annotation (_) @inner)) @outer) @context.node_inside
-  (object_type (index_signature name:_ @key type: (type_annotation (_) @inner)) @outer) @context.node_inside
-  (tuple_type (_) @inner) @context.node_inside
-
   ; jsx
   (jsx_opening_element name: (identifier) @context.before attribute: (jsx_attribute (property_identifier) @key (_) @inner) @outer ">" @context.after)
   (jsx_self_closing_element name: (identifier) @context.before attribute: (jsx_attribute (property_identifier) @key (_) @inner) @outer "/" @context.after)
@@ -112,5 +107,12 @@ M.open_close = [[
   ;; close
   (arrow_function body: (statement_block ((_)? @protect (return_statement (_) @arrow_close)) ) @outer)
 ]]
+
+
+M.test = [[
+  ; ts
+  ; (object_type (property_signature) @outer) @context.node_inside
+]]
+
 
 return M

@@ -6,7 +6,9 @@ M.config = {
 	lookahead = 200,
 	queries = {},
 	extends = {
-		tsx = { "javascript", "typescript" },
+		tsx = { "javascript", "typescript", "javascriptreact", "typescriptreact" },
+		jsx = { "javascript", "javascriptreact" },
+		typescript = { "javascript" },
 	},
 	op = {
 		wrap = {

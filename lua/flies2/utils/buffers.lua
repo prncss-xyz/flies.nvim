@@ -234,6 +234,18 @@ function M.substitute(bufnr, inner, outer, left_text, right_text)
 	M.edit(bufnr, edits)
 end
 
+function M.get_wiseness(bufnr, range, lonely_wiseness)
+	local s, e = unpack(range)
+	local line = M.get_line(bufnr, s[1])
+	local _, col = line:find "^%s*"
+	if s[2] > col + 1 then return "v" end
+	line = M.get_line(bufnr, e[1])
+	col = line:find "%s*$"
+	if e[2] < col - 1 then return "v" end
+	if s[1] == e[1] then return lonely_wiseness end
+	return "V"
+end
+
 local function complete(str, wiseness)
 	if str == "" then return str end
 	if wiseness ~= "V" then return str end
@@ -293,6 +305,10 @@ end
 
 function M.select(range, wiseness)
 	local s, e = unpack(range)
+  print("...")
+	print(" s:", vim.inspect(s)) -- __AUTO_GENERATED_PRINT_VAR__
+	print(" e:", vim.inspect(e)) -- __AUTO_GENERATED_PRINT_VAR__
+
 	vim.fn.setpos(".", { 0, s[1], s[2], 0 })
 	vim.cmd("normal! " .. wiseness)
 	vim.fn.setpos(".", { 0, e[1], e[2], 0 })

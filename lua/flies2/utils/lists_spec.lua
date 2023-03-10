@@ -1,5 +1,18 @@
 local M = require "flies2.utils.lists"
 
+describe("is_inside", function()
+	it(
+		"should determine wether pos is inside range",
+		function()
+      assert.is.truthy(M.is_inside({ { 1, 1 }, { 3, 3 } }, { 1, 1 }))
+      assert.is.truthy(M.is_inside({ { 1, 1 }, { 3, 3 } }, { 3, 3 }))
+      assert.is.truthy(M.is_inside({ { 1, 1 }, { 3, 3 } }, { 2, 2 }))
+      assert.is.falsy(M.is_inside({ { 1, 1 }, { 3, 3 } }, { 0, 0 }))
+      assert.is.falsy(M.is_inside({ { 1, 1 }, { 3, 3 } }, { 4, 4 }))
+    end
+	)
+end)
+
 describe("cmp", function()
 	it("compares greater", function()
 		assert.is_greater(0, M.cmp({ 1 }, { 2 }))

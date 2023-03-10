@@ -3,16 +3,18 @@ local M = {}
 -- .inside1 .1node .node_inside
 -- .before
 -- .after
-
+--
 M.argument = [[
-  (function_call arguments: (arguments (_) @outer)) @context.node_inside
-  (function_declaration parameters: (parameters (_) @outer)) @context.node_inside
-  (table_constructor (field name: (identifier)? @key value: (_) @inner) @outer) @context.node_inside
-  (variable_list name: (_) @outer) @context.node_inside
+  (function_call arguments: (arguments (_) @outer) @context.node_inside)
+  (function_declaration parameters: (parameters (_) @outer) @context.node_inside)
+  (function_declaration parameters: (parameters (_) @outer) @context.node_inside)
+  (table_constructor (field name: (identifier)? @key value: (_) @inner) @outer) @context.node_inside 
 
   ; we exclude lists of length one for pratical raisons
+
   (expression_list value: (_) @outer (_)) @context
   (expression_list value: (_) (_) @outer) @context
+  (variable_list name: (_) @outer) @context
   (variable_list name: (identifier) @outer (identifier)) @context
   (variable_list name: (identifier) (identifier) @outer) @context
 ]]

@@ -10,17 +10,11 @@ M.around_line_pattern = "^%s*$"
 M.lookahead = 200
 
 function M:get_wiseness(bufnr, range, outer)
-	local s, e = unpack(range)
-	local line = buffers.get_line(bufnr, s[1])
-	local _, col = line:find "^%s*"
-	if s[2] > col + 1 then return "v" end
-	line = buffers.get_line(bufnr, e[1])
-	col = line:find "%s*$"
-	if e[2] < col - 1 then return "v" end
-	if s[1] == e[1] then
-		return outer and self.lonely_wiseness_outer or self.lonely_wiseness_inner
-	end
-	return "V"
+	return buffers.get_wiseness(
+		bufnr,
+		range,
+		outer and self.lonely_wiseness_outer or self.lonely_wiseness_inner
+	)
 end
 
 local function around_charwise(self, bufnr, s, e)
@@ -94,11 +88,8 @@ function M:around(bufnr, match, wiseness)
 end
 
 function M:right(bufnr, cursor, inner, wiseness)
-	print(" wiseness:", vim.inspect(wiseness)) -- __AUTO_GENERATED_PRINT_VAR__
 	local s, e = unpack(inner)
-	print(" inner:", vim.inspect(inner)) -- __AUTO_GENERATED_PRINT_VAR__
 	local rp = lists.relative_pos(cursor, inner)
-	print(" rp:", vim.inspect(rp)) -- __AUTO_GENERATED_PRINT_VAR__
 	if rp == "backward" then return end
 	return { cursor, rp == "upward" and e or buffers.prev(bufnr, s, wiseness) }
 end

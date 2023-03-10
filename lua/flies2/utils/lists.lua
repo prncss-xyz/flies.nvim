@@ -1,6 +1,8 @@
 local M = {}
 
 ---lexicoraphical comparaison between tuples
+---@param t1 table
+---@param t2 table
 function M.cmp(t1, t2)
 	local i = 1
 	while true do
@@ -16,19 +18,23 @@ function M.cmp(t1, t2)
 	end
 end
 
+function M.is_inside(range, pos)
+	if M.cmp(pos, range[1]) < 0 then return false end
+	if M.cmp(range[2], pos) < 0 then return false end
+	return true
+end
+
 --- axis of a range relative to position
 ---@param pos table reference (cursor) positon
 ---@param to table textobject; will consiter .outer range
----@return string backward\forward\upward
-function M.relative_pos(pos, to)
+ function M.relative_pos(pos, to)
 	if M.cmp(to[2], pos) < 0 then return "backward" end
 	if M.cmp(pos, to[1]) < 0 then return "forward" end
 	return "upward"
 end
 
-
 --- returns a sorting function for axis
----@param axis "upward", "forward", "backward"
+---@param axis "upward" | "forward" | "backward"
 function M.sort_axis(axis)
 	if axis == "upward" then
 		return function(a, b)
@@ -72,6 +78,8 @@ function M.sort_axis(axis)
 			r = a[2][2] - b[2][2]
 			if r ~= 0 then return r > 0 end
 		end
+	else
+		error("unknown axis: " .. axis)
 	end
 end
 
@@ -85,6 +93,7 @@ end
 function M.ripairs(t) return ripairs, t, #t + 1 end
 
 --- bidirectional ipairs
+---@param fwd boolean
 ---@param t table list
 function M.bipairs(fwd, t)
 	if fwd then
@@ -93,5 +102,6 @@ function M.bipairs(fwd, t)
 		return M.ripairs(t)
 	end
 end
+
 
 return M
