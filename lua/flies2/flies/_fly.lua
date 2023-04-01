@@ -89,21 +89,30 @@ function M:around(bufnr, match, wiseness)
 	end
 end
 
-function M:right(bufnr, cursor, inner, wiseness)
+function M:right(bufnr, cursor, match)
+	local inner = match.inner
+	print(" inner:", vim.inspect(inner)) -- __AUTO_GENERATED_PRINT_VAR__
+	local wiseness = self:get_wiseness(bufnr, inner)
+	print(" wiseness:", vim.inspect(wiseness)) -- __AUTO_GENERATED_PRINT_VAR__
+
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
 	if rp == "backward" then return end
-	return { cursor, rp == "upward" and e or buffers.prev(bufnr, s, wiseness) }
+	return { cursor, rp == "upward" and e or buffers.prev(bufnr, s, wiseness) },
+		wiseness
 end
 
-function M:left(bufnr, cursor, inner, wiseness)
+function M:left(bufnr, cursor, match)
+	local inner = match.inner
+	local wiseness = self:get_wiseness(bufnr, inner)
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
 	if rp == "forward" then return end
 	return {
 		rp == "upward" and s or buffers.next(bufnr, e, wiseness),
 		buffers.prev(bufnr, cursor, wiseness),
-	}
+	},
+		wiseness
 end
 
 function M:hop_targets_generator(opts, ref)
@@ -195,13 +204,9 @@ local function apply_opts(self, opts, pos, match)
 		range = match.inner
 		wiseness = self:get_wiseness(0, range, false)
 	elseif opts.domain == "left" then
-		range = match.inner
-		wiseness = self:get_wiseness(0, range)
-		range = self:left(0, pos, range, wiseness, false)
+		range, wiseness = self:left(0, pos, match, false)
 	elseif opts.domain == "right" then
-		range = match.inner
-		wiseness = self:get_wiseness(0, range)
-		range = self:right(0, pos, range, wiseness, false)
+		range, wiseness = self:right(0, pos, match, false)
 	elseif opts.domain == "outer" then
 		range = match.outer
 		wiseness = self:get_wiseness(0, range, true)

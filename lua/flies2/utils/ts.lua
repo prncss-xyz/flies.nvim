@@ -86,9 +86,8 @@ local function spice_match(bufnr, match)
 			res[name] = r
 		elseif mod == "after" then
 			local r = res[name] or {}
-			print("spice_match#for v:", vim.inspect(v)) -- __AUTO_GENERATED_PRINT_VAR__
 			r[2] = v[1]
-			--[[ r[2] = buffers.prev(bufnr, v[1], "v") ]]
+			r[2] = buffers.prev(bufnr, v[1], "v")
 			res[name] = r
 		else
 			res[k] = v
