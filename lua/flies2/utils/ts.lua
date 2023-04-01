@@ -17,7 +17,7 @@ local function get_node_range(bufnr, node)
 	return s, e
 end
 
-local function get_node_at_pos(bufnr, range)
+local function get_node_at_range(bufnr, range)
 	local srow, scol = unpack(range[1])
 	local erow, ecol = unpack(range[2])
 	srow = srow - 1
@@ -36,8 +36,7 @@ local function get_node_at_pos(bufnr, range)
 end
 
 local function get_node_inside(bufnr, range)
-	local node = get_node_at_pos(bufnr, range)
-	print("before", vim.inspect { get_node_range(bufnr, node) })
+	local node = get_node_at_range(bufnr, range)
 	if not node then return end
 	local count = node:child_count()
 	if count > 2 then
@@ -49,7 +48,7 @@ local function get_node_inside(bufnr, range)
 end
 
 local function get_node_second(bufnr, range)
-	local node = get_node_at_pos(bufnr, range)
+	local node = get_node_at_range(bufnr, range)
 	if not node then return end
 	local count = node:child_count()
 	if count > 1 then
@@ -73,13 +72,23 @@ local function spice_match(bufnr, match)
 			res[name] = get_node_inside(bufnr, v)
 		elseif mod == "node_second" then
 			res[name] = get_node_second(bufnr, v)
+		elseif mod == "start" then
+			local r = res[name] or {}
+			r[1] = v[1]
+			res[name] = r
+		elseif mod == "end" then
+			local r = res[name] or {}
+			r[2] = v[2]
+			res[name] = r
 		elseif mod == "before" then
 			local r = res[name] or {}
 			r[1] = buffers.next(bufnr, v[2], "v")
 			res[name] = r
 		elseif mod == "after" then
 			local r = res[name] or {}
-			r[2] = buffers.prev(bufnr, v[1], "v")
+			print("spice_match#for v:", vim.inspect(v)) -- __AUTO_GENERATED_PRINT_VAR__
+			r[2] = v[1]
+			--[[ r[2] = buffers.prev(bufnr, v[1], "v") ]]
 			res[name] = r
 		else
 			res[k] = v
@@ -90,14 +99,12 @@ local function spice_match(bufnr, match)
 	return res
 end
 
--- TODO: memoize
--- TODO: user-extensible
--- TODO: user-replacible
 local function query_from_name(lang, name)
-	local langs = config.extends[lang] or { lang }
+	local queries = config.ts.queries or {}
+	local langs = config.ts.extends[lang] or { lang }
 	local query_str = ""
 	for _, lang_ in ipairs(langs) do
-		local m = require("flies2.ts_queries")[lang_]
+		local m = queries[lang_]
 		if m then
 			local query_str_ = m[name] or ""
 			query_str = query_str .. query_str_
@@ -106,13 +113,10 @@ local function query_from_name(lang, name)
 	return vim.treesitter.parse_query(lang, query_str)
 end
 
--- TODO: fallback language
--- TODO: user queries
-
 local function extend_query(name, query_by_lang)
-  for lang, query in query_by_lang do
-     -- TODO:
-  end
+	for lang, query in query_by_lang do
+		-- TODO:
+	end
 end
 
 ---return all matches from registered queries under name from specified buffer; returns nil if treesitter not supported on buffer

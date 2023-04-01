@@ -139,6 +139,17 @@ function M.get_range(bufnr, range)
 	)
 end
 
+function M.get_contents(bufnr, range)
+	return vim.api.nvim_buf_get_text(
+		bufnr,
+		range[1][1] - 1,
+		range[1][2] - 1,
+		range[2][1] - 1,
+		range[2][2],
+		{}
+	)
+end
+
 local function to_lsp_range(range)
 	local s, e = unpack(range)
 	local start
@@ -176,8 +187,11 @@ end
 ---@return table
 function M.prev(bufnr, pos, wiseness)
 	local row, col = unpack(pos)
-	local line = M.get_line(bufnr, row)
-	if wiseness == "V" or line:sub(1, col - 1):match "^%s*$" then
+	if
+		wiseness == "V"
+		or row > M.get_eob(bufnr)
+		or M.get_line(bufnr, row):sub(1, col - 1):match "^%s*$"
+	then
 		row = row - 1
 		local len = M.get_line(bufnr, row):len()
 		if len == 0 then len = 1 end
@@ -293,22 +307,26 @@ function M.subs(bufnr, outer, inner, wiseness, left_text, right_text, tab_text)
 end
 
 -- cf. "lua/luasnip/init.lua"
-function M.snip_replace(snippet, from, to_, expand_params)
+function M.snip_replace(snippet, range, captures)
+	local from, to_ = unpack(range)
 	require("luasnip").snip_expand(snippet, {
 		clear_region = {
 			from = { from[1] - 1, from[2] - 1 },
 			to = { to_[1] - 1, to_[2] },
 		},
-		expand_params = expand_params,
+		expand_params = { captures = captures },
 	})
+end
+
+function M.snip_capture(name)
+	return require("luasnip").function_node(
+		function(_, snip) return snip.captures[name] end,
+		{}
+	)
 end
 
 function M.select(range, wiseness)
 	local s, e = unpack(range)
-  print("...")
-	print(" s:", vim.inspect(s)) -- __AUTO_GENERATED_PRINT_VAR__
-	print(" e:", vim.inspect(e)) -- __AUTO_GENERATED_PRINT_VAR__
-
 	vim.fn.setpos(".", { 0, s[1], s[2], 0 })
 	vim.cmd("normal! " .. wiseness)
 	vim.fn.setpos(".", { 0, e[1], e[2], 0 })

@@ -1,20 +1,14 @@
 local M = require("flies2.operations._op"):new {}
 
-local editor = require "flies2.utils.editor"
-
-local _keys, _remap
+local _keys
 
 function M:run()
-	if type(_keys == "string") then
-		editor.feedkeys(_keys, _remap)
-	elseif type(_keys) == "function" then
-		_keys()
-	end
+	_keys()
 end
 
-function M.exec(opts, _, keys, remap)
+function M.exec(opts, _, keys)
+	if type(keys) == "string" then opts.op_func = keys end
 	_keys = keys
-	_remap = remap
 	M:normal(opts)
 end
 

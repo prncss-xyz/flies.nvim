@@ -5,10 +5,14 @@ local tables = require "flies2.utils.tables"
 M.config = {
 	lookahead = 200,
 	queries = {},
-	extends = {
-		tsx = { "javascript", "typescript", "javascriptreact", "typescriptreact" },
-		jsx = { "javascript", "javascriptreact" },
-		typescript = { "javascript" },
+	ts = {
+		extends = {
+			tsx = { "typescriptreact", "typescript", "javascriptreact", "javascript" },
+			javascript = { "javascriptreact", "javascript" },
+			javascriptreact = { "javascriptreact", "javascript" },
+			typescript = { "typescript", "javascript" },
+		},
+		queries = require "flies2.ts_queries",
 	},
 	op = {
 		wrap = {

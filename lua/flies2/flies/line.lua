@@ -5,6 +5,7 @@ M.solid = true
 -- --FIX:
 M.lonely_wiseness_inner = "v"
 M.lonely_wiseness_outer = "V"
+M.around_line_pattern = false
 
 local function pattern(_, line, init)
 	if init > 1 then return end

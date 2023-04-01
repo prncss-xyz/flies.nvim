@@ -38,9 +38,13 @@ function M:normal(opts, override)
 	require("flies2")._select = function() opts.target:select(opts) end
 	local count = vim.v.count
 	if count == 0 then count = nil end
-	require("flies2")._op_func = function() op(self, "o", pre) end
-	vim.o.operatorfunc = "v:lua.package.loaded.flies2._op_func"
-	buffers.feed_keys 'g@:<c-u>lua require "flies2"._select()<cr>'
+	if opts.op_func then
+		buffers.feed_keys(opts.op_func .. ':<c-u>lua require "flies2"._select()<cr>')
+	else
+		require("flies2")._op_func = function() op(self, "o", pre) end
+		vim.o.operatorfunc = "v:lua.package.loaded.flies2._op_func"
+		buffers.feed_keys 'g@:<c-u>lua require "flies2"._select()<cr>'
+	end
 end
 
 function M:visual(opts)

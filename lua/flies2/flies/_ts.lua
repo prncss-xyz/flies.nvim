@@ -58,7 +58,7 @@ end
 
 local function iter_axis(axis)
 	return function(self, bufnr, pos, ref)
-		local matches = ts.query_from_name(bufnr, self.name)
+		local matches = ts.query_from_name(bufnr, self.names)
 		if matches == nil then
 			if self.no_tree then
 				return self.no_tree[string.format("iterate_%ss", axis)](self, bufnr, pos)

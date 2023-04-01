@@ -77,8 +77,10 @@ function M:around(bufnr, match, wiseness)
 	if match.around then return match.around end
 	local s, e = unpack(match.outer)
 	if wiseness == "v" then
+		if not self.around_char_pattern then return { s, e } end
 		return { around_charwise(self, bufnr, s, e) }
 	else
+		if not self.around_line_pattern then return { s, e } end
 		local e_ = around_post_linewise(self, bufnr, e)
 		if e_ then return { s, e_ } end
 		local s_ = around_pre_linewise(self, bufnr, s)
