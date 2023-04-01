@@ -48,11 +48,11 @@ local search_forward
 
 local function search_n(forward)
 	if forward == search_forward then
-		editor.feedkeys(vim.v.count1 .. "n")
+		vim.cmd "normal! n"
 	else
-		editor.feedkeys(vim.v.count1 .. "N")
+		vim.cmd "normal! N"
 	end
-	require("hlslens").start()
+	if require("flies2").config.hlslens then require("hlslens").start() end
 end
 
 function M.set_search(fwd)
@@ -66,7 +66,6 @@ end
 function M.search(fwd)
 	M.set_search(fwd)
 	vim.api.nvim_feedkeys(editor.t(fwd and "/" or "?"), "n", false)
-	require("hlslens").start()
 end
 
 return M

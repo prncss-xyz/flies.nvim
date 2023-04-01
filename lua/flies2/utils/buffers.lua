@@ -284,7 +284,6 @@ function M.subs(bufnr, outer, inner, wiseness, left_text, right_text, tab_text)
 		local del = lists.cmp(outer[1], inner[1]) < 0
 			or lists.cmp(inner[2], outer[2]) < 0
 		if del and not create then
-			local len = inner[1][2] - outer[1][2]
 			for i = inner[1][1], inner[2][1] do
 				table.insert(edits, { { { i, 1 }, { i, tab_text:len() } }, "" })
 			end

@@ -3,6 +3,7 @@ local M = {}
 local tables = require "flies2.utils.tables"
 
 M.config = {
+	hlslens = false,
 	lookahead = 200,
 	queries = {},
 	ts = {
