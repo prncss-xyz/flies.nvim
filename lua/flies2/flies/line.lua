@@ -14,17 +14,6 @@ local function pattern(_, line, init)
 	return 1, len, line
 end
 
-function M:map(_, _, _, s, e, capture)
-	if capture == "" then return s, e end
-	local s_ = capture:find "%S"
-	if s_ == nil then return s, e end
-	local e_ = e
-	while capture:sub(e_, e_):find "%s" do
-		e_ = e_ - 1
-	end
-	return s_, e_
-end
-
 function M:right(bufnr, cursor, _)
 	local row = cursor[1]
 	local line = buffers.get_line(bufnr, row)
