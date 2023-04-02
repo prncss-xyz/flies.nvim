@@ -1,0 +1,13 @@
+local M = require "flies.utils.tests"
+
+describe("around", function()
+	it("description", function()
+		local text = [[
+    sadf
+      asfdjk safd
+      fsd
+    ]]
+		M.set_buf(text)
+		assert.are.same(text, M.get_buf())
+	end)
+end)
