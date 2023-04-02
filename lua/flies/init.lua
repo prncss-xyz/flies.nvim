@@ -82,9 +82,9 @@ function M.setup(user_conf)
   map_texobjects()
   -- map_move()
 
-  M.repeater = require 'flies.repeater'
-  M.operators_register = require('flies.operators.base').operators_register
-  require('flies.operators').setup()
+  -- M.repeater = require 'flies.repeater'
+  -- M.operators_register = require('flies.operators.base').operators_register
+  -- require('flies.operators').setup()
 end
 
 return M

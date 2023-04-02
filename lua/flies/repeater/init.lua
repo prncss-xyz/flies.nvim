@@ -52,13 +52,13 @@ function M.post_dot()
 end
 
 function M.setup()
-  vim.api.nvim_set_keymap(
-    'n',
-    '.',
-    -- don't know how to escape dots (loaded["flies.repeater"]) here
-    'v:lua.package.loaded.flies.repeater.pre_dot()',
-    { expr = true, noremap = true }
-  )
+  -- vim.api.nvim_set_keymap(
+  --   'n',
+  --   '.',
+  --   -- don't know how to escape dots (loaded["flies.repeater"]) here
+  --   'v:lua.package.loaded.flies.repeater.pre_dot()',
+  --   { expr = true, noremap = true }
+  -- )
 end
 
 return M

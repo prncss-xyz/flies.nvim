@@ -13,15 +13,9 @@ M.name = 'search'
 
 local search_forward
 
-function M.search(expr, noremap, forward)
-  search_forward = forward
-  require('flies.move_again').register(function()
-    M.n(false)
-  end, function()
-    M.n(true)
-  end)
-  vim.api.nvim_feedkeys(t(expr), noremap and 'n' or 'm', false)
-  require('hlslens').start()
+function M.search(fwd)
+  M.set_search(fwd)
+  vim.api.nvim_feedkeys(t(fwd and '/' or '?'), 'n', false)
 end
 
 function M.n(forward)
@@ -35,6 +29,7 @@ end
 
 function M.set_search(fwd)
   search_forward = fwd
+  require('hlslens').start()
   require('flies.move_again').register(function()
     M.n(false)
   end, function()

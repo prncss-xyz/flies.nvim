@@ -41,12 +41,12 @@ function M.querier_save()
 end
 
 function M.pre_dot()
-  will_repeat = true
-  return '.' .. t ":lua require'flies.repeater'.post_dot()<cr>"
+  -- will_repeat = true
+  -- return '.' .. t ":lua require'flies.repeater'.post_dot()<cr>"
 end
 
 function M.post_dot()
-  will_repeat = false
+  -- will_repeat = false
 end
 
 function M.setup()
