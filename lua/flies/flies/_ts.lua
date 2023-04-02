@@ -1,5 +1,7 @@
 local M = require("flies.flies._fly"):new {}
 
+M.lonely_wiseness_around = "V"
+
 local lists = require "flies.utils.lists"
 local ts = require "flies.utils.ts"
 local iterators = require "flies.utils.iterators"
@@ -23,8 +25,14 @@ local function find_best(pos, matches, axis)
 	return best
 end
 
--- TODO: wiseness
-local function get_around(bufnr, match, matches)
+function M:get_wiseness(bufnr, match, domain)
+	local range = match[domain]
+	local lonely_wiseness = domain == "inner" and self.lonely_wiseness_inner
+		or self.lonely_wiseness_outer
+	return buffers.get_wiseness(bufnr, range, lonely_wiseness)
+end
+
+local function get_around(self, bufnr, match, matches)
 	local as, ae
 	local context = match.context
 	local match_s, match_e = unpack(match.outer)
@@ -41,19 +49,21 @@ local function get_around(bufnr, match, matches)
 		end
 	end
 	if ae then
-		local wiseness = "v"
-		ae = buffers.prev(bufnr, ae, wiseness)
+		ae = buffers.prev(bufnr, ae, "v")
 	else
 		ae = context[2]
 	end
-	if lists.cmp(match_e, ae) < 0 then return { match_s, ae } end
+	if lists.cmp(match_e, ae) < 0 then
+		local range = { match_s, ae }
+		return range, buffers.get_wiseness(bufnr, range, self.lonely_wiseness_around)
+	end
 	if as then
-		local wiseness = "v"
-		as = buffers.next(bufnr, as, wiseness)
+		as = buffers.next(bufnr, as, "v")
 	else
 		as = context[1]
 	end
-	return { as, match_e }
+	local range = { as, match_e }
+	return range, buffers.get_wiseness(bufnr, range, self.lonely_wiseness_around)
 end
 
 local function iter_axis(axis)
@@ -82,7 +92,8 @@ local function iter_axis(axis)
 
 		if ctx then
 			for _, match in ipairs(matches_filtered) do
-				match.around = get_around(bufnr, match, matches)
+				match.around, match.around_wiseness =
+					get_around(self, bufnr, match, matches)
 			end
 		end
 		return iterators.from_list_single(matches_filtered)

@@ -9,12 +9,11 @@ M.around_char_pattern = "%s+"
 M.around_line_pattern = "^%s*$"
 M.lookahead = 200
 
-function M:get_wiseness(bufnr, range, outer)
-	return buffers.get_wiseness(
-		bufnr,
-		range,
-		outer and self.lonely_wiseness_outer or self.lonely_wiseness_inner
-	)
+function M:get_wiseness(bufnr, match, domain)
+	local range = match[domain]
+	local lonely_wiseness = domain == "inner" and self.lonely_wiseness_inner
+		or self.lonely_wiseness_outer
+	return buffers.get_wiseness(bufnr, range, lonely_wiseness)
 end
 
 local function around_charwise(self, bufnr, s, e)
@@ -74,24 +73,24 @@ local function around_pre_linewise(self, bufnr, s)
 end
 
 function M:around(bufnr, match, wiseness)
-	if match.around then return match.around end
+	if match.around then return match.around, match.around_wiseness or wiseness end
 	local s, e = unpack(match.outer)
 	if wiseness == "v" then
-		if not self.around_char_pattern then return { s, e } end
-		return { around_charwise(self, bufnr, s, e) }
+		if not self.around_char_pattern then return { s, e }, wiseness end
+		return { around_charwise(self, bufnr, s, e) }, wiseness
 	else
-		if not self.around_line_pattern then return { s, e } end
+		if not self.around_line_pattern then return { s, e }, wiseness end
 		local e_ = around_post_linewise(self, bufnr, e)
-		if e_ then return { s, e_ } end
+		if e_ then return { s, e_ }, wiseness end
 		local s_ = around_pre_linewise(self, bufnr, s)
-		if s_ then return { s_, e } end
-		return { s, e }
+		if s_ then return { s_, e }, wiseness end
+		return { s, e }, wiseness
 	end
 end
 
 function M:right(bufnr, cursor, match)
 	local inner = match.inner
-	local wiseness = self:get_wiseness(bufnr, inner)
+	local wiseness = self:get_wiseness(bufnr, match, "inner")
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
 	if rp == "backward" then return end
@@ -101,7 +100,7 @@ end
 
 function M:left(bufnr, cursor, match)
 	local inner = match.inner
-	local wiseness = self:get_wiseness(bufnr, inner)
+	local wiseness = self:get_wiseness(bufnr, match, "inner")
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
 	if rp == "forward" then return end
@@ -199,25 +198,17 @@ local function apply_opts(self, opts, pos, match)
 	local range
 	if opts.domain == "inner" then
 		range = match.inner
-		wiseness = self:get_wiseness(0, range, false)
+		wiseness = self:get_wiseness(0, match, "inner")
 	elseif opts.domain == "left" then
 		range, wiseness = self:left(0, pos, match, false)
 	elseif opts.domain == "right" then
 		range, wiseness = self:right(0, pos, match, false)
 	elseif opts.domain == "outer" then
 		range = match.outer
-		wiseness = self:get_wiseness(0, range, true)
-		local wants_around
-		if opts.around == "always" then
-			wants_around = true
-		elseif opts.around == "never" then
-			wants_around = false
-		elseif opts.around == "solid" then
-			wants_around = self.solid
-		else
-			error(string.format("unknown around option: %s", opts.around))
+		wiseness = self:get_wiseness(0, match, "outer")
+		if opts.around == "always" or opts.around == "solid" and self.solid then
+			range, wiseness = self:around(0, match, wiseness)
 		end
-		if wants_around then range = self:around(0, match, wiseness) end
 	else
 		error(string.format("unknown domain: %s", opts.domain))
 	end
