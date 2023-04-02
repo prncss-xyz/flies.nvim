@@ -8,7 +8,6 @@ end
 
 function M.exec(opts, override)
 	opts = query.query_obj(opts, override)
-	if not opts then return end
 	select(opts)
 end
 

@@ -3,7 +3,8 @@ local M = require("flies2.operations._op"):new {}
 local _keys
 
 function M:run()
-	_keys()
+  vim.defer_fn(_keys, 0)
+	-- _keys()
 end
 
 function M.exec(opts, _, keys)

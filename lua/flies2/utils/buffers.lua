@@ -326,9 +326,15 @@ end
 
 function M.select(range, wiseness)
 	local s, e = unpack(range)
-	vim.fn.setpos(".", { 0, s[1], s[2], 0 })
-	vim.cmd("normal! " .. wiseness)
-	vim.fn.setpos(".", { 0, e[1], e[2], 0 })
+	local cmp = lists.cmp(s, e)
+	if cmp <= 0 then
+		vim.fn.setpos(".", { 0, s[1], s[2], 0 })
+		vim.cmd("normal! " .. wiseness)
+		vim.fn.setpos(".", { 0, e[1], e[2], 0 })
+	elseif cmp > 0 then
+		feedkeys "<esc>"
+		vim.defer_fn(function() vim.fn.setpos(".", { 0, s[1], s[2], 0 }) end, 0)
+	end
 end
 
 function M.move(range, start)

@@ -16,6 +16,7 @@ function M:pre() return true end
 
 local function op(self, mode, pre)
 	local params = require("flies2")._params
+	if not params then return end
 	if not params.range then
 		local s, e, wiseness = buffers.get_marks(0, mode)
 		local range = { s, e }

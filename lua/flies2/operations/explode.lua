@@ -1,13 +1,8 @@
 local M = require("flies2.operations._op"):new {}
 
-local buffers = require "flies2.utils.buffers"
-local editor = require "flies2.utils.editor"
+local sandwich = require("flies2.utils.sandwich").sandwich
 
-function M:run(params)
-	local match = params.match
-	local wiseness = params.target:get_wiseness(0, match.outer, true)
-	buffers.subs(0, match.outer, match.inner, wiseness, "", "", editor.indent())
-end
+function M:run(params) sandwich(self, params, false, true) end
 
 function M.exec(mode)
 	if mode == "n" then M:normal { domain = "outer", around = "never" } end

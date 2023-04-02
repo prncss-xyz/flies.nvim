@@ -91,10 +91,7 @@ end
 
 function M:right(bufnr, cursor, match)
 	local inner = match.inner
-	print(" inner:", vim.inspect(inner)) -- __AUTO_GENERATED_PRINT_VAR__
 	local wiseness = self:get_wiseness(bufnr, inner)
-	print(" wiseness:", vim.inspect(wiseness)) -- __AUTO_GENERATED_PRINT_VAR__
-
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
 	if rp == "backward" then return end
