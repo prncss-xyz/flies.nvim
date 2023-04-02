@@ -5,9 +5,6 @@ local config = require("flies2").config
 local editor = require "flies2.utils.editor"
 
 function M.sandwich(self, params, add, substitute)
-	print(" substitute:", vim.inspect(substitute)) -- __AUTO_GENERATED_PRINT_VAR__
-	print(" add:", vim.inspect(add)) -- __AUTO_GENERATED_PRINT_VAR__
-	print(" params:", vim.inspect(params)) -- __AUTO_GENERATED_PRINT_VAR__
 	local match = params.match
 	local range = substitute and match.outer or params.range
 	local left, right

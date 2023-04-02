@@ -39,10 +39,8 @@ function M.query_obj(opts, override)
 				if char == editor.t(key) then opts_.axis = axis end
 			end
 		end
-		if not opts_.domain then
-			for key, domain in pairs(config.domains) do
-				if char == editor.t(key) then opts_.domain = domain end
-			end
+		for key, domain in pairs(config.domains) do
+			if char == editor.t(key) then opts_.domain = domain end
 		end
 		for key, target in pairs(config.queries) do
 			if char == editor.t(key) then opts_.target = target end
