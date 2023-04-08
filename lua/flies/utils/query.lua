@@ -33,7 +33,6 @@ function M.query_obj(opts, override)
 			override[cumul](opts_)
 			return
 		end
-		if char:find "%d" then count_str = count_str .. char end
 		if not opts_.axis then
 			for key, axis in pairs(config.axis) do
 				if char == editor.t(key) then opts_.axis = axis end
@@ -44,6 +43,12 @@ function M.query_obj(opts, override)
 		end
 		for key, target in pairs(config.queries) do
 			if char == editor.t(key) then opts_.target = target end
+		end
+		if char:match "%d" then count_str = count_str .. char end
+		if char:match "%p" then
+			opts_.target = require("flies.flies._char_to"):new {
+				patterns = { require("flies.utils").pattern_escape(char, false) },
+			}
 		end
 	end
 end

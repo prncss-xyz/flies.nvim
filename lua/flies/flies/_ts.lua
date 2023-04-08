@@ -29,7 +29,7 @@ function M:get_wiseness(bufnr, match, domain)
 	local range = match[domain]
 	local lonely_wiseness = domain == "inner" and self.lonely_wiseness_inner
 		or self.lonely_wiseness_outer
-	return buffers.get_wiseness(bufnr, range, lonely_wiseness)
+	return range, buffers.get_wiseness(bufnr, range, lonely_wiseness)
 end
 
 local function get_around(self, bufnr, match, matches)

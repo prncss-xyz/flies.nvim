@@ -64,7 +64,6 @@ function M.get_marks(bufnr, mode)
 end
 
 --- get cursor position
----@param winnr number window's number or 0 for current
 ---@return table
 function M.get_cursor()
 	local cursor = vim.api.nvim_win_get_cursor(0)
@@ -73,7 +72,6 @@ function M.get_cursor()
 end
 
 --- set cursor's position
----@param winnr number window's number or 0 for current
 ---@param cursor table
 function M.set_cursor(cursor)
 	local new_cursor = { cursor[1], cursor[2] - 1 }
@@ -192,6 +190,7 @@ function M.prev(bufnr, pos, wiseness)
 		or row > M.get_eob(bufnr)
 		or M.get_line(bufnr, row):sub(1, col - 1):match "^%s*$"
 	then
+		if row == 1 then return { 1, 1 } end
 		row = row - 1
 		local len = M.get_line(bufnr, row):len()
 		if len == 0 then len = 1 end
@@ -210,6 +209,12 @@ function M.next(bufnr, pos, wiseness)
 	if wiseness == "v" then
 		local line = M.get_line(bufnr, row)
 		if col < line:len() then return { row, col + 1 } end
+		if row == M.get_eob(bufnr) then return { row, col } end
+		row = row + 1
+		line = M.get_line(bufnr, row)
+		if line == "" then return { row, 1 } end
+		col = line:find "%S" or line:len()
+		return { row, col }
 	end
 	return { row + 1, 1 }
 end
@@ -328,21 +333,22 @@ function M.select(range, wiseness)
 	local s, e = unpack(range)
 	local cmp = lists.cmp(s, e)
 	if cmp <= 0 then
-		vim.fn.setpos(".", { 0, s[1], s[2], 0 })
+    M.set_cursor(s)
+
 		vim.cmd("normal! " .. wiseness)
-		vim.fn.setpos(".", { 0, e[1], e[2], 0 })
+    M.set_cursor(e)
 	elseif cmp > 0 then
 		feedkeys "<esc>"
-		vim.defer_fn(function() vim.fn.setpos(".", { 0, s[1], s[2], 0 }) end, 0)
+		vim.defer_fn(function() M.set_cursor(s) end, 0)
 	end
 end
 
 function M.move(range, start)
 	local s, e = unpack(range)
-	local cursor = M.get_cursor()
 	local pos = start and s or e
-	if cursor == pos then pos = start and e or s end
-	vim.fn.setpos(".", { 0, pos[1], pos[2], 0 })
+	local cursor = M.get_cursor()
+	if lists.cmp(pos, cursor) == 0 then pos = start and e or s end
+	M.set_cursor(pos)
 end
 
 function M.feed_keys(str)

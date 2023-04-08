@@ -46,8 +46,8 @@ function M.sandwich(self, params, add, substitute)
 		wiseness = params.wiseness
 		outer, inner = range, range
 	else
-		outer, inner = match.outer, match.inner
-		wiseness = params.target:get_wiseness(0, match, "outer")
+		inner = match.inner
+		outer, wiseness = params.target:get_wiseness(0, match, "outer")
 	end
 	buffers.subs(0, outer, inner, wiseness, left, right, editor.indent())
 end

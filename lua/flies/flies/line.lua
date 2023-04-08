@@ -3,34 +3,20 @@ local buffers = require "flies.utils.buffers"
 
 M.solid = true
 
-M.lonely_wiseness_inner = "V"
+M.lonely_wiseness_inner = "v"
 M.lonely_wiseness_outer = "V"
 M.around_line_pattern = false
 
 local function pattern(_, line, init)
-	if init > 1 then return end
-	local len = line:len()
-	if len == 0 then len = 1 end
-	return 1, len, line
-end
-
-function M:right(bufnr, cursor, _)
-	local row = cursor[1]
-	local line = buffers.get_line(bufnr, row)
-	local e = line:len()
-	while line:sub(e, e):find "%s" do
-		e = e - 1
+	local s = line:find "%S"
+	if not s then
+		if init > 1 then return end
+		if line == "" then return 1, 1 end
+		return 1, line:len()
 	end
-	return { cursor, { row, e } }, "v"
-end
-
-function M:left(bufnr, cursor, _)
-	local row, col = unpack(cursor)
-	col = col - 1
-	if col == 0 then col = 1 end
-	local line = buffers.get_line(bufnr, row)
-	local s = line:find "%S" or 1
-	return { { row, s }, { row, col } }, "v"
+	if init > s then return end
+	local e = line:find "%S%s*$"
+	return s, e
 end
 
 M.patterns = { pattern }

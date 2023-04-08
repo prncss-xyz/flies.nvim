@@ -12,7 +12,13 @@ M.argument = [[
 ]]
 
 M.block = [[
-  (_ (statement_block) @inner.node_inside) @outer
+  (export_statement) @outer @inner.node_inside
+  (import_statement) @outer @inner.node_inside
+  (function_declaration) @outer @inner.node_inside
+  (statement_block) @outer @inner.node_inside
+  (return_statement) @outer @inner.node_inside
+
+  ; (_ (statement_block) @inner.node_inside) @outer
 ]]
 
 M.call = [[

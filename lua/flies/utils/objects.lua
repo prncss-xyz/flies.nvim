@@ -10,14 +10,22 @@ end
 
 ---calls method from object's prototype
 function M:super(method, ...)
-	local __index = getmetatable(self).__index
-	return __index[method](self, ...)
+	local meta = self
+	meta = getmetatable(meta).__index
+	if rawget(self, method) == nil then meta = getmetatable(meta).__index end
+	return meta[method](self, ...)
+end
+
+function M:super_new(...)
+	local meta = self
+	meta = getmetatable(meta).__index
+	return meta.new(meta, ...)
 end
 
 function M:is_instance(o)
-	while o do
-		if o == self then return true end
-		o = getmetatable(self).__index
+	while self do
+		if self == o then return true end
+		self = getmetatable(self).__index
 	end
 	return false
 end
