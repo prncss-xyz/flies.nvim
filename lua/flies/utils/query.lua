@@ -16,12 +16,17 @@ function M.query_obj(opts, override)
 	opts = opts or {}
 	override = override or {}
 	tables.deep_merge(opts_, opts)
+  local default_domain = opts_.domain
 	local count_str = ""
 	local cumul = ""
 	while true do
 		if opts_.target then
 			opts_.count = tonumber(count_str)
 			opts_ = vim.tbl_extend("keep", opts_, defaults)
+			if opts_.domain == "toggle" then
+        print(vim.inspect(defaults))
+				opts_.domain = default_domain == "inner" and "outer" or "inner"
+			end
 			return opts_
 		end
 		local char = vim.fn.nr2char(vim.fn.getchar())
