@@ -106,6 +106,24 @@ function M.nth(i)
 	end
 end
 
+function M.last()
+	return function(gen, param, state)
+		local largs, args
+		while true do
+			args = { gen(param, state) }
+			state = args[1]
+			if state == nil then
+				if largs == nil then
+					return
+				else
+					return unpack(largs)
+				end
+			end
+			largs = args
+		end
+	end
+end
+
 --- transforms an iterator of iterators into an iterator
 function M.flatten(gen1, param1, state1)
 	local gen2, param2, state2 = gen1(param1, state1)
@@ -139,7 +157,9 @@ function M.map(cb)
 end
 
 function M.chain(cb)
-	return function(gen, param, state) return M.flatten(M.map(cb)(gen, param, state)) end
+	return function(gen, param, state)
+		return M.flatten(M.map(cb)(gen, param, state))
+	end
 end
 
 function M.zip_match(match, gen2, param2, state2)

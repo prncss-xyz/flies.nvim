@@ -1,18 +1,25 @@
 local M = {}
 
 local query = require "flies.utils.query"
-local move_again = require "flies.operations.move_again"
 
-local function move(opts) opts.target:move(opts) end
-
-function M.exec(opts, override)
-	opts = query.query_obj(opts, override)
+function M.exec(mode, opts, override)
+	opts = vim.tbl_extend("force", {
+		around = "never",
+	}, opts or {})
+	local v_count = vim.v.count
+	if v_count > 0 then opts.count = v_count end
+	opts = query.query_obj(opts, override, true)
 	if not opts then return end
-  opts.incl = true
-	local n_opts = vim.tbl_extend("force", opts, { axis = "forward" })
-	local p_opts = vim.tbl_extend("force", opts, { axis = "backward" })
-	move_again.register(function() move(p_opts) end, function() move(n_opts) end)
-	move(opts)
+	if mode == "x" then
+		if opts.move == "right" then
+			opts.axis = "forward"
+		elseif opts.move == "left" then
+			opts.axis = "backward"
+		elseif opts.axis == "best" then
+			opts.axis = "forward"
+		end
+	end
+	opts.target:move(opts)
 end
 
 return M

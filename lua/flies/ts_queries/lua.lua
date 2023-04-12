@@ -4,6 +4,9 @@ local M = {}
 -- .before
 -- .after
 --
+
+M.token = [[(_) @outer]]
+
 M.argument = [[
   (function_call arguments: (arguments (_) @outer) @context.node_inside)
   (function_declaration parameters: (parameters (_) @outer) @context.node_inside)
@@ -34,8 +37,9 @@ M.comment = [[
 ]]
 
 M.conditional = [[
-  (if_statement "then" @inner.before "end" @inner.after) @outer
-  (function_definition parameters: (_) @inner.before "end" @inner.after) @outer
+  (if_statement consequence:(block) @outer) @context
+  (if_statement alternative:(elseif_statement consequence:(block) @outer)) @context
+  (if_statement alternative:(else_statement body:(block) @outer)) @context
 ]]
 
 M["function"] = [[ 

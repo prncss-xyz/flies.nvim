@@ -7,7 +7,7 @@ local count
 
 function M:select()
 	local pos = buffers.get_cursor()
-	match = self.target:find_best(0, pos)
+	match = self.target:find_best(0, pos, {})
 	if not match then return end
 	buffers.select(self.target:get_wiseness(0, match, "outer"))
 end

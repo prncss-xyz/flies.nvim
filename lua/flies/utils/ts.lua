@@ -2,7 +2,6 @@ local M = {}
 
 local ts_utils = require "nvim-treesitter.ts_utils"
 local parsers = require "nvim-treesitter.parsers"
-local config = require("flies").config
 local buffers = require "flies.utils.buffers"
 
 --- Get a compatible vim range (1 index based) from a TS node range.
@@ -99,6 +98,7 @@ local function spice_match(bufnr, match)
 end
 
 local function query_from_name(lang, name)
+	local config = require("flies").config
 	local queries = config.ts.queries or {}
 	local langs = config.ts.extends[lang] or { lang }
 	local query_str = ""
@@ -109,7 +109,7 @@ local function query_from_name(lang, name)
 			query_str = query_str .. query_str_
 		end
 	end
-	return vim.treesitter.parse_query(lang, query_str)
+	return vim.treesitter.query.parse(lang, query_str)
 end
 
 local function extend_query(name, query_by_lang)

@@ -1,5 +1,7 @@
 local M = require("flies.flies._fly"):new {}
 
+M.nested = true
+
 M.lonely_wiseness_around = "V"
 
 local lists = require "flies.utils.lists"
@@ -7,7 +9,8 @@ local ts = require "flies.utils.ts"
 local iterators = require "flies.utils.iterators"
 local buffers = require "flies.utils.buffers"
 
-local function find_best(pos, matches, axis)
+local function find_best(pos, matches, axis, many)
+	-- TODO: many
 	local best
 	local cmp = lists.sort_axis "upward"
 	for _, match in ipairs(matches) do
@@ -71,14 +74,15 @@ local function iter_axis(axis)
 		local matches = ts.query_from_name(bufnr, self.names)
 		if matches == nil then
 			if self.no_tree then
+				--TODO: make static
 				return self.no_tree[string.format("iterate_%ss", axis)](self, bufnr, pos)
 			end
 			return iterators.null()
 		end
 		local ctx = matches[1] and matches[1].context
 		local best_context
-		if ref and ctx then
-			local best = find_best(ref, matches, axis)
+		if ctx then
+			local best = find_best(ref, matches, axis, self.many)
 			if not best then return iterators.null() end
 			if best then best_context = best.context end
 		end

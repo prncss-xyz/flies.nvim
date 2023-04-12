@@ -5,8 +5,8 @@ M.solid = true
 M.around_char_pattern = "%.+"
 
 M.patterns = {
-	"[%w]+%f[%.]",
-	"%f[.][%w]+",
+	"%w+%f[.]",
+	"%f[^.]%w+",
 }
 
 return M

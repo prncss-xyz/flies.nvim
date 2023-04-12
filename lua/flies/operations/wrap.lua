@@ -13,7 +13,7 @@ function M:run(params) sandwich(self, params, true, false) end
 
 function M.exec(mode)
 	if mode == "n" then
-		M:normal()
+		M:normal { domain = "outer", around = "never" }
 	elseif mode == "x" then
 		M:visual()
 	end

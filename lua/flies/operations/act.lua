@@ -7,10 +7,10 @@ function M:run()
 	-- _keys()
 end
 
-function M.exec(opts, _, keys)
+function M.exec(opts, override, keys)
 	if type(keys) == "string" then opts.op_func = keys end
 	_keys = keys
-	M:normal(opts)
+	M:normal(opts, override)
 end
 
 return M

@@ -3,6 +3,7 @@
 ---to provide operations normalized to (1, 1) coordinates
 
 local lists = require "flies.utils.lists"
+local utils = require "flies.utils"
 
 local M = {}
 
@@ -18,6 +19,17 @@ end
 function M.with_x(cb)
 	feedkeys "<esc>"
 	vim.defer_fn(function() cb() end, 0)
+end
+
+function M.get_mode()
+	local mode = vim.api.nvim_get_mode().mode
+	if mode:match "[o]" then
+		return "o"
+	elseif mode:match "[vV]" then
+		return "x"
+	else
+		return "n"
+	end
 end
 
 -- adapted from https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/surround.lua
@@ -108,6 +120,7 @@ function M.get_lines(bufnr, fwd, row, lookahead)
 		if lookahead then ext = math.min(ext, row + lookahead - 1) end
 		ext = ext + 1
 	else
+		if row == utils.infinity then row = M.get_eob(bufnr) end
 		ext = 1
 		if lookahead then ext = math.max(ext, row - lookahead + 1) end
 		ext = ext - 1
@@ -329,26 +342,24 @@ function M.snip_capture(name)
 	)
 end
 
+function M.select2(range, wiseness)
+	local s, e = unpack(range)
+	M.set_cursor(s)
+	vim.cmd("normal! " .. wiseness)
+	M.set_cursor(e)
+end
+
 function M.select(range, wiseness)
 	local s, e = unpack(range)
 	local cmp = lists.cmp(s, e)
 	if cmp <= 0 then
-    M.set_cursor(s)
-
+		M.set_cursor(s)
 		vim.cmd("normal! " .. wiseness)
-    M.set_cursor(e)
+		M.set_cursor(e)
 	elseif cmp > 0 then
 		feedkeys "<esc>"
 		vim.defer_fn(function() M.set_cursor(s) end, 0)
 	end
-end
-
-function M.move(range, start)
-	local s, e = unpack(range)
-	local pos = start and s or e
-	local cursor = M.get_cursor()
-	if lists.cmp(pos, cursor) == 0 then pos = start and e or s end
-	M.set_cursor(pos)
 end
 
 function M.feed_keys(str)

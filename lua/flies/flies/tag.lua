@@ -1,7 +1,5 @@
 local M = require("flies.flies._pair"):new {}
 
-M.solid = false
-
 -- current limitation: tag must be single line
 
 M.left_patterns = {

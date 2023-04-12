@@ -2,23 +2,30 @@ local M = require("flies.flies._subline"):new {}
 
 M.solid = true
 
-local function cb(ref, opts)
+local function cb(ref, _)
 	return function(match)
-		local hint_use_start
+		local after
 		local point = match.outer[1]
 		local range
 		if require("flies.utils.lists").cmp(point, ref) < 0 then
-			hint_use_start = true
+			after = true
 			range = { point, require("flies.utils.buffers").prev(0, ref, "v") }
 		else
-			hint_use_start = false
-			if opts.incl then
-				range = { ref, point }
-			else
+			after = false
+			local mode = require("flies.utils.buffers").get_mode()
+			if mode == "x" or mode == "o" then
 				range = { ref, require("flies.utils.buffers").prev(0, point, "v") }
+			else
+				range = { ref, point }
 			end
 		end
-		return { inner = range, outer = range, hint_use_start = hint_use_start }
+		return {
+			inner = range,
+			outer = range,
+			hint_use_start = after,
+			hint_hide_start = not after,
+			hint_hide_end = after,
+		}
 	end
 end
 

@@ -1,5 +1,8 @@
 local M = require("flies.flies._subline"):new {}
 
+M.nested = true
+M.solid = false
+
 function M.validator(i, m, j, m_) return i == j and m == m_ end
 
 local buffers = require "flies.utils.buffers"

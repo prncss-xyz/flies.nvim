@@ -1,8 +1,20 @@
 local M = {}
 
-local tables = require "flies.utils.tables"
 local editor = require "flies.utils.editor"
-local config = require("flies").config
+local esc = editor.t "<esc>"
+
+local value_to_type = {
+	inner = "domain",
+	outer = "domain",
+	toggle = nil,
+	left = "direction",
+	right = "direction",
+	first = "axis",
+	last = "axis",
+	hint = "axis",
+	forward = "axis",
+	backward = "axis",
+}
 
 local defaults = {
 	domain = "inner",
@@ -10,52 +22,47 @@ local defaults = {
 	axis = "best",
 }
 
--- TODO: multiple char keys
-function M.query_obj(opts, override)
-	local opts_ = {}
+function M.query_obj(opts, override, is_move)
+	local mappings = require("flies").config.mappings
 	opts = opts or {}
 	override = override or {}
-	tables.deep_merge(opts_, opts)
-  local default_domain = opts_.domain
+	local res = vim.tbl_extend("force", defaults, opts)
 	local count_str = ""
 	local cumul = ""
-	while true do
-		if opts_.target then
-			opts_.count = tonumber(count_str)
-			opts_ = vim.tbl_extend("keep", opts_, defaults)
-			if opts_.domain == "toggle" then
-        print(vim.inspect(defaults))
-				opts_.domain = default_domain == "inner" and "outer" or "inner"
-			end
-			return opts_
-		end
+	local to_match = ""
+	while not res.target do
 		local char = vim.fn.nr2char(vim.fn.getchar())
-		if char == editor.t "<esc>" then return end
+		if char == esc then return end
 		cumul = cumul .. char
 		if override[cumul] then
-			opts_.count = tonumber(count_str)
-			opts_ = vim.tbl_extend("keep", opts_, defaults)
-			override[cumul](opts_)
+			res = vim.tbl_extend("force", defaults, opts)
+			override[cumul](res)
 			return
 		end
-		if not opts_.axis then
-			for key, axis in pairs(config.axis) do
-				if char == editor.t(key) then opts_.axis = axis end
+		if char:match "%d" then
+			count_str = count_str .. char
+		else
+			to_match = to_match .. char
+			local value = mappings[to_match]
+			if value then
+				to_match = ""
+				if value == "toggle" then
+					res.domain = res.domain == "inner" and "outer" or "inner"
+				else
+					local type_ = value_to_type[value] or "target"
+					if type_ == "direction" then type_ = is_move and "move" or "domain" end
+					res[type_] = value
+				end
+			elseif char:match "%p" then
+				res.target = require("flies.flies._char_to"):new {
+					patterns = { require("flies.utils").pattern_escape(char, false) },
+				}
 			end
 		end
-		for key, domain in pairs(config.domains) do
-			if char == editor.t(key) then opts_.domain = domain end
-		end
-		for key, target in pairs(config.queries) do
-			if char == editor.t(key) then opts_.target = target end
-		end
-		if char:match "%d" then count_str = count_str .. char end
-		if char:match "%p" then
-			opts_.target = require("flies.flies._char_to"):new {
-				patterns = { require("flies.utils").pattern_escape(char, false) },
-			}
-		end
 	end
+	local count = tonumber(count_str)
+	if count then res.count = count end
+	return res
 end
 
 return M

@@ -2,7 +2,7 @@ local M = require("flies.flies._subline"):new {}
 
 M.solid = false
 
-local function quote_finder(self, line, init)
+local function pattern(self, line, init)
 	local delims = self.delims
 	local restrict = self.restrict or delims
 	local s
@@ -28,7 +28,7 @@ local function quote_finder(self, line, init)
 end
 
 M.delims = [["'`]]
-M.patterns = { quote_finder }
+M.patterns = { pattern }
 
 function M:map(_, _, _, s, e) return s + 1, e - 1 end
 

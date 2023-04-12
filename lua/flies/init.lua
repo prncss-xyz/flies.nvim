@@ -1,8 +1,6 @@
 local M = {}
 
-local tables = require "flies.utils.tables"
-
-M.config = {
+local default_config = {
 	hlslens = false,
 	lookahead = 200,
 	queries = {},
@@ -31,8 +29,11 @@ M.config = {
 	},
 }
 
-function M.setup(user_config)
-	tables.deep_merge(M.config, user_config or {})
+M.config = nil
+
+function M.setup(config)
+	M.config = vim.tbl_deep_extend("force", default_config, config or {})
+
 	vim.keymap.set(
 		"n",
 		"<plug>(flies-select)",

@@ -4,9 +4,11 @@ local buffers = require "flies.utils.buffers"
 local editor = require "flies.utils.editor"
 local lists = require "flies.utils.lists"
 
+local opts_
+
 function M:run(params)
 	local domain = params.opts.domain
-	local obj1 = params.target:find_best(0, params.pos)
+	local obj1 = params.target:find_best(0, params.pos, opts_)
 	if not obj1 then return end
 	local range1 = obj1[domain]
 	local range2 = params.range
@@ -39,8 +41,11 @@ function M:run(params)
 	buffers.swap(0, range1, range2)
 end
 
-function M.exec(mode)
-	if mode == "n" then M:normal { domain = "outer", around = "never" } end
+function M.exec(mode, opts, override)
+	if mode == "n" then
+		opts_ = vim.tbl_extend("force", { domain = "outer", around = "never" }, opts or {})
+		M:normal(opts_, override)
+	end
 end
 
 return M

@@ -1,16 +1,18 @@
 local M = {}
 
+-- biggest integer in lua JIT
+-- source: http://lua-users.org/wiki/IntegerDomain
+M.infinity = 9007199254740992
+
 function M.pattern_escape(str, smart_case)
 	-- disable case insensitivity if there is an uppercase
 	if smart_case and str:match "%u" then smart_case = false end
 	local res = ""
 	for i = 1, #str do
 		local char = string.sub(str, i, i)
-		if char == "%" then
-			res = res .. "%%"
-		elseif char == "^" then
-			res = res .. "%^"
-		elseif char == "\n" then
+		if char:match "%p" then
+			res = res .. "%" .. char
+		elseif char == "\r" then
 			res = res .. "$"
 		elseif char:match "%l" then
 			res = res .. "[" .. char .. char:upper() .. "]"

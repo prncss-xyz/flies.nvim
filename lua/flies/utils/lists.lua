@@ -27,10 +27,29 @@ end
 --- axis of a range relative to position
 ---@param pos table reference (cursor) positon
 ---@param to table textobject; will consiter .outer range
- function M.relative_pos(pos, to)
+function M.relative_pos(pos, to)
 	if M.cmp(to[2], pos) < 0 then return "backward" end
 	if M.cmp(pos, to[1]) < 0 then return "forward" end
 	return "upward"
+end
+
+local function cmp0(a, b)
+	if a == b then return 0, 0 end
+	if a < b then return b - a, -1 end
+	return a - b, 1
+end
+
+local function dist(pos, match)
+	local outer = match.outer
+	local va, sa = cmp0(pos[1], outer[1][1])
+	local vb, sb = cmp0(pos[1], outer[2][1])
+	local vc, sc = cmp0(pos[2], outer[1][2])
+	local vd, sd = cmp0(pos[2], outer[2][2])
+	return { va, vb, vc, vd, sa, sb, sc, sd }
+end
+
+function M.get_upwards_sorter(pos)
+	return function(a, b) return M.cmp(dist(pos, a), dist(pos, b)) <= 0 end
 end
 
 --- returns a sorting function for axis
@@ -102,6 +121,5 @@ function M.bipairs(fwd, t)
 		return M.ripairs(t)
 	end
 end
-
 
 return M

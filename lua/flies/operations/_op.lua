@@ -1,11 +1,11 @@
 local M = require("flies.utils.objects"):new {}
 
 local buffers = require "flies.utils.buffers"
-local config = require("flies").config
 local query = require "flies.utils.query"
 local selection = require "flies.flies.selection"
 
 function M:get_config(name, char, target)
+	local config = require("flies").config
 	local c = config.op[name] or {}
 	local d = c.chars and c.chars[char] or {}
 	local e = target and target.op and target.op[name] or {}

@@ -1,6 +1,7 @@
 local M = require("flies.flies._char_to"):new {}
 
-M.patterns = { "." }
+M.patterns = { "%S" }
+M.around_char_pattern = false
 
 local function query()
 	local esc = require("flies.utils.editor").t "<esc>"
@@ -9,16 +10,18 @@ local function query()
 		local char = vim.fn.nr2char(vim.fn.getchar())
 		if char == esc then return end
 		res = res .. char
-		if char == "\n" or res:len() == 2 then return res end
+		if char == "\r" or res:len() == 2 then return res end
 	end
 end
 
-function M:hop_targets_generator(pos, opts)
+function M:get_hints(pos, opts)
 	local chars = query()
 	if not chars then return end
 	local pattern = require("flies.utils").pattern_escape(chars, true)
 	local fly = self:super_new { patterns = { pattern } }
-	return fly:hop_targets_generator(pos, opts)
+  opts.hint_keep_first = true
+	fly:register(opts)
+	return fly:get_hints(pos, opts)
 end
 
 return M

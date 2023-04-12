@@ -110,7 +110,7 @@ function M:left(bufnr, cursor, match)
 		wiseness
 end
 
-function M:hop_targets_generator(ref, opts)
+function M:get_hints(pos, opts)
 	local domain = "outer"
 	if
 		opts.domain == "inner"
@@ -119,86 +119,117 @@ function M:hop_targets_generator(ref, opts)
 	then
 		domain = "inner"
 	end
-	local use_start_default = opts.domain ~= "right"
-	local manh_dist = require("hop.jump_target").manh_dist
-	local context = require("hop.window").get_window_context()
-	context = context[1].contexts[1]
-	local cursor_pos = context.cursor_pos
 	local start
+	local top_line, bot_line = require("flies.utils.editor").win_range()
 	if opts.domain == "right" then
-		start = cursor_pos[1]
+		start = pos[1]
 	else
-		start = context.top_line + 1
+		start = top_line + 1
 	end
 	local end_
 	if opts.domain == "left" then
-		end_ = cursor_pos[1] + 1
+		end_ = pos[1]
 	else
-		end_ = context.bot_line + 1
+		end_ = bot_line
 	end
-	local jump_targets = {}
+	local matches = {}
 	do
-		local i = 0
+		local i = 1
 		-- TODO: stop iterating a line end_
 		-- TODO: to be exact, we would need to add objects whose start is outside of screen for opts.domain == "right"
-		for match in self:iterate_forwards(0, { start, 0 }, ref, opts) do
-      print(vim.inspect(match[domain]))
-      --[[ print("end_", vim.inspect(end_)) ]]
+		for match in self:iterate_forwards(0, { start, 0 }, pos, opts) do
 			if match[domain][1][1] >= end_ then break end
 			local skip = false
-			local rel = lists.relative_pos(cursor_pos, match[domain])
+			local rel = lists.relative_pos(pos, match[domain])
 			if opts.domain == "left" and rel == "forward" then skip = true end
 			if opts.domain == "right" and rel == "backward" then skip = true end
 			if not skip then
+				matches[i] = match
 				i = i + 1
-				local use_start = match.hint_use_start
-				if use_start == nil then use_start = use_start_default end
-				local h = match[domain][use_start and 1 or 2]
-				local line = h[1] - 1
-				local column = h[2]
-				jump_targets[i] = {
-					line = line,
-					column = column,
-					window = 0,
-					object = match,
-				}
 			end
 		end
 	end
-	local indirect_jump_targets = {}
-	for i, jump_target in ipairs(jump_targets) do
-		indirect_jump_targets[i] = {
-			index = i,
-			score = -manh_dist({ jump_target.line, jump_target.column }, cursor_pos),
+	local sorter = require("flies.utils.lists").get_upwards_sorter(pos)
+	table.sort(matches, sorter)
+	local init = not opts.hint_keep_first
+			and lists.is_inside(matches[1][domain], pos)
+			and 2
+		or 1
+
+	local hints = {}
+	local n = init + #require("flies").config.hint_keys - 1 - 1
+	for i = init, n do
+		local match = matches[i]
+		if not match then break end
+		local range = match[domain]
+		local s = (not match.hint_hide_start) and range[1]
+		local e = (not match.hint_hide_end) and range[2]
+		hints[i - init + 1] = {
+			s = s,
+			e = e,
+			match = match,
 		}
 	end
-
-	return {
-		jump_targets = jump_targets,
-		indirect_jump_targets = indirect_jump_targets,
-	}
+	return hints
 end
 
-function M:find_upwards(bufnr, count, pos, opts)
+function M:find_upwards(bufnr, pos, opts)
 	if self.iterate_upwards then
-		return iterators.nth(count)(self:iterate_upwards(bufnr, pos, pos, opts))
+		if opts.count == 1 then
+			return iterators.last()(self:iterate_upwards(bufnr, pos, pos, opts))
+		end
+		return iterators.nth(opts.count or 1)(
+			self:iterate_upwards(bufnr, pos, pos, opts)
+		)
 	end
 end
 
-function M:find_backwards(bufnr, count, pos, opts)
+function M:find_backwards(bufnr, pos, opts)
 	if self.iterate_backwards then
-		return iterators.nth(count)(self:iterate_backwards(bufnr, pos, pos, opts))
+		return iterators.nth(opts.count or 1)(
+			self:iterate_backwards(bufnr, pos, pos, opts)
+		)
 	end
 end
 
-function M:find_forwards(bufnr, count, pos, opts)
+function M:find_first(bufnr, pos, opts)
+	opts.axis = "forward"
 	if self.iterate_forwards then
-		return iterators.nth(count)(self:iterate_forwards(bufnr, pos, pos, opts))
+		return iterators.nth(opts.count or 1)(
+			self:iterate_forwards(bufnr, { 1, 0 }, pos, opts)
+		)
+	end
+end
+
+function M:find_last(bufnr, pos, opts)
+	opts.axis = "backward"
+	if self.iterate_backwards then
+		return iterators.nth(opts.count or 1)(
+			self:iterate_backwards(
+				bufnr,
+				{ require("flies.utils").infinity, 0 },
+				pos,
+				opts
+			)
+		)
+	end
+end
+
+function M:find_forwards(bufnr, pos, opts)
+	if self.iterate_forwards then
+		return iterators.nth(opts.count or 1)(
+			self:iterate_forwards(bufnr, pos, pos, opts)
+		)
 	end
 end
 
 function M:find_best(bufnr, pos, opts)
-	return self:find_upwards(bufnr, 1, pos, opts) or self:find_forwards(bufnr, 1, pos, opts)
+	if opts.count then
+		if self.nested then return self:find_upwards(bufnr, pos, opts) end
+		return self:find_forwards(bufnr, pos, opts)
+	end
+	return self:find_upwards(bufnr, pos, opts)
+		or self:find_forwards(bufnr, pos, opts)
 end
 
 local function apply_opts(self, opts, pos, match)
@@ -235,16 +266,20 @@ function M:with_opts(opts, cb)
 	if opts.axis == "best" then
 		match = self:find_best(0, pos, opts)
 	elseif opts.axis == "upward" then
-		match = self:find_upwards(0, opts.count or 1, pos, opts)
+		match = self:find_upwards(0, pos, opts)
 	elseif opts.axis == "forward" then
-		match = self:find_forwards(0, opts.count or 1, pos, opts)
+		match = self:find_forwards(0, pos, opts)
+	elseif opts.axis == "first" then
+		match = self:find_first(0, pos, opts)
 	elseif opts.axis == "backward" then
-		match = self:find_backwards(0, opts.count or 1, pos, opts)
+		match = self:find_backwards(0, pos, opts)
+	elseif opts.axis == "last" then
+		match = self:find_last(0, pos, opts)
 	elseif opts.axis == "hint" then
-		require("hop").hint_with_callback(
-			function() return self:hop_targets_generator(pos, opts) end,
-			require("hop").opts,
-			function(res) cb(apply_opts(self, opts, pos, res.object)) end
+		local targets = self:get_hints(pos, opts)
+		require("flies.utils.hint").hint(
+			targets,
+			function(match_) cb(apply_opts(self, opts, pos, match_)) end
 		)
 	else
 		error(string.format("unknown axis: %s", opts.axis))
@@ -253,14 +288,66 @@ function M:with_opts(opts, cb)
 	cb(apply_opts(self, opts, pos, match))
 end
 
+function M:register(opts)
+	local n_opts = vim.tbl_extend("force", opts, { axis = "forward" })
+	local p_opts = vim.tbl_extend("force", opts, { axis = "backward" })
+	require("flies.operations.move_again").register(
+		function() self:move(p_opts) end,
+		function() self:move(n_opts) end
+	)
+end
+
 function M:move(opts)
+	self:register(opts)
 	self:with_opts(opts, function(params)
 		require("flies")._params = params
-		buffers.move(params.range, true)
+		local s, e = unpack(params.range)
+		s = s or e
+		e = e or s
+		local mode = require("flies.utils.buffers").get_mode()
+		if mode == "x" then
+			return buffers.with_x(function()
+				-- selection mode
+				local vs, ve, wiseness = buffers.get_marks(0, "x")
+				if opts.move == "left" then
+					vs = buffers.next(0, e, params.wiseness)
+					buffers.select2({ ve, vs }, wiseness)
+				elseif opts.move == "right" then
+					ve = buffers.prev(0, s, params.wiseness)
+					buffers.select2({ vs, ve }, wiseness)
+				else
+					local cursor = buffers.get_cursor()
+					if vim.deep_equal(vs, cursor) then
+						vs = s
+						buffers.select2({ ve, vs }, wiseness)
+					else
+						-- ok
+						ve = e
+						buffers.select2({ vs, ve }, wiseness)
+					end
+				end
+			end)
+		end
+		if mode == "o" then
+			-- TODO:
+			return
+		end
+		-- normal mode
+		local pos
+		if opts.move == "left" then
+			pos = s
+		elseif opts.move == "right" then
+			pos = e
+		else
+			local cursor = buffers.get_cursor()
+			pos = vim.deep_equal(s, cursor) and e or s
+		end
+		buffers.set_cursor(pos)
 	end)
 end
 
 function M:select(opts)
+	self:register(opts)
 	self:with_opts(opts, function(params)
 		require("flies")._params = params
 		buffers.select(params.range, params.wiseness)

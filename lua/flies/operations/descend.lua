@@ -4,11 +4,20 @@ local M = require("flies.operations._one_shot_subline"):new {
 	{
 		"^#(#+) .*$",
 		function(match)
-      local row = match.outer[1][1]
+			local row = match.outer[1][1]
 			local n = math.min(match.count or 1, match.capture:len())
 			buffers.edit(0, { { { { row, 1 }, { row, n } }, "" } })
 		end,
 		ft = "markdown", -- TODO: markdown only
+	},
+	{
+		"(-%d+)",
+		function(match)
+			buffers.edit(
+				0,
+				{ { match.outer, tostring(tonumber(match.capture) - (match.count or 1)) } }
+			)
+		end,
 	},
 	{
 		"(%d+)",

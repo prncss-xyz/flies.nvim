@@ -14,6 +14,15 @@ local M = require("flies.operations._one_shot_subline"):new {
 		ft = "markdown", -- TODO: markdown only
 	},
 	{
+		"(-%d+)",
+		function(match)
+			buffers.edit(
+				0,
+				{ { match.outer, tostring(tonumber(match.capture) + (match.count or 1)) } }
+			)
+		end,
+	},
+	{
 		"(%d+)",
 		function(match)
 			buffers.edit(
