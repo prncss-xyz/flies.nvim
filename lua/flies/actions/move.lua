@@ -20,7 +20,10 @@ function M.move(mode, opts, override)
 			opts.axis = "forward"
 		end
 	end
-	if target:is_instance(require "flies.flies._char_to") then
+	if
+		target:is_instance(require "flies.flies._char_to")
+		or target:is_instance(require "flies.flies.char_to_any")
+	then
 		opts.move = "opposite"
 	end
 	target:move(opts)

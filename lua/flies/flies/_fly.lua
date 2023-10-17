@@ -153,8 +153,6 @@ function M:left(bufnr, cursor, match)
 		wiseness
 end
 
-local should_skip = false
-
 ---@param pos integer[]
 ---@param opts opts
 ---@return {s?: integer[], e?: integer[], match: match}[]
@@ -189,7 +187,7 @@ function M:get_hints(pos, opts)
 		-- TODO: to be exact, we would need to add objects whose start is outside of screen for opts.domain == "right"
 		for match in self:iterate_forwards(0, { start, 0 }, pos, opts) do
 			if match[domain][1][1] >= end_ then break end
-			local skipped = not should_skip
+			local skipped = false
 			local rel = lists.relative_pos(pos, match[domain])
 			if opts.domain == "left" and rel == "forward" then skipped = true end
 			if opts.domain == "right" and rel == "backward" then skipped = true end
@@ -199,6 +197,7 @@ function M:get_hints(pos, opts)
 			end
 		end
 	end
+	if #matches == 0 then return {} end
 	local sorter = require("flies.utils.lists").get_upwards_sorter(pos)
 	table.sort(matches, sorter)
 	local init = not opts.hint_keep_first
@@ -428,6 +427,8 @@ function M:move(opts)
 		end
 		-- normal mode
 		local pos
+		-- __AUTO_GENERATED_PRINT_VAR_START__
+		print("M:move#function move:", vim.inspect(opts.move)) -- __AUTO_GENERATED_PRINT_VAR_END__
 		if opts.move == "left" then
 			pos = s
 		elseif opts.move == "right" then
