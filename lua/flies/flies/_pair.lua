@@ -1,14 +1,23 @@
-local M = require("flies.flies._subline"):new {}
+---@class _Pair: _Subline
+---@field left_patterns sublinePattern[]
+---@field right_patterns sublinePattern[]
+local M = require("flies.flies._fly"):new {}
 
 M.nested = true
 M.solid = false
 
-function M.validator(i, m, j, m_) return i == j and m == m_ end
+---@param i integer
+---@param m any
+---@param j integer
+---@param n any
+function M.validator(i, m, j, n) return i == j and m == n end
 
 local buffers = require "flies.utils.buffers"
 local lists = require "flies.utils.lists"
 local iterators = require "flies.utils.iterators"
+local subline = require "flies.utils.subline"
 
+---@param self _Pair
 local function process_pair_patterns(self)
 	local patterns = {}
 	for i, pattern in ipairs(self.left_patterns) do
@@ -22,6 +31,9 @@ local function process_pair_patterns(self)
 end
 
 --- whether ith pattern is opening (ie. left when formards or right when backwards)
+---@param fwd boolean
+---@param left_len integer
+---@param i integer
 local function is_opening(fwd, left_len, i)
 	local is_left = i <= left_len
 	if fwd then return is_left end
@@ -60,14 +72,11 @@ local function get_half_textobject(fwd, opening, row, line, s, e)
 	return inner, outer, find_last
 end
 
--- sorry for the weird usage of the verb "to find"; just trying to be consistent with function names (i.e. `find()`)
-
----comment
----@param self table
----@param patterns table processed patterns
----@param bufnr number
+---@param self _Pair
+---@param patterns sublinePattern[] processed patterns
+---@param bufnr integer
 ---@param fwd boolean wether to search forward
----@param pos table reference position, from where to start search
+---@param pos integer[] reference position, from where to start search
 ---@param up boolean wether to yield closing patterns when there is not finding an open pattern, including reference position
 ---@param lat boolean wether to yield matched pairs, ordered is searching direction, excluding reference position
 local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
@@ -80,7 +89,7 @@ local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 	--they accumulate in finding order, which is reverse from the search direction
 	--when no open pattern is being curretly finding, we can yield them in reverse order
 	local found = {}
-	local prev_line, prev_line_
+	local prev_line_, prev_line = "", nil
 	local last_char_close
 	for row, line in buffers.get_lines(bufnr, fwd, pos[1], self.lookahead) do
 		prev_line = prev_line_
@@ -89,7 +98,7 @@ local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 			last_char_close = false
 			finding.inner = { row, line:len() }
 		end
-		local matches = self:get_matches(patterns, line)
+		local matches = subline.get_matches(self, patterns, line)
 		for _, match in lists.bipairs(fwd, matches) do
 			local i, s, e, m = unpack(match)
 			if lists.cmp({ row, s }, pos) ~= -sgn then
@@ -166,6 +175,12 @@ local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 	end
 end
 
+---@param bufnr integer
+---@param patterns sublinePattern[] processed patterns
+---@param fwd boolean wether to search forward
+---@param pos integer[] reference position, from where to start search
+---@param up boolean wether to yield closing patterns when there is not finding an open pattern, including reference position
+---@param lat boolean wether to yield matched pairs, ordered is searching direction, excluding reference position
 function M:_np_iter(bufnr, patterns, fwd, pos, up, lat)
 	return coroutine.wrap(
 		function() np_co(self, patterns, bufnr, fwd, pos, up, lat) end
@@ -174,6 +189,8 @@ end
 
 -- in case of unbalanced pairs, algorythm prioritises forward tokens, skiping as
 -- much backwards tokens as needed to match them
+---@param bufnr number
+---@param pos integer[]
 function M:iterate_upwards(bufnr, pos)
 	local patterns = process_pair_patterns(self)
 	return iterators.zip_match(function(right, left)
@@ -188,11 +205,15 @@ function M:iterate_upwards(bufnr, pos)
 	)
 end
 
+---@param bufnr number
+---@param pos integer[]
 function M:iterate_forwards(bufnr, pos)
 	local patterns = process_pair_patterns(self)
 	return self:_np_iter(bufnr, patterns, true, pos, false, true)
 end
 
+---@param bufnr number
+---@param pos integer[]
 function M:iterate_backwards(bufnr, pos)
 	local patterns = process_pair_patterns(self)
 	return self:_np_iter(bufnr, patterns, false, pos, false, true)

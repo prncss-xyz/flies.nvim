@@ -1,25 +1,55 @@
-local M = require("flies.flies._subline"):new {}
-local buffers = require "flies.utils.buffers"
+---@class Line: _Fly
+local M = require("flies.flies._fly"):new {}
 
 M.solid = true
-
 M.lonely_wiseness_inner = "v"
 M.lonely_wiseness_outer = "V"
 
-M.around_line_pattern = false
+local buffers = require "flies.utils.buffers"
 
-local function pattern(_, line, init)
-	local s = line:find "%S"
-	if not s then
-		if init > 1 then return end
-		if line == "" then return 1, 1 end
-		return 1, line:len()
-	end
-	if init > s then return end
-	local e = line:find "%S%s*$"
-	return s, e
+function M:around(_, match)
+	-- local outer, wiseness = self:get_wiseness(0, match, "outer")
+	return match.around, "V"
 end
 
-M.patterns = { pattern }
+local function get_line(bufnr, row)
+	local line = buffers.get_line(bufnr, row)
+	local len = line:len()
+	if len == 0 then len = 1 end
+	local s = line:find "%S"
+	local e
+	if s then
+		e = line:find "%S%s*$"
+	else
+		s = 1
+		e = len
+	end
+	local around = { { row, 1 }, { row, len } }
+	local inner = { { row, s }, { row, e } }
+	return {
+		around = around,
+		outer = inner,
+		inner = inner,
+	}
+end
+
+local function iter(bufnr, fwd, incl, pos)
+	local sgn = fwd and 1 or -1
+	local row = pos[1]
+	if incl then row = row - sgn end
+	local eob = buffers.get_eob(bufnr)
+	return function()
+		row = row + sgn
+		if row < 1 then return end
+		if row > eob then return end
+		return get_line(bufnr, row)
+	end
+end
+
+function M:iterate_upwards(bufnr, pos) return iter(bufnr, true, true, pos) end
+
+function M:iterate_forwards(bufnr, pos) return iter(bufnr, true, false, pos) end
+
+function M:iterate_backwards(bufnr, pos) return iter(bufnr, false, false, pos) end
 
 return M

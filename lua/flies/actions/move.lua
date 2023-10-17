@@ -2,7 +2,7 @@ local M = {}
 
 local query = require "flies.utils.query"
 
-function M.exec(mode, opts, override)
+function M.move(mode, opts, override)
 	opts = vim.tbl_extend("force", {
 		around = "never",
 	}, opts or {})
@@ -10,6 +10,7 @@ function M.exec(mode, opts, override)
 	if v_count > 0 then opts.count = v_count end
 	opts = query.query_obj(opts, override, true)
 	if not opts then return end
+	local target = opts.target
 	if mode == "x" then
 		if opts.move == "right" then
 			opts.axis = "forward"
@@ -19,7 +20,10 @@ function M.exec(mode, opts, override)
 			opts.axis = "forward"
 		end
 	end
-	opts.target:move(opts)
+	if target:is_instance(require "flies.flies._char_to") then
+		opts.move = "opposite"
+	end
+	target:move(opts)
 end
 
 return M

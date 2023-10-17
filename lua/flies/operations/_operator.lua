@@ -1,9 +1,17 @@
+---@class _Operator: Object
+---@field run fun(self: _Operator, param: param)
 local M = require("flies.utils.objects"):new {}
 
+---@alias param table
+
+local windows = require "flies.utils.windows"
 local buffers = require "flies.utils.buffers"
 local query = require "flies.utils.query"
 local selection = require "flies.flies.selection"
 
+---@param name string
+---@param char string
+---@param target _Fly?
 function M:get_config(name, char, target)
 	local config = require("flies").config
 	local c = config.op[name] or {}
@@ -14,6 +22,8 @@ end
 
 function M:pre() return true end
 
+---@param self _Operator
+---@param mode mode
 local function op(self, mode, pre)
 	local params = require("flies")._params
 	if not params then return end
@@ -32,7 +42,7 @@ local function op(self, mode, pre)
 end
 
 function M:normal(opts, override)
-	opts = query.query_obj(opts, override)
+	opts = query.query_obj(opts, override, false)
 	if not opts then return end
 	local pre = self:pre()
 	if not pre then return end
@@ -56,11 +66,25 @@ function M:visual(opts)
 	opts = vim.tbl_extend("force", opts or {}, { target = selection })
 	buffers.with_x(function()
 		require("flies")._params = {
-			pos = buffers.get_cursor(),
+			pos = windows.get_cursor(),
 			target = selection,
+			opts = opts,
 		}
 		op(self, "x", pre)
 	end)
+end
+
+M.default_opts = {}
+M.allowed_modes = "n"
+
+function M:call(opts, override)
+	local opts_ = vim.tbl_extend("force", self.default_opts, opts or {})
+	local mode = buffers.get_mode()
+	if mode == "n" and self.allowed_modes:find "n" then
+		self:normal(opts_, override)
+	elseif (mode == "x") and self.allowed_modes:find "x" then
+		self:visual(opts_)
+	end
 end
 
 return M

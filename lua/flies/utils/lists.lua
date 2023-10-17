@@ -1,8 +1,14 @@
 local M = {}
 
+---@alias axis "backward"|"forward"|"upward"
+---@alias cmp -1|0|1
+
 ---lexicoraphical comparaison between tuples
----@param t1 table
----@param t2 table
+---@generic T
+---@param t1 T[]
+---@param t2 T[]
+---@return cmp
+---@nodiscard
 function M.cmp(t1, t2)
 	local i = 1
 	while true do
@@ -18,6 +24,12 @@ function M.cmp(t1, t2)
 	end
 end
 
+--- is pos inside range?
+---@generic T
+---@param range T[][]
+---@param pos T[]
+---@return boolean
+---@nodiscard
 function M.is_inside(range, pos)
 	if M.cmp(pos, range[1]) < 0 then return false end
 	if M.cmp(range[2], pos) < 0 then return false end
@@ -25,8 +37,10 @@ function M.is_inside(range, pos)
 end
 
 --- axis of a range relative to position
----@param pos table reference (cursor) positon
----@param to table textobject; will consiter .outer range
+---@generic T
+---@param pos T[]
+---@param to T[][]
+---@return axis
 function M.relative_pos(pos, to)
 	if M.cmp(to[2], pos) < 0 then return "backward" end
 	if M.cmp(pos, to[1]) < 0 then return "forward" end
@@ -48,17 +62,23 @@ local function dist(pos, match)
 	return { va, vb, vc, vd, sa, sb, sc, sd }
 end
 
+---@generic T
+---@param pos T[]
+---@return fun(a: T[], b: T[]): boolean
 function M.get_upwards_sorter(pos)
 	return function(a, b) return M.cmp(dist(pos, a), dist(pos, b)) <= 0 end
 end
 
 --- returns a sorting function for axis
----@param axis "upward" | "forward" | "backward"
-function M.sort_axis(axis)
+---@param axis axis
+---@param domain string
+---@return sorter
+function M.sort_axis(axis, domain)
+	domain = domain or "outer"
 	if axis == "upward" then
 		return function(a, b)
-			a = a.outer
-			b = b.outer
+			a = a[domain]
+			b = b[domain]
 			local r
 			r = a[1][1] - b[1][1]
 			if r ~= 0 then return r > 0 end
@@ -71,8 +91,8 @@ function M.sort_axis(axis)
 		end
 	elseif axis == "forward" then
 		return function(a, b)
-			a = a.outer
-			b = b.outer
+			a = a[domain]
+			b = b[domain]
 			local r
 			r = a[1][1] - b[1][1]
 			if r ~= 0 then return r < 0 end
@@ -85,8 +105,8 @@ function M.sort_axis(axis)
 		end
 	elseif axis == "backward" then
 		return function(a, b)
-			a = a.outer
-			b = b.outer
+			a = a[domain]
+			b = b[domain]
 			local r
 			r = a[1][1] - b[1][1]
 			if r ~= 0 then return r > 0 end
@@ -102,23 +122,31 @@ function M.sort_axis(axis)
 	end
 end
 
-local function ripairs(s, i)
+--- backward iterator
+---@generic T
+---@param list T[]
+---@param i number
+ function M.rnext(list, i)
 	i = i - 1
-	if i > 0 then return i, s[i] end
+	if i > 0 then return i, list[i] end
 end
 
 --- reversed ipairs
----@param t table list
-function M.ripairs(t) return ripairs, t, #t + 1 end
+---@generic T
+---@param list T[]
+---@nodiscard
+function M.ripairs(list) return M.rnext, list, #list + 1 end
 
 --- bidirectional ipairs
+---@generic T
 ---@param fwd boolean
----@param t table list
-function M.bipairs(fwd, t)
+---@param list T[]
+---@nodiscard
+function M.bipairs(fwd, list)
 	if fwd then
-		return ipairs(t)
+		return ipairs(list)
 	else
-		return M.ripairs(t)
+		return M.ripairs(list)
 	end
 end
 

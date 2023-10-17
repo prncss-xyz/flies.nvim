@@ -1,4 +1,7 @@
+---@class Buffer: _Fly
 local M = require("flies.flies._fly"):new {}
+
+local windows = require "flies.utils.windows"
 
 M.solid = true
 
@@ -35,7 +38,27 @@ function M:iterate_upwards(bufnr)
 	return iterators.unit { outer = outer, inner = inner }
 end
 
-M.iterate_forwards = iterators.null()
-M.iterate_backwards = iterators.null()
+---@param opts opts
+function M:move(opts)
+	local eob = buffers.get_eob(0)
+	local row
+	if opts.axis == "forward" then
+		row = opts.count and opts.count or eob
+		row = math.min(row, eob)
+	elseif opts.axis == "backward" then
+		row = opts.count and eob + 1 - opts.count or 1
+		row = math.max(row, 1)
+	else
+		return
+	end
+	local line = buffers.get_line(0, row)
+	local col = line:len() == 0 and 1 or line:find "%S" or 1
+	windows.set_cursor { row, col }
+	opts.count = 1
+	require("flies.flies.line"):register(opts)
+end
+
+M.iterate_forwards = iterators.null
+M.iterate_backwards = iterators.null
 
 return M

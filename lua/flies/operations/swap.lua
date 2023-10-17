@@ -1,4 +1,5 @@
-local M = require("flies.operations._op"):new {}
+---@class Swap: _Operator
+local M = require("flies.operations._operator"):new {}
 
 local buffers = require "flies.utils.buffers"
 local editor = require "flies.utils.editor"
@@ -25,7 +26,7 @@ function M:run(params)
 		and lists.cmp(range2[2], range1[2]) <= 0
 	then
 		local _, wiseness = params.target:get_wiseness(0, obj1, domain)
-		buffers.subs(0, range1, range2, wiseness, "", "", editor.indent())
+		buffers.subs(0, range1, range2, wiseness, "", "", editor.get_indent())
 		return
 	end
 	if
@@ -34,7 +35,7 @@ function M:run(params)
 		and lists.cmp(range1[2], range2[2]) <= 0
 	then
 		local _, wiseness = params.target:get_wiseness(0, params.match, domain)
-		buffers.subs(0, range2, range1, wiseness, "", "", editor.indent())
+		buffers.subs(0, range2, range1, wiseness, "", "", editor.get_indent())
 		return
 	end
 
@@ -43,9 +44,12 @@ end
 
 function M.exec(mode, opts, override)
 	if mode == "n" then
-		opts_ = vim.tbl_extend("force", { domain = "outer", around = "never" }, opts or {})
+		opts_ =
+			vim.tbl_extend("force", { domain = "outer", around = "never" }, opts or {})
 		M:normal(opts_, override)
 	end
 end
+
+M.default_opts = { domain = "outer", around = "never" }
 
 return M

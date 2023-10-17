@@ -1,18 +1,20 @@
-local M = require("flies.operations._one_shot"):new {}
+---@class OpenClose: _IOperation
+local M = require("flies.ioperations._ioperation"):new {}
 
 local buffers = require "flies.utils.buffers"
 
-M.target = require("flies.flies._ts"):new {
-	name = "open_close",
-}
-
-function M.target:map(match)
+---@param match table
+local function filter(match)
 	if match.protect then return nil end
 	return match
 end
 
---TODO: use ts
+M.target = require("flies.flies._ts"):new {
+	names = { "open_close" },
+	map = filter,
+}
 
+---@param match_ table
 function M:op_func(match_)
 	if not match_ then return end
 	if match_.tag_open then

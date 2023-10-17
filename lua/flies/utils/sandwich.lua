@@ -49,7 +49,7 @@ function M.sandwich(self, params, add, remove)
 		outer, wiseness =
 			params.target:get_wiseness(0, match, match.context and "context" or "outer")
 	end
-	buffers.subs(0, outer, inner, wiseness, left, right, editor.indent())
+	buffers.subs(0, outer, inner, wiseness, left, right, editor.get_indent())
 end
 
 return M

@@ -1,4 +1,5 @@
-local M = require("flies.flies._char_to"):new {}
+---@class CharToAny: _Fly
+local M = require("flies.flies._subline"):new {}
 
 M.patterns = { "%S" }
 M.around_char_pattern = false
@@ -15,11 +16,16 @@ local function query()
 end
 
 function M:get_hints(pos, opts)
+
 	local chars = query()
 	if not chars then return end
 	local pattern = require("flies.utils").pattern_escape(chars, true)
-	local fly = self:super_new { patterns = { pattern } }
-  opts.hint_keep_first = true
+	local fly = require("flies.flies._char_to"):new {
+		patterns = { pattern },
+		around_char_pattern = false,
+	}
+	opts.hint_keep_first = true
+	--FIXME:
 	fly:register(opts)
 	return fly:get_hints(pos, opts)
 end

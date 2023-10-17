@@ -1,3 +1,4 @@
+---@class DotSegment: _Subline
 local M = require("flies.flies._subline"):new {}
 
 M.solid = true

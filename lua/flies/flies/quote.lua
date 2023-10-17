@@ -1,3 +1,4 @@
+---@class _CharTo: _Fly
 local M = require("flies.flies._subline"):new {}
 
 M.solid = false

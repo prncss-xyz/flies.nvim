@@ -1,4 +1,5 @@
-local M = require("flies.operations._op"):new {}
+---@class Act: _Operator
+local M = require("flies.operations._operator"):new {}
 
 local _keys
 

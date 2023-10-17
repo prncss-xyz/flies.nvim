@@ -1,4 +1,5 @@
-local M = require("flies.operations._op"):new {}
+---@class Wrap: _Operator
+local M = require("flies.operations._operator"):new {}
 
 local sandwich = require("flies.utils.sandwich").sandwich
 local editor = require "flies.utils.editor"
@@ -11,12 +12,7 @@ end
 
 function M:run(params) sandwich(self, params, true, false) end
 
-function M.exec(mode)
-	if mode == "n" then
-		M:normal { domain = "outer", around = "never" }
-	elseif mode == "x" then
-		M:visual()
-	end
-end
+M.allowed_modes = "nx"
+M.default_opts = { domain = "outer", around = "never" }
 
 return M

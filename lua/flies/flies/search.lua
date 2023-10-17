@@ -1,7 +1,8 @@
+---@class Search: _Fly
 local M = require("flies.flies._fly"):new {}
 
 local editor = require "flies.utils.editor"
-local move_again = require "flies.operations.move_again"
+local move_again = require "flies.actions.move_again"
 
 M.solid = true
 

@@ -1,3 +1,4 @@
+---@class Brackets: _Pair
 local M = require("flies.flies._pair"):new {}
 
 M.left_patterns = { "%(", "%[", "{" }

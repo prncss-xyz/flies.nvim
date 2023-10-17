@@ -1,4 +1,3 @@
----@class Ts: _Fly
 local M = require("flies.flies._fly"):new {}
 
 M.nested = true
@@ -46,37 +45,51 @@ function M:get_wiseness(bufnr, match, domain)
 end
 
 local function get_around(self, bufnr, match, matches)
-	local as, ae
+	-- latest end before match start
+	-- nil if first match
+	local lebs
+	-- earliest start before match end
+	-- nil if last match
+	local esbe
 	local context = match.context
 	local match_s, match_e = unpack(match.outer)
 	for _, m in ipairs(matches) do
+		-- amongst matches of the same context
 		if vim.deep_equal(m.context, context) then
 			-- ie, as < match_s < match_e < ae, is
 			local is, ie = unpack(m.outer)
+			-- finds the latest end before match start
 			if lists.cmp(ie, match_s) < 0 then
-				if not as or lists.cmp(ie, as) > 0 then as = ie end
+				if not lebs or lists.cmp(ie, lebs) > 0 then lebs = ie end
 			end
+			-- finds the earliest start before match end
 			if lists.cmp(match_e, is) < 0 then
-				if not ae or lists.cmp(is, ae) < 0 then ae = is end
+				if not esbe or lists.cmp(is, esbe) < 0 then esbe = is end
 			end
 		end
 	end
-	if ae then
-		ae = buffers.prev(bufnr, ae, "v")
+
+	local wiseness_range_s = lebs and lebs or context[1]
+	local wiseness_range_e = esbe and buffers.prev(bufnr, esbe, "v") or context[2]
+	local wiseness = buffers.get_wiseness(
+		bufnr,
+		{ wiseness_range_s, wiseness_range_e },
+		self.lonely_wiseness_around
+	)
+	local s = lebs and buffers.next(bufnr, lebs, wiseness) or context[1]
+	local e
+	if esbe then
+		if lebs then
+			e = match_e
+		else
+			e = buffers.prev(bufnr, esbe, "v")
+		end
 	else
-		ae = context[2]
+		e = context[2]
 	end
-	if lists.cmp(match_e, ae) < 0 then
-		local range = { match_s, ae }
-		return range, buffers.get_wiseness(bufnr, range, self.lonely_wiseness_around)
-	end
-	if as then
-		as = buffers.next(bufnr, as, "v")
-	else
-		as = context[1]
-	end
-	local range = { as, match_e }
-	return range, buffers.get_wiseness(bufnr, range, self.lonely_wiseness_around)
+
+	local range = { s, e }
+	return range, wiseness
 end
 
 local function iter_axis(axis)

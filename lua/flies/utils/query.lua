@@ -22,6 +22,15 @@ local defaults = {
 	axis = "best",
 }
 
+---@alias domain "inner"|"outer"
+---@alias direction "left"|"right"
+---@alias around "never"|"around"|"always"
+---@alias opts {domain: domain, axis: string, target: _Fly, hint_keep_first: boolean?, count: integer?, move: "left"|"right"|"opposite", external: boolean?, around: around }
+
+---@param opts opts
+---@param override table<string, any>
+---@param is_move boolean
+---@return opts?
 function M.query_obj(opts, override, is_move)
 	local mappings = require("flies").config.mappings
 	opts = opts or {}

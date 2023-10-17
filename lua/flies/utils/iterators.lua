@@ -1,7 +1,11 @@
 local M = {}
 
---- transforms a list into a single value iterator
+--- convert a list to an iterator
 --- ie iterates the value, but not the index like ipairs
+---@generic T
+---@param list T[]
+---@return fun(): T
+---@nodiscard
 function M.from_list_single(list)
 	local i = 0
 	return function()
@@ -10,7 +14,13 @@ function M.from_list_single(list)
 	end
 end
 
---- transforms an iterator of single values into a list
+--- converts an iterator to a list
+---@generic P,S
+---@param gen fun(P, S): S?
+---@param param P
+---@param state S
+---@return S[]
+---@nodiscard
 function M.to_list_single(gen, param, state)
 	local list = {}
 	local i = 1
@@ -22,34 +32,15 @@ function M.to_list_single(gen, param, state)
 	end
 end
 
---- transforms a list of lists into a multiple value iterator
-function M.from_list_many(list)
-	local i = 0
-	return function()
-		i = i + 1
-		if list[i] then return unpack(list[i]) end
-	end
-end
-
---- transforms a multiple value iterator into a list of lists
-function M.to_list_many(gen, param, state)
-	local list = {}
-	local i = 1
-	while true do
-		local values = { gen(param, state) }
-		state = values[1]
-		if state == nil then return list end
-		list[i] = values
-		i = i + 1
-	end
-end
-
----the null iterator (iterates nothing)
+--- empty iterator
+---@return fun()
+---@nodiscard
 function M.null()
 	return function() end
 end
 
----the unit iterator (iterates once the provided values)
+--- unit iterator (iterates once the provided values)
+---@nodiscard
 function M.unit(...)
 	local res = { ... }
 	local once = true
@@ -91,9 +82,10 @@ function M.range(a_, b_, c_)
 		b - s
 end
 
----returns the nth value of an iterator
----if nth is lower than one, return nil
----if nth is fractional, returns the same as nth(Math.floor(i))
+--- returns the nth value of an iterator
+--- if nth is lower than one, return nil
+--- if nth is fractional, returns the same as nth(Math.floor(i))
+---@param i number
 function M.nth(i)
 	return function(gen, param, state)
 		while true do

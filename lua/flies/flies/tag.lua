@@ -1,3 +1,4 @@
+---@class Tag: _Pair
 local M = require("flies.flies._pair"):new {}
 
 -- current limitation: tag must be single line

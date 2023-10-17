@@ -1,4 +1,5 @@
-local M = require("flies.operations._op"):new {}
+---@class Substitute: _Operator
+local M = require("flies.operations._operator"):new {}
 
 local sandwich = require("flies.utils.sandwich").sandwich
 local editor = require "flies.utils.editor"

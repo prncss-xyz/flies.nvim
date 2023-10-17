@@ -1,6 +1,7 @@
 local M = {}
 
 M.argument = [[
+  ;; query
   (formal_parameters ((_) @outer)) @context.node_inside
   (arguments ((_) @outer)) @context.node_inside
   (array ((_) @outer)) @context.node_inside
@@ -12,6 +13,7 @@ M.argument = [[
 ]]
 
 M.block = [[
+  ;; query
   (export_statement) @outer @inner.node_inside
   (import_statement) @outer @inner.node_inside
   (function_declaration) @outer @inner.node_inside
@@ -22,10 +24,12 @@ M.block = [[
 ]]
 
 M.call = [[
+  ;; query
   (call_expression arguments: (arguments) @inner.node_inside) @outer
 ]]
 
 M.class = [[
+  ;; query
   (class_declaration body: (class_body) @inner.node_inside) @outer
   (export_statement (class_declaration body: (class_body) @inner.node_inside)) @outer
 
@@ -35,16 +39,19 @@ M.class = [[
 ]]
 
 M.comment = [[
+  ;; query
   ((comment) @inner.node_second  (#lua-match? @inner.node_second "^//"))
   ((comment) @inner.node_second  (#lua-match? @inner.node_inside "^/*"))
 ]]
 
 M.conditional = [[
+  ;; query
   (if_statement condition: _ @inner.before) @outer
   (switch_statement body: (switch_body)@inner.node_inside) @outer
 ]]
 
-M["function"] = [[ 
+M["function"] = [[
+  ;; query
   (method_definition body: (_)@inner.node_inside) @outer
   (function_declaration body: (_)@inner.node_inside) @outer
   (function body: (_)@inner.node_inside) @outer
@@ -65,6 +72,7 @@ M["function"] = [[
 ]]
 
 M.loop = [[
+  ;; query
   (while_statement body: (_)@inner) @outer
   (do_statement body: (_)@inner) @outer
   (for_statement body: (_)@inner) @outer
@@ -73,14 +81,18 @@ M.loop = [[
 
 -- regex syntax prevents empty patterns
 M.regex = [[
+  ;; query
   (regex (regex_pattern) @regex.inner) @regex.outer
 ]]
 
 M.string = [[
+  ;; query
   [(string) (template_string)] @inner.node_inside @outer
 ]]
 
 M.open_close = [[
+  ;; query
+
   ; arrow
   ;; open
   (arrow_function body: [

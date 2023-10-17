@@ -1,12 +1,16 @@
+---@class _IOperation : Object
+---@field target _Fly
+---@field op_func fun(self: _IOperation, match: Object)
 local M = require("flies.utils.objects"):new {}
 
 local buffers = require "flies.utils.buffers"
+local windows = require "flies.utils.windows"
 
 local match
 local count
 
 function M:select()
-	local pos = buffers.get_cursor()
+	local pos = windows.get_cursor()
 	match = self.target:find_best(0, pos, {})
 	if not match then return end
 	buffers.select(self.target:get_wiseness(0, match, "outer"))

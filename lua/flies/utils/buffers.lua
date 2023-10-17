@@ -2,25 +2,31 @@
 ---the aim of this module is to wrap different buffer operations
 ---to provide operations normalized to (1, 1) coordinates
 
+---@alias wiseness "v"|"V"
+---@alias mode "n"|"o"|"x"
+
 local lists = require "flies.utils.lists"
 local utils = require "flies.utils"
+local windows = require 'flies.utils.windows'
 
 local M = {}
 
----feeds given key sequece (interprenting escaped values), noremap
+--- feeds given key sequence (interprenting escaped values), noremap
 ---@param str string
 local function feedkeys(str)
 	local k = vim.api.nvim_replace_termcodes(str, true, true, true)
 	vim.api.nvim_feedkeys(k, "n", true)
 end
 
----wrapper function used to get visual selection range
----@param cb function
+--- wrapper function used to get visual selection range
+---@param cb fun(): nil
 function M.with_x(cb)
 	feedkeys "<esc>"
 	vim.defer_fn(function() cb() end, 0)
 end
 
+--- get current mode
+---@return mode
 function M.get_mode()
 	local mode = vim.api.nvim_get_mode().mode
 	if mode:match "[o]" then
@@ -32,8 +38,11 @@ function M.get_mode()
 	end
 end
 
--- adapted from https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/surround.lua
--- Work with operator marks ---------------------------------------------------
+-- see also https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/surround.lua
+--- get marks and wiseness for relevant mode
+---@param bufnr integer
+---@param mode mode
+---@return integer[], integer[], wiseness
 function M.get_marks(bufnr, mode)
 	-- Region is inclusive on both ends
 	local mark1, mark2
@@ -42,68 +51,30 @@ function M.get_marks(bufnr, mode)
 	else
 		mark1, mark2 = "[", "]"
 	end
-
 	local pos1 = vim.api.nvim_buf_get_mark(bufnr, mark1)
 	local pos2 = vim.api.nvim_buf_get_mark(bufnr, mark2)
-
-	-- Make columns 1-based instead of 0-based. This is needed because
-	-- `nvim_buf_get_mark()` returns the first 0-based byte of mark symbol and
-	-- all the following operations are done with Lua's 1-based indexing.
 	pos1[2], pos2[2] = pos1[2] + 1, pos2[2] + 1
-
-	-- Tweak second position to respect multibyte characters. Reasoning:
-	-- - These positions will be used with `region_replace()` to add some text,
-	--   which operates on byte columns.
-	-- - For the first mark we want the first byte of symbol, then text will be
-	--   insert to the left of the mark.
-	-- - For the second mark we want last byte of symbol. To add surrounding to
-	--   the right, use `pos2[2] + 1`.
-	local line2 = vim.fn.getline(pos2[1])
-	if mode == "x" and vim.o.selection == "exclusive" then
-		-- Respect 'selection' option
-		pos2[2] = pos2[2] - 1
-	else
-		-- Use `math.min()` because it might lead to 'index out of range' error
-		-- when mark is positioned at the end of line (that extra space which is
-		-- selected when selecting with `v$`)
-		local utf_index = vim.str_utfindex(line2, math.min(#line2, pos2[2]))
-		-- This returns the last byte inside character because `vim.str_byteindex()`
-		-- 'rounds upwards to the end of that sequence'.
-		pos2[2] = vim.str_byteindex(line2, utf_index)
-	end
-
-	return pos1, pos2, vim.fn.visualmode()
-end
-
---- get cursor position
----@return table
-function M.get_cursor()
-	local cursor = vim.api.nvim_win_get_cursor(0)
-	cursor[2] = cursor[2] + 1
-	return cursor
-end
-
---- set cursor's position
----@param cursor table
-function M.set_cursor(cursor)
-	local new_cursor = { cursor[1], cursor[2] - 1 }
-	vim.api.nvim_win_set_cursor(0, new_cursor)
+	local wiseness = vim.fn.visualmode()
+	wiseness = wiseness == "V" and "V" or "v"
+	return pos1, pos2, wiseness
 end
 
 --- gets last line of buffer
----@param bufnr number buffer's number or 0 for current
----@return number
+---@param bufnr integer buffer handle or 0 for current
+---@return integer
 function M.get_eob(bufnr) return vim.api.nvim_buf_line_count(bufnr) end
 
 --- gets line's contents
----@param bufnr number buffer's number or 0 for current
----@param row number
+---@param bufnr integer buffer's number or 0 for current
+---@param row integer
 ---@return string
 function M.get_line(bufnr, row)
 	return vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1]
 end
 
-function M.last_char(line)
+--- returns index of the last char of a line, or 1 if line is empty
+---@param line string
+function M.last_char_index(line)
 	local len = line:len()
 	if len == 0 then
 		return 1
@@ -112,6 +83,12 @@ function M.last_char(line)
 	end
 end
 
+--- iterates over lines of a buffer
+---@param bufnr integer
+---@param fwd boolean
+---@param row integer
+---@param lookahead integer?
+---@return fun(): integer?, string?
 function M.get_lines(bufnr, fwd, row, lookahead)
 	local sgn = fwd and 1 or -1
 	local ext
@@ -134,8 +111,9 @@ function M.get_lines(bufnr, fwd, row, lookahead)
 end
 
 --- gets range's contents
----@param bufnr number buffer's number or 0 for current
----@param range table
+---@param bufnr integer Buffer handle, 0 for current buffer
+---@param range integer[][]
+---@return string
 function M.get_range(bufnr, range)
 	return table.concat(
 		vim.api.nvim_buf_get_text(
@@ -185,17 +163,17 @@ end
 
 ---concurently apply edits operations to a buffer
 ---(this means you don't have to worry about how an operation changes the coordonates needed to perform the next one)
----@param bufnr number buffer's number or 0 for current
+---@param bufnr integer buffer's number or 0 for current
 ---@param edits table a list of triplets {start, end_, new_text}
 function M.edit(bufnr, edits)
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")
 end
 
 --- previous char or previous line position
----@param bufnr number
----@param pos table
----@param wiseness string
----@return table
+---@param bufnr integer
+---@param pos integer[]
+---@param wiseness wiseness
+---@return integer[]
 function M.prev(bufnr, pos, wiseness)
 	local row, col = unpack(pos)
 	if
@@ -213,10 +191,10 @@ function M.prev(bufnr, pos, wiseness)
 end
 
 --- next char or next line position
----@param bufnr number
----@param pos table
----@param wiseness string
----@return table
+---@param bufnr integer
+---@param pos integer[]
+---@param wiseness wiseness
+---@return integer[]
 function M.next(bufnr, pos, wiseness)
 	local row, col = unpack(pos)
 	if wiseness == "v" then
@@ -240,7 +218,7 @@ function M.swap(bufnr, range_a, range_b)
 end
 
 ---substitute surrouding
----@param bufnr number
+---@param bufnr integer
 ---@param inner table
 ---@param outer table
 ---@param left_text string
@@ -266,6 +244,12 @@ function M.substitute(bufnr, inner, outer, left_text, right_text)
 	M.edit(bufnr, edits)
 end
 
+
+--- get wiseness for given range
+---@param bufnr integer
+---@param range integer[][]
+---@param lonely_wiseness wiseness
+---@return wiseness
 function M.get_wiseness(bufnr, range, lonely_wiseness)
 	local s, e = unpack(range)
 	local line = M.get_line(bufnr, s[1])
@@ -344,24 +328,28 @@ end
 
 function M.select2(range, wiseness)
 	local s, e = unpack(range)
-	M.set_cursor(s)
+	windows.set_cursor(s)
 	vim.cmd("normal! " .. wiseness)
 	M.set_cursor(e)
 end
 
+---@param range string[][]
+---@param wiseness wiseness
 function M.select(range, wiseness)
 	local s, e = unpack(range)
 	local cmp = lists.cmp(s, e)
 	if cmp <= 0 then
-		M.set_cursor(s)
+		windows.set_cursor(s)
 		vim.cmd("normal! " .. wiseness)
-		M.set_cursor(e)
+		windows.set_cursor(e)
 	elseif cmp > 0 then
 		feedkeys "<esc>"
-		vim.defer_fn(function() M.set_cursor(s) end, 0)
+		vim.defer_fn(function() windows.set_cursor(s) end, 0)
 	end
 end
 
+--- send keys, without remaping. uses <cr>-style representation for non printable characters
+---@param str string
 function M.feed_keys(str)
 	str = vim.api.nvim_replace_termcodes(str, true, true, true)
 	vim.api.nvim_feedkeys(str, "n", true)
