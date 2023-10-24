@@ -16,16 +16,15 @@ local function query()
 end
 
 function M:get_hints(pos, opts)
-
 	local chars = query()
 	if not chars then return end
 	local pattern = require("flies.utils").pattern_escape(chars, true)
+	---@class _CharToHint: _CharTo
 	local fly = require("flies.flies._char_to"):new {
 		patterns = { pattern },
 		around_char_pattern = false,
 	}
 	opts.hint_keep_first = true
-	--FIXME:
 	fly:register(opts)
 	return fly:get_hints(pos, opts)
 end

@@ -7,7 +7,7 @@
 
 local lists = require "flies.utils.lists"
 local utils = require "flies.utils"
-local windows = require 'flies.utils.windows'
+local windows = require "flies.utils.windows"
 
 local M = {}
 
@@ -53,9 +53,16 @@ function M.get_marks(bufnr, mode)
 	end
 	local pos1 = vim.api.nvim_buf_get_mark(bufnr, mark1)
 	local pos2 = vim.api.nvim_buf_get_mark(bufnr, mark2)
-	pos1[2], pos2[2] = pos1[2] + 1, pos2[2] + 1
 	local wiseness = vim.fn.visualmode()
 	wiseness = wiseness == "V" and "V" or "v"
+	if wiseness == "v" then
+		pos1[2], pos2[2] = pos1[2] + 1, pos2[2] + 1
+	else
+		local line = M.get_line(bufnr, pos2[1])
+		pos1[2] = 1
+		pos2[2] = math.max(1, line:len())
+	end
+
 	return pos1, pos2, wiseness
 end
 
@@ -74,6 +81,7 @@ end
 
 --- returns index of the last char of a line, or 1 if line is empty
 ---@param line string
+--TODO: remove
 function M.last_char_index(line)
 	local len = line:len()
 	if len == 0 then
@@ -169,6 +177,14 @@ function M.edit(bufnr, edits)
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")
 end
 
+--- get the first non-blank character, or first character if line is blank
+---@param line string
+function M.get_bol(line) return (line:find "%S") or 1 end
+
+--- get the last non-blank character, or last character if line is blank
+---@param line string
+function M.get_eol(line) return (line:find "%S%s*$") or math.max(1, line:len()) end
+
 --- previous char or previous line position
 ---@param bufnr integer
 ---@param pos integer[]
@@ -183,8 +199,7 @@ function M.prev(bufnr, pos, wiseness)
 	then
 		if row == 1 then return { 1, 1 } end
 		row = row - 1
-		local len = M.get_line(bufnr, row):len()
-		if len == 0 then len = 1 end
+		local len = math.max(1, M.get_line(bufnr, row):len())
 		return { row, len }
 	end
 	return { row, col - 1 }
@@ -199,12 +214,13 @@ function M.next(bufnr, pos, wiseness)
 	local row, col = unpack(pos)
 	if wiseness == "v" then
 		local line = M.get_line(bufnr, row)
+		-- TODO: check if we need max(1, line:len())
 		if col < line:len() then return { row, col + 1 } end
 		if row == M.get_eob(bufnr) then return { row, col } end
 		row = row + 1
 		line = M.get_line(bufnr, row)
 		if line == "" then return { row, 1 } end
-		col = line:find "%S" or line:len()
+		col = M.get_bol(line)
 		return { row, col }
 	end
 	return { row + 1, 1 }
@@ -243,7 +259,6 @@ function M.substitute(bufnr, inner, outer, left_text, right_text)
 	end
 	M.edit(bufnr, edits)
 end
-
 
 --- get wiseness for given range
 ---@param bufnr integer

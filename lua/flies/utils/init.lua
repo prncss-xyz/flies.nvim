@@ -28,9 +28,35 @@ end
 
 --- replace indentation space of a multiple-line string with provided indent
 ---@param indent string
+---@param lines string[]
+---@return string[]
+function M.correct_indent(indent, lines)
+	local lines_out = {}
+	local old_indent
+	for i, line in ipairs(lines) do
+		local line_out
+		local line_indent = line:match "^%s*"
+		-- if line contains only splace characters
+		if line == line_indent then
+			if i == #lines then break end
+			line_out = ""
+		else
+			if not old_indent then old_indent = line_indent end
+			-- if line does not start with commont indent, don't transform anything
+			if not vim.startswith(line_indent, old_indent) then return lines end
+			-- replace common indent with provided indent
+			line_out = indent .. line:sub(old_indent:len() + 1)
+		end
+		table.insert(lines_out, line_out)
+	end
+	return lines_out
+end
+
+--- replace indentation space of a multiple-line string with provided indent
+---@param indent string
 ---@param str string
 ---@return string
-function M.correct_indent(indent, str)
+function M.correct_indent_(indent, str)
 	local out_str
 	local old_indent
 	local lines = vim.split(str, "\n", { plain = true })

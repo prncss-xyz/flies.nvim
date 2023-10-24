@@ -14,16 +14,8 @@ end
 
 local function get_line(bufnr, row)
 	local line = buffers.get_line(bufnr, row)
-	local len = line:len()
-	if len == 0 then len = 1 end
-	local s = line:find "%S"
-	local e
-	if s then
-		e = line:find "%S%s*$"
-	else
-		s = 1
-		e = len
-	end
+	local s, e = buffers.get_bol(line), buffers.get_eol(line)
+	local len = math.max(1, line:len())
 	local around = { { row, 1 }, { row, len } }
 	local inner = { { row, s }, { row, e } }
 	return {
@@ -31,6 +23,7 @@ local function get_line(bufnr, row)
 		outer = inner,
 		inner = inner,
 	}
+
 end
 
 local function iter(bufnr, fwd, incl, pos)

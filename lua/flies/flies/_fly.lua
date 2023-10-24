@@ -15,7 +15,7 @@ M.around_char_pattern = "%s+"
 M.around_line_pattern = "^%s*$"
 M.lookahead = 200
 
----@alias match {outer: integer[][], inner: integer[][], around: integer[][]?, around_wiseness: wiseness, hint_hide_start: boolean?, hint_hide_end: boolean?}
+---@alias match {outer: integer[][], inner: integer[][], context: integer[][]?, around: integer[][]?, around_wiseness: wiseness, hint_hide_start: boolean?, hint_hide_end: boolean?}
 
 local buffers = require "flies.utils.buffers"
 local windows = require "flies.utils.windows"
@@ -427,8 +427,6 @@ function M:move(opts)
 		end
 		-- normal mode
 		local pos
-		-- __AUTO_GENERATED_PRINT_VAR_START__
-		print("M:move#function move:", vim.inspect(opts.move)) -- __AUTO_GENERATED_PRINT_VAR_END__
 		if opts.move == "left" then
 			pos = s
 		elseif opts.move == "right" then

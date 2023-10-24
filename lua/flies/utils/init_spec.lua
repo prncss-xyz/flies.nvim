@@ -3,7 +3,7 @@ local M = require "flies.utils.init"
 describe("correct_indent", function()
 	it("should normalize indentation", function()
 		assert.are.equals(
-			M.correct_indent(
+			M.correct_indent_(
 				"!",
 				[[
           aaa
@@ -20,7 +20,7 @@ describe("correct_indent", function()
       ccc
     ]]
 		assert.are.equals(
-			M.correct_indent("!", input),
+			M.correct_indent_("!", input),
 			table.concat({ "!aaa", "!  bbb", "!ccc" }, "\n")
 		)
 	end)
@@ -33,7 +33,7 @@ describe("correct_indent", function()
     ee
       ccc
     ]]
-			assert.are.equals(M.correct_indent("!", input), input)
+			assert.are.equals_(M.correct_indent("!", input), input)
 		end
 	)
 end)

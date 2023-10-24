@@ -49,9 +49,9 @@ local search_forward
 
 local function search_n(forward)
 	if forward == search_forward then
-		vim.cmd "normal! n"
+		vim.cmd "silent! normal! n"
 	else
-		vim.cmd "normal! N"
+		vim.cmd "silent! normal! N"
 	end
 	if require("flies").config.hlslens then require("hlslens").start() end
 end

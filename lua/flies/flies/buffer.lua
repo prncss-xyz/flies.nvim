@@ -27,7 +27,7 @@ end
 local function outer_end(bufnr)
 	local eob = buffers.get_eob(bufnr)
 	local line = buffers.get_line(bufnr, eob)
-	local col = line:len()
+	local col = math.max(1, line:len())
 	if col == 0 then col = 1 end
 	return { eob, col }
 end
@@ -52,8 +52,7 @@ function M:move(opts)
 		return
 	end
 	local line = buffers.get_line(0, row)
-	local col = line:len() == 0 and 1 or line:find "%S" or 1
-	windows.set_cursor { row, col }
+	windows.set_cursor { row, require("flies.utils.buffers").get_eol(line) }
 	opts.count = 1
 	require("flies.flies.line"):register(opts)
 end

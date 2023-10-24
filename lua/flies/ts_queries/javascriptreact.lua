@@ -2,12 +2,13 @@ local M = {}
 
 M.argument = [[
   ;; query
-  (jsx_opening_element name: (identifier) @context.before attribute: (jsx_attribute (property_identifier) @key (_) @inner) @outer ">" @context.after)
+  (jsx_opening_element name: (identifier) @context.before attribute: (jsx_attribute ((property_identifier) @key)? (_) @inner) @outer ">" @context.after)
+  (jsx_self_closing_element name: (identifier) @context.before attribute: (jsx_attribute ((property_identifier) @key)? (_) @inner) @outer "/>" @context.after)
 ]]
 
 M.tag = [[
   ;; query
-  (jsx_element) @outer @inner.node_inside
+  (jsx_element) @outer @inner.inside
   (jsx_self_closing_element) @outer
 ]]
 

@@ -96,7 +96,7 @@ local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 		prev_line_ = line
 		if last_char_close then
 			last_char_close = false
-			finding.inner = { row, line:len() }
+			finding.inner = { row, math.max(1, line:len()) }
 		end
 		local matches = subline.get_matches(self, patterns, line)
 		for _, match in lists.bipairs(fwd, matches) do
@@ -131,7 +131,9 @@ local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 						if valid then
 							local inner, outer, last_char_open =
 								get_half_textobject(fwd, false, row, line, s, e)
-							if last_char_open then inner = { row - 1, prev_line:len() } end
+							if last_char_open then
+								inner = { row - 1, math.max(1, prev_line:len()) }
+							end
 							assert(not last_char_close, "faulty logic")
 							-- TODO: i, m
 							if fwd then
@@ -162,7 +164,11 @@ local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
 					-- return match if upward
 					local inner, outer, last_char_close_ =
 						get_half_textobject(fwd, false, row, line, s, e)
-					if last_char_close_ then inner = { row - 1, prev_line:len() } end
+					if last_char_close_ then
+						-- FIXME: this is ugly
+						local _line = buffers.get_line(bufnr, row - 1)
+						inner = { row - 1, math.max(1, _line:len()) }
+					end
 					coroutine.yield {
 						i = i,
 						m = m,

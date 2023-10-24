@@ -18,4 +18,21 @@ function M.get_indent()
 	return "\t"
 end
 
+local conv = {
+	tsx = "typescriptreact",
+}
+
+---@param bufnr integer
+---@param range integer[][]
+function M.get_vim_lang(bufnr, range)
+	local lang = require("flies.utils.ts").get_ts_lang(bufnr, range)
+	if lang then return conv[lang] or lang end
+	return vim.api.nvim_buf_get_option(bufnr, "filetype")
+end
+
+function M.get_lang_at_cursor()
+	local cursor = require("flies.utils.windows").get_cursor()
+	return M.get_vim_lang(0, { cursor, cursor })
+end
+
 return M

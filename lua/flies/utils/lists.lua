@@ -39,11 +39,11 @@ end
 --- axis of a range relative to position
 ---@generic T
 ---@param pos T[]
----@param to T[][]
+---@param range T[][]
 ---@return axis
-function M.relative_pos(pos, to)
-	if M.cmp(to[2], pos) < 0 then return "backward" end
-	if M.cmp(pos, to[1]) < 0 then return "forward" end
+function M.relative_pos(pos, range)
+	if M.cmp(range[2], pos) < 0 then return "backward" end
+	if M.cmp(pos, range[1]) < 0 then return "forward" end
 	return "upward"
 end
 
@@ -71,8 +71,8 @@ end
 
 --- returns a sorting function for axis
 ---@param axis axis
----@param domain string
----@return sorter
+---@param domain domain?
+---@return fun(a: match, b: match): boolean
 function M.sort_axis(axis, domain)
 	domain = domain or "outer"
 	if axis == "upward" then
@@ -88,6 +88,7 @@ function M.sort_axis(axis, domain)
 			if r ~= 0 then return r < 0 end
 			r = a[2][2] - b[2][2]
 			if r ~= 0 then return r < 0 end
+			return false
 		end
 	elseif axis == "forward" then
 		return function(a, b)
@@ -102,6 +103,7 @@ function M.sort_axis(axis, domain)
 			if r ~= 0 then return r < 0 end
 			r = a[2][2] - b[2][2]
 			if r ~= 0 then return r < 0 end
+			return false
 		end
 	elseif axis == "backward" then
 		return function(a, b)
@@ -116,6 +118,7 @@ function M.sort_axis(axis, domain)
 			if r ~= 0 then return r > 0 end
 			r = a[2][2] - b[2][2]
 			if r ~= 0 then return r > 0 end
+			return false
 		end
 	else
 		error("unknown axis: " .. axis)
@@ -126,7 +129,7 @@ end
 ---@generic T
 ---@param list T[]
 ---@param i number
- function M.rnext(list, i)
+function M.rnext(list, i)
 	i = i - 1
 	if i > 0 then return i, list[i] end
 end

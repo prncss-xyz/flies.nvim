@@ -1,6 +1,6 @@
 local M = {}
 
--- .inside1 .1node .node_inside
+-- .inside
 -- .before
 -- .after
 
@@ -11,10 +11,9 @@ M.token = [[
 
 M.argument = [[
   ;; query
-  (function_call arguments: (arguments (_) @outer) @context.node_inside)
-  (function_declaration parameters: (parameters (_) @outer) @context.node_inside)
-  (function_declaration parameters: (parameters (_) @outer) @context.node_inside)
-  (table_constructor (field name: (identifier)? @key value: (_) @inner) @outer) @context.node_inside
+  (function_call arguments: (arguments (_) @outer) @context.inside)
+  (function_declaration parameters: (parameters (_) @outer) @context.inside)
+  (table_constructor (field name: (identifier)? @key value: (_) @inner) @outer) @context.inside
 
   ; we exclude lists of length one for pratical raisons
 
@@ -33,13 +32,13 @@ M.block = [[
 
 M.call = [[
   ;; query
-  (function_call arguments: (arguments "(") @inner.node_inside) @outer
+  (function_call arguments: (arguments "(") @inner.inside) @outer
   (function_call arguments: (arguments [(table_constructor) (string)]) @inner) @outer
 ]]
 
 M.comment = [[
   ;; query
-  (comment) @outer @inner.1node
+  (comment) @outer @inner.inside
 ]]
 
 M.conditional = [[
@@ -64,7 +63,7 @@ M.loop = [[
 
 M.string = [[
   ;; query
-  (string) @outer @inner.1node
+  (string) @outer @inner.inside
 ]]
 
 return M

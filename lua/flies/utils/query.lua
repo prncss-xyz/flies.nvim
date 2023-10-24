@@ -22,7 +22,7 @@ local defaults = {
 	axis = "best",
 }
 
----@alias domain "inner"|"outer"
+---@alias domain "inner"|"outer"|"context"
 ---@alias direction "left"|"right"
 ---@alias around "never"|"around"|"always"
 ---@alias opts {domain: domain, axis: string, target: _Fly, hint_keep_first: boolean?, count: integer?, move: "left"|"right"|"opposite", external: boolean?, around: around }

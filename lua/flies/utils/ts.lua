@@ -3,6 +3,30 @@ local M = {}
 local ts_utils = require "nvim-treesitter.ts_utils"
 local parsers = require "nvim-treesitter.parsers"
 local buffers = require "flies.utils.buffers"
+local lists = require "flies.utils.lists"
+
+local function get_range_node(burnr, range)
+	local s, e = unpack(range)
+	local srow, scol = s[1] - 1, s[2] - 1
+	local erow, ecol = e[1] - 1, e[2]
+	return srow, scol, erow, ecol
+end
+
+local function get_node_range_(bufnr, node)
+	local srow, scol, erow, ecol = node:range()
+	local s, e
+	if scol == buffers.get_line(bufnr, srow + 1):len() then
+		s = { srow + 2, buffers.get_bol(buffers.get_line(bufnr, srow + 2)) }
+	else
+		s = { srow + 1, scol + 1 }
+	end
+	if ecol == 0 then
+		e = { erow, buffers.get_eol(buffers.get_line(bufnr, erow)) }
+	else
+		e = { erow + 1, ecol }
+	end
+	return s, e
+end
 
 --- Get a compatible vim range (1 index based) from a TS node range.
 --
@@ -12,88 +36,37 @@ local buffers = require "flies.utils.buffers"
 --- get vim range from ts node
 ---@param bufnr integer
 ---@param node unknown
+---@param inside boolean
 ---@return integer[], integer[]
-local function get_node_range(bufnr, node)
-	local srow, scol, erow, ecol = node:range()
-	local s = buffers.next(bufnr, { srow + 1, scol }, "v")
-	local e = buffers.prev(bufnr, { erow + 1, ecol + 1 }, "v")
+local function get_node_range(bufnr, node, inside)
+	local s, e = get_node_range_(bufnr, node)
+	if inside then
+		local count = node:child_count()
+		for i = 0, count - 1 do
+			local s_, _ = get_node_range_(bufnr, node:child(i))
+			if lists.cmp(s_, s) > 0 then
+				s = s_
+				break
+			end
+		end
+		for i = count - 1, 0, -1 do
+			local _, e_ = get_node_range_(bufnr, node:child(i))
+			if lists.cmp(e_, e) < 0 then
+				e = e_
+				break
+			end
+		end
+	end
 	return s, e
-end
-
---- converts vim range to ts range
----@param bufnr integer
----@param range integer[][]
----@return integer, integer, integer, integer
-local function get_range_node(bufnr, range)
-	-- local srow, scol = unpack(range[1])
-	-- local erow, ecol = unpack(range[2])
-	local srow, scol = unpack(buffers.prev(bufnr, range[1], "v"))
-	srow = srow - 1
-	local erow, ecol = unpack(buffers.next(bufnr, range[2], "v"))
-	erow = erow - 1
-	ecol = ecol - 1
-	return srow, scol, erow, ecol
-end
-
---- get named ts-node enclosing vim-range
----@param bufnr integer
----@param range integer[][]
-local function get_node_at_range(bufnr, range)
-	local srow, scol, erow, ecol = get_range_node(bufnr, range)
-
-	local root_lang_tree = parsers.get_parser(bufnr)
-	if not root_lang_tree then return end
-
-	local root
-	root = ts_utils.get_root_for_position(srow, scol, root_lang_tree)
-
-	if not root then return end
-
-	return root:named_descendant_for_range(srow, scol, erow, ecol)
-end
-
----@param bufnr integer
----@param range integer[][]
-local function get_node_inside(bufnr, range)
-	local node = get_node_at_range(bufnr, range)
-	if not node then return end
-	local count = node:child_count()
-	if count > 2 then
-		local s, _ = get_node_range(bufnr, node:child(1))
-		local _, e = get_node_range(bufnr, node:child(count - 2))
-		return { s, e }
-	end
-	return { get_node_range(bufnr, node) }
-end
-
----@param bufnr integer
----@param range integer[][]
-local function get_node_second(bufnr, range)
-	local node = get_node_at_range(bufnr, range)
-	if not node then return end
-	local count = node:child_count()
-	if count > 1 then
-		local child = node:child(1)
-		return { get_node_range(bufnr, child) }
-	end
-	if count == 1 then
-		local e = range[2]
-		local s = { e[1], e[2] + 1 }
-		return { s, e }
-	end
-	return { get_node_range(bufnr, node) }
 end
 
 --- process nodes range according to modifiers
 local function spice_match(bufnr, match)
 	local res = {}
 	for k, v in pairs(match) do
+		-- inside
 		local name, mod = unpack(vim.split(k, ".", { plain = true }))
-		if mod == "node_inside" then
-			res[name] = get_node_inside(bufnr, v)
-		elseif mod == "node_second" then
-			res[name] = get_node_second(bufnr, v)
-		elseif mod == "start" then
+		if mod == "start" then
 			local r = res[name] or {}
 			r[1] = v[1]
 			res[name] = r
@@ -111,7 +84,7 @@ local function spice_match(bufnr, match)
 			r[2] = buffers.prev(bufnr, v[1], "v")
 			res[name] = r
 		else
-			res[k] = v
+			res[name] = v
 		end
 	end
 
@@ -158,7 +131,8 @@ function M.query_from_name(bufnr, names)
 				local match = { pattern = pattern, metadata = metadata }
 				for id, node in pairs(ts_match) do
 					local capture_name = cquery.captures[id]
-					match[capture_name] = { get_node_range(bufnr, node) }
+					match[capture_name] =
+						{ get_node_range(bufnr, node, vim.endswith(capture_name, ".inside")) }
 				end
 				table.insert(matches, spice_match(bufnr, match))
 			end
@@ -170,7 +144,7 @@ end
 -- https://github.com/numToStr/Comment.nvim/blob/0236521ea582747b58869cb72f70ccfa967d2e89/lua/Comment/ft.lua
 local function contains(tree, range)
 	for lang, child in pairs(tree:children()) do
-		if lang ~= "comment" and contains(child, range) then
+		if lang ~= "comment" and child:contains(range) then
 			return contains(child, range)
 		end
 	end
@@ -182,20 +156,8 @@ end
 function M.get_ts_lang(bufnr, range)
 	local tree = parsers.get_parser(bufnr)
 	if not tree then return end
-	tree = contains(tree, get_range_node(bufnr, range))
+	tree = contains(tree, { get_range_node(bufnr, range) })
 	return tree:lang()
-end
-
-local conv = {
-	tsx = "typescriptreact",
-}
-
----@param bufnr integer
----@param range integer[][]
-function M.get_vim_lang(bufnr, range)
-	local lang = M.get_ts_lang(bufnr, range)
-	if lang then return conv[lang] or lang end
-	return vim.api.nvim_buf_get_option(bufnr, "filetype")
 end
 
 return M

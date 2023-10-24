@@ -3,38 +3,45 @@ local M = {}
 -- TODO: struct, table
 
 M.argument = [[
-  (parameter_list (_) @outer) @context.node_inside
-  (argument_list (_) @outer) @context.node_inside
-  (literal_value (literal_element) @outer) @context.node_inside
+  ;; query
+  (parameter_list (_) @outer) @context.inside
+  (argument_list (_) @outer) @context.inside
+  (literal_value (literal_element) @outer) @context.inside
 ]]
 
 M.block = [[
-  (block) @outer @inner.node_inside
-
+  ;; query
+  (block) @outer @inner.inside
 ]]
 
 M.call = [[
-  (call_expression arguments: (_) @inner.node_inside) @outer
+  ;; query
+  (call_expression arguments: (_) @inner.inside) @outer
 ]]
 
 M.comment = [[
-  (comment) @outer @inner.1node
+  ;; query
+  (comment) @outer @inner.inside
 ]]
 
 M.conditional = [[
+  ;; query
   (if_statement condition: _ @inner) @outer 
 ]]
 
 M["function"] = [[
-  (function_declaration body: (_) @inner.node_inside) @outer
+  ;; query
+  (function_declaration body: (_) @inner.inside) @outer
 ]]
 
 M.loop = [[
+  ;; query
   (for_statement (for_clause) @inner) @outer
 ]]
 
 M.string = [[
-  (interpreted_string_literal) @inner.node_inside @outer
+  ;; query
+  (interpreted_string_literal) @inner.inside @outer
 ]]
 
 return M

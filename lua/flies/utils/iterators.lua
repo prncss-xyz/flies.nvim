@@ -148,6 +148,25 @@ function M.map(cb)
 	end
 end
 
+--- create a new iterator where values for with cb is falsy are skipped
+function M.filter(cb)
+  return function(gen, param, state)
+    local function a(k, ...)
+      if k == nil then
+        return
+      end
+      if cb(k, ...) then
+        return k, ...
+      end
+      return a(gen(param, k))
+    end
+
+    return function(_, k_)
+      return a(gen(param, k_))
+    end, nil, state
+  end
+end
+
 function M.chain(cb)
 	return function(gen, param, state)
 		return M.flatten(M.map(cb)(gen, param, state))

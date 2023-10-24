@@ -2,60 +2,59 @@ local M = {}
 
 M.argument = [[
   ;; query
-  (formal_parameters ((_) @outer)) @context.node_inside
-  (arguments ((_) @outer)) @context.node_inside
-  (array ((_) @outer)) @context.node_inside
-  (array_pattern ((_) @outer)) @context.node_inside
-  (object ((pair key:(_)@key value:(_)@inner) @outer)) @context.node_inside
-  (object_pattern (pair_pattern key:(_) @key value: (_) @inner) @outer) @context.node_inside
-  (object_pattern (shorthand_property_identifier_pattern) @outer) @context.node_inside
-  (named_imports ((import_specifier name: (identifier) @key alias: (identifier)? @inner) @outer)) @context.node_inside
+  (formal_parameters ((_) @outer)) @context.inside
+  (arguments ((_) @outer)) @context.inside
+  (array ((_) @outer)) @context.inside
+  (array_pattern ((_) @outer)) @context.inside
+  (object ((pair key:(_)@key value:(_)@inner) @outer)) @context.inside
+  (object_pattern (pair_pattern key:(_) @key value: (_) @inner) @outer) @context.inside
+  (object_pattern (shorthand_property_identifier_pattern) @outer) @context.inside
+  (named_imports ((import_specifier name: (identifier) @key alias: (identifier)? @inner) @outer)) @context.inside
 ]]
 
 M.block = [[
   ;; query
-  (export_statement) @outer @inner.node_inside
-  (import_statement) @outer @inner.node_inside
-  (function_declaration) @outer @inner.node_inside
-  (statement_block) @outer @inner.node_inside
-  (return_statement) @outer @inner.node_inside
+  (export_statement) @outer @inner.inside
+  (import_statement) @outer @inner.inside
+  (function_declaration) @outer @inner.inside
+  (statement_block) @outer @inner.inside
+  (return_statement) @outer @inner.inside
 
-  ; (_ (statement_block) @inner.node_inside) @outer
+  ; (_ (statement_block) @inner.inside) @outer
 ]]
 
 M.call = [[
   ;; query
-  (call_expression arguments: (arguments) @inner.node_inside) @outer
+  (call_expression arguments: (arguments) @inner.inside) @outer
 ]]
 
 M.class = [[
   ;; query
-  (class_declaration body: (class_body) @inner.node_inside) @outer
-  (export_statement (class_declaration body: (class_body) @inner.node_inside)) @outer
+  (class_declaration body: (class_body) @inner.inside) @outer
+  (export_statement (class_declaration body: (class_body) @inner.inside)) @outer
 
-  (class body: (class_body) @inner.node_inside) @outer
-  (lexical_declaration (variable_declarator value: (class body: (class_body) @inner.node_inside))) @outer
-  (export_statement (lexical_declaration (variable_declarator value: (class body: (class_body) @inner.node_inside)))) @outer
+  (class body: (class_body) @inner.inside) @outer
+  (lexical_declaration (variable_declarator value: (class body: (class_body) @inner.inside))) @outer
+  (export_statement (lexical_declaration (variable_declarator value: (class body: (class_body) @inner.inside)))) @outer
 ]]
 
 M.comment = [[
   ;; query
-  ((comment) @inner.node_second  (#lua-match? @inner.node_second "^//"))
-  ((comment) @inner.node_second  (#lua-match? @inner.node_inside "^/*"))
+  ((comment) @inner.inside @outer)
 ]]
 
 M.conditional = [[
   ;; query
   (if_statement condition: _ @inner.before) @outer
-  (switch_statement body: (switch_body)@inner.node_inside) @outer
+  (switch_statement body: (switch_body)@inner.inside) @outer
 ]]
 
 M["function"] = [[
   ;; query
-  (method_definition body: (_)@inner.node_inside) @outer
-  (function_declaration body: (_)@inner.node_inside) @outer
-  (function body: (_)@inner.node_inside) @outer
-  (arrow_function body: (statement_block)@inner.node_inside) @outer
+  (method_definition body: (_)@inner.inside) @outer
+  (function_declaration body: (_)@inner.inside) @outer
+  (function body: (_)@inner.inside) @outer
+  (arrow_function body: (statement_block)@inner.inside) @outer
   (arrow_function body: [
     (undefined)
     (null)
@@ -87,7 +86,7 @@ M.regex = [[
 
 M.string = [[
   ;; query
-  [(string) (template_string)] @inner.node_inside @outer
+  [(string) (template_string)] @inner.inside @outer
 ]]
 
 M.open_close = [[
