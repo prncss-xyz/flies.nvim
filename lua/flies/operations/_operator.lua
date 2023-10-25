@@ -42,20 +42,21 @@ local function op(self, mode, pre)
 end
 
 function M:normal(opts, override)
-	opts = query.query_obj(opts, override, false)
-	if not opts then return end
-	local pre = self:pre()
-	if not pre then return end
-	require("flies")._select = function() opts.target:select(opts) end
-	local count = vim.v.count
-	if count == 0 then count = nil end
-	if opts.op_func then
-		buffers.feed_keys(opts.op_func .. ':<c-u>lua require "flies"._select()<cr>')
-	else
-		require("flies")._op_func = function() op(self, "o", pre) end
-		vim.o.operatorfunc = "v:lua.package.loaded.flies._op_func"
-		buffers.feed_keys 'g@:<c-u>lua require "flies"._select()<cr>'
-	end
+	query.query_obj(opts, override, false, function(opts)
+		if not opts then return end
+		local pre = self:pre()
+		if not pre then return end
+		require("flies")._select = function() opts.target:select(opts) end
+		local count = vim.v.count
+		if count == 0 then count = nil end
+		if opts.op_func then
+			buffers.feed_keys(opts.op_func .. ':<c-u>lua require "flies"._select()<cr>')
+		else
+			require("flies")._op_func = function() op(self, "o", pre) end
+			vim.o.operatorfunc = "v:lua.package.loaded.flies._op_func"
+			buffers.feed_keys 'g@:<c-u>lua require "flies"._select()<cr>'
+		end
+	end)
 end
 
 function M:visual(opts)

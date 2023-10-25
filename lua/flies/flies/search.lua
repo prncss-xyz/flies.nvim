@@ -39,7 +39,7 @@ function M:move(opts)
 		or opts.axis == "upward"
 		or opts.axis == "forward"
 	then
-		vim.cmd "normal! n"
+		vim.cmd " normal! n"
 	elseif opts.axis == "backward" then
 		vim.cmd "normal! N"
 	end
@@ -49,9 +49,9 @@ local search_forward
 
 local function search_n(forward)
 	if forward == search_forward then
-		vim.cmd "silent! normal! n"
+		vim.cmd "normal! n"
 	else
-		vim.cmd "silent! normal! N"
+		vim.cmd "normal! N"
 	end
 	if require("flies").config.hlslens then require("hlslens").start() end
 end

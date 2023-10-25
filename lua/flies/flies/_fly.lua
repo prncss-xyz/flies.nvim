@@ -133,8 +133,8 @@ function M:right(bufnr, cursor, match)
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
 	if rp == "backward" then return end
-	return { cursor, rp == "upward" and e or buffers.prev(bufnr, s, wiseness) },
-		wiseness
+	if rp == "upward" then return { cursor, e }, wiseness end
+	return { cursor, buffers.prev_blank(bufnr, s, wiseness) }, wiseness
 end
 
 ---@param bufnr integer
@@ -146,8 +146,11 @@ function M:left(bufnr, cursor, match)
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
 	if rp == "forward" then return end
+	if rp == "upward" then
+		return { s, buffers.prev(bufnr, cursor, wiseness) }, wiseness
+	end
 	return {
-		rp == "upward" and s or buffers.next(bufnr, e, wiseness),
+		buffers.next_blank(bufnr, e, wiseness),
 		buffers.prev(bufnr, cursor, wiseness),
 	},
 		wiseness
@@ -309,14 +312,11 @@ function M:find_best(bufnr, pos, opts)
 		or self:find_forwards(bufnr, pos, opts)
 end
 
----@alias applied_opts {range: integer[][], wiseness: wiseness, opts: opts, target: _Fly, pos: integer[], match: match}
-
 ---@param self _Fly
 ---@param opts opts
 ---@param pos integer[][]
 ---@param match match
----@return applied_opts
-local function apply_opts(self, opts, pos, match)
+local function get_range(self, opts, pos, match)
 	local wiseness
 	local range
 	if opts.domain == "inner" then
@@ -334,22 +334,16 @@ local function apply_opts(self, opts, pos, match)
 	else
 		error(string.format("unknown domain: %s", opts.domain))
 	end
-	return {
-		range = range,
-		wiseness = wiseness,
-		opts = opts,
-		target = self,
-		pos = pos,
-		match = match,
-	}
+	return range, wiseness
 end
+
+---@alias applied_opts {range: integer[][], wiseness: wiseness, opts: opts, target: _Fly, pos: integer[], match: match}
 
 ---comment
 ---@param opts opts
----@param cb fun(v: applied_opts): nil
----@return nil
-function M:with_opts(opts, cb)
-	local pos = windows.get_cursor()
+---@param pos integer[][]
+---@return applied_opts?
+function M:with_opts(opts, pos)
 	local match
 	if opts.axis == "best" then
 		match = self:find_best(0, pos, opts)
@@ -364,21 +358,24 @@ function M:with_opts(opts, cb)
 	elseif opts.axis == "last" then
 		match = self:find_last(0, pos, opts)
 	elseif opts.axis == "hint" then
-		local targets = self:get_hints(pos, opts)
-		require("flies.utils.hint").hint(
-			targets,
-			function(match_) cb(apply_opts(self, opts, pos, match_)) end
-		)
+		match = opts.match
 	else
 		error(string.format("unknown axis: %s", opts.axis))
 	end
 	if not match then return end
-	cb(apply_opts(self, opts, pos, match))
+	local range, wiseness = get_range(self, opts, pos, match)
+	return {
+		range = range,
+		wiseness = wiseness,
+		opts = opts,
+		target = self,
+		pos = pos,
+		match = match,
+	}
 end
 
 ---registers a fly for 'flies.actions.move_again'
 ---@param opts opts
----@return nil
 function M:register(opts)
 	local n_opts = vim.tbl_extend("force", opts, { axis = "forward" })
 	local p_opts = vim.tbl_extend("force", opts, { axis = "backward" })
@@ -388,72 +385,90 @@ function M:register(opts)
 	)
 end
 
+---@param self _Fly
+---@param opts opts
+---@param pos integer[][]
+---@return integer[]?
+local function get_point_(self, opts, pos)
+	local params = self:with_opts(opts, pos)
+	if not params then return end
+	local s, e = unpack(params.range)
+	if opts.move == "opposite" then return lists.cmp(e, pos) < 0 and s or e end
+	if opts.move == "right" then return e or s end
+	return s or e
+end
+
+---@param self _Fly
+---@param opts opts
+---@param pos integer[][]
+---@return integer[]?
+local function get_point(self, opts, pos)
+	if opts.axis == "best" then
+		opts.axis = "upward"
+		local res = get_point_(self, opts, pos)
+		if res == nil then
+			opts.axis = opts.move == "right" and "backward" or "forward"
+			return get_point(self, opts, pos)
+		end
+		if vim.deep_equal(pos, res) then
+			opts.count = 2
+			return get_point_(self, opts, pos)
+		end
+		return res
+	end
+	return get_point_(self, opts, pos)
+end
+
 --- move cursor
 ---@param opts opts
 function M:move(opts)
 	self:register(opts)
-	self:with_opts(opts, function(params)
-		require("flies")._params = params
-		local s, e = unpack(params.range)
-		s = s or e
-		e = e or s
-		local mode = require("flies.utils.buffers").get_mode()
-		if mode == "x" then
-			return buffers.with_x(function()
-				-- selection mode
-				local vs, ve, wiseness = buffers.get_marks(0, "x")
-				if opts.move == "left" then
-					vs = buffers.next(0, e, params.wiseness)
-					buffers.select2({ ve, vs }, wiseness)
-				elseif opts.move == "right" then
-					ve = buffers.prev(0, s, params.wiseness)
-					buffers.select2({ vs, ve }, wiseness)
-				else
-					local cursor = windows.get_cursor()
-					if vim.deep_equal(vs, cursor) then
-						vs = s
-						buffers.select2({ ve, vs }, wiseness)
-					else
-						-- ok
-						ve = e
-						buffers.select2({ vs, ve }, wiseness)
-					end
-				end
-			end)
-		end
-		if mode == "o" then
-			-- TODO:
-			return
-		end
-		-- normal mode
-		local pos
-		if opts.move == "left" then
-			pos = s
-		elseif opts.move == "right" then
-			pos = e
-		elseif opts.move == "opposite" then
-			local cursor = windows.get_cursor()
-			pos = vim.deep_equal(s, cursor) and e or s
-		else
-			local cursor = windows.get_cursor()
-			if opts.axis == "backward" ~= not not opts.external then
-				pos = vim.deep_equal(e, cursor) and s or e
+	local pos = windows.get_cursor()
+	local params
+	local res = get_point(self, opts, pos)
+	if not res then return end
+	local mode = require("flies.utils.buffers").get_mode()
+	if mode == "x" then
+		return buffers.with_x(function()
+			-- selection mode
+			local vs, ve, wiseness = buffers.get_marks(0, "x")
+			if opts.move == "left" then
+				vs = buffers.next(0, res, params.wiseness)
+				buffers.select2({ ve, vs }, wiseness)
+			elseif opts.move == "right" then
+				ve = buffers.prev(0, res, params.wiseness)
+				buffers.select2({ vs, ve }, wiseness)
 			else
-				pos = vim.deep_equal(s, cursor) and e or s
+				local cursor = windows.get_cursor()
+				if vim.deep_equal(vs, cursor) then
+					vs = res
+					buffers.select2({ ve, vs }, wiseness)
+				else
+					-- ok
+					ve = res
+					buffers.select2({ vs, ve }, wiseness)
+				end
 			end
-		end
-		windows.set_cursor(pos)
-	end)
+		end)
+	end
+	if mode == "o" then
+		-- TODO:
+		return
+	end
+	assert(mode == "n")
+	local pos_
+	windows.set_cursor(res)
 end
 
 --- search and select
 ---@param opts opts
 ---@return nil
 function M:select(opts)
-	self:with_opts(opts, function(params)
-		require("flies")._params = params
-		buffers.select(params.range, params.wiseness)
-	end)
+	local pos = windows.get_cursor()
+	local params = self:with_opts(opts, pos)
+	if not params then return end
+	require("flies")._params = params
+	buffers.select(params.range, params.wiseness)
 end
 
 return M

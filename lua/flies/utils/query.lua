@@ -1,6 +1,7 @@
 local M = {}
 
 local editor = require "flies.utils.editor"
+local windows = require "flies.utils.windows"
 local esc = editor.t "<esc>"
 
 local value_to_type = {
@@ -30,8 +31,9 @@ local defaults = {
 ---@param opts opts
 ---@param override table<string, any>
 ---@param is_move boolean
+---@param cb fun(opts: opts)
 ---@return opts?
-function M.query_obj(opts, override, is_move)
+function M.query_obj(opts, override, is_move, cb)
 	local mappings = require("flies").config.mappings
 	opts = opts or {}
 	override = override or {}
@@ -71,7 +73,15 @@ function M.query_obj(opts, override, is_move)
 	end
 	local count = tonumber(count_str)
 	if count then res.count = count end
-	return res
+	if res.axis == "hint" then
+		local pos = windows.get_cursor()
+		local targets = res.target:get_hints(pos, opts)
+		return require("flies.utils.hint").hint(targets, function(match_)
+			res.match = match_
+			return cb(res)
+		end)
+	end
+	cb(res)
 end
 
 return M

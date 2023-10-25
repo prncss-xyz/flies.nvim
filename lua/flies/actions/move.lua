@@ -8,25 +8,21 @@ function M.move(mode, opts, override)
 	}, opts or {})
 	local v_count = vim.v.count
 	if v_count > 0 then opts.count = v_count end
-	opts = query.query_obj(opts, override, true)
-	if not opts then return end
-	local target = opts.target
-	if mode == "x" then
-		if opts.move == "right" then
-			opts.axis = "forward"
-		elseif opts.move == "left" then
-			opts.axis = "backward"
-		elseif opts.axis == "best" then
-			opts.axis = "forward"
+	query.query_obj(opts, override, true, function(opts)
+		if not opts then return end
+		local target = opts.target
+		if mode == "x" then
+			if opts.axis == "best" then opts.axis = "forward" end
+			opts.move = "opposite"
 		end
-	end
-	if
-		target:is_instance(require "flies.flies._char_to")
-		or target:is_instance(require "flies.flies.char_to_any")
-	then
-		opts.move = "opposite"
-	end
-	target:move2(opts)
+		if
+			target:is_instance(require "flies.flies._char_to")
+			or target:is_instance(require "flies.flies.char_to_any")
+		then
+			opts.move = "opposite"
+		end
+		target:move(opts)
+	end)
 end
 
 return M

@@ -185,12 +185,27 @@ function M.get_bol(line) return (line:find "%S") or 1 end
 ---@param line string
 function M.get_eol(line) return (line:find "%S%s*$") or math.max(1, line:len()) end
 
+function M.prev_blank(bufnr, pos, wiseness)
+	local row, col = unpack(pos)
+	if wiseness == "v" then
+		if col == 1 then
+			row = row - 1
+			col = math.max(1, M.get_line(bufnr, row):len())
+		else
+			col = col - 1
+		end
+	else
+		col = math.max(1, M.get_line(bufnr, row):len())
+	end
+	return { row, col }
+end
+
 --- previous char or previous line position
 ---@param bufnr integer
 ---@param pos integer[]
 ---@param wiseness wiseness
 ---@return integer[]
-function M.prev(bufnr, pos, wiseness)
+function M.prev(bufnr, pos, wiseness, blank)
 	local row, col = unpack(pos)
 	if
 		wiseness == "V"
@@ -345,7 +360,7 @@ function M.select2(range, wiseness)
 	local s, e = unpack(range)
 	windows.set_cursor(s)
 	vim.cmd("normal! " .. wiseness)
-	M.set_cursor(e)
+	windows.set_cursor(e)
 end
 
 ---@param range string[][]
