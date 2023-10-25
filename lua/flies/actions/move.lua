@@ -1,6 +1,6 @@
 local M = {}
 
-local query = require "flies.utils.query"
+local ask = require "flies.utils.ask"
 
 function M.move(mode, opts, override)
 	opts = vim.tbl_extend("force", {
@@ -8,7 +8,7 @@ function M.move(mode, opts, override)
 	}, opts or {})
 	local v_count = vim.v.count
 	if v_count > 0 then opts.count = v_count end
-	query.query_obj(opts, override, true, function(opts)
+	ask.ask(opts, override, true, function(opts)
 		if not opts then return end
 		local target = opts.target
 		if mode == "x" then

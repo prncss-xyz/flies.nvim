@@ -1,9 +1,9 @@
 local M = {}
 
-local query = require "flies.utils.query"
+local ask = require "flies.utils.ask"
 
 local function select(opts) opts.target:select(opts) end
 
-function M.select(opts, override) query.query_obj(opts, override, false, select) end
+function M.select(opts, override) ask.ask(opts, override, false, select) end
 
 return M

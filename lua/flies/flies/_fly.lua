@@ -156,6 +156,8 @@ function M:left(bufnr, cursor, match)
 		wiseness
 end
 
+function M:ask(cb) return cb() end
+
 ---@param pos integer[]
 ---@param opts opts
 ---@return {s?: integer[], e?: integer[], match: match}[]
@@ -168,6 +170,15 @@ function M:get_hints(pos, opts)
 	then
 		domain = "inner"
 	end
+
+	opts.axis = "upward"
+	local skipped_match = iterators.nth(1)(self:iterate_upwards(0, pos, pos, opts))
+	local skipped_range = skipped_match and skipped_match[domain]
+	-- this is needed because for solid textobjects interate_upwards has a lookahead
+	if skipped_range and not lists.is_inside(skipped_range, pos) then
+		skipped_range = nil
+	end
+
 	---type integer
 	local start
 	local top_line, bot_line = windows.get_win_range()
@@ -186,17 +197,20 @@ function M:get_hints(pos, opts)
 	local matches = {}
 	do
 		local i = 1
-		-- TODO: stop iterating a line end_
 		-- TODO: to be exact, we would need to add objects whose start is outside of screen for opts.domain == "right"
+		-- which would imply to hint the rightmost part of the object
 		for match in self:iterate_forwards(0, { start, 0 }, pos, opts) do
 			if match[domain][1][1] >= end_ then break end
-			local skipped = false
-			local rel = lists.relative_pos(pos, match[domain])
-			if opts.domain == "left" and rel == "forward" then skipped = true end
-			if opts.domain == "right" and rel == "backward" then skipped = true end
-			if not skipped then
-				matches[i] = match
-				i = i + 1
+			local will_take = true
+			local match_range = match[domain]
+			if match_range then
+				if skipped_range then
+					if vim.deep_equal(match_range, skipped_range) then will_take = false end
+				end
+				if will_take then
+					matches[i] = match
+					i = i + 1
+				end
 			end
 		end
 	end
@@ -359,6 +373,8 @@ function M:with_opts(opts, pos)
 		match = self:find_last(0, pos, opts)
 	elseif opts.axis == "hint" then
 		match = opts.match
+    -- HACK: this works fine but is hackish
+    opts.axis = "forward"
 	else
 		error(string.format("unknown axis: %s", opts.axis))
 	end
@@ -410,7 +426,10 @@ local function get_point(self, opts, pos)
 			opts.axis = opts.move == "right" and "backward" or "forward"
 			return get_point(self, opts, pos)
 		end
-		if vim.deep_equal(pos, res) then
+		if
+			opts.move == "right" and (lists.cmp(pos, res) >= 0)
+			or opts.move == "left" and (lists.cmp(pos, res) <= 0)
+		then
 			opts.count = 2
 			return get_point_(self, opts, pos)
 		end

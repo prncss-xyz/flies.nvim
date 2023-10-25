@@ -3,6 +3,7 @@ local M = {}
 local editor = require "flies.utils.editor"
 local windows = require "flies.utils.windows"
 local esc = editor.t "<esc>"
+local async = require "plenary.async"
 
 local value_to_type = {
 	inner = "domain",
@@ -33,7 +34,7 @@ local defaults = {
 ---@param is_move boolean
 ---@param cb fun(opts: opts)
 ---@return opts?
-function M.query_obj(opts, override, is_move, cb)
+function M.ask(opts, override, is_move, cb)
 	local mappings = require("flies").config.mappings
 	opts = opts or {}
 	override = override or {}
@@ -71,17 +72,32 @@ function M.query_obj(opts, override, is_move, cb)
 			end
 		end
 	end
-	local count = tonumber(count_str)
-	if count then res.count = count end
-	if res.axis == "hint" then
-		local pos = windows.get_cursor()
-		local targets = res.target:get_hints(pos, opts)
-		return require("flies.utils.hint").hint(targets, function(match_)
-			res.match = match_
-			return cb(res)
-		end)
+
+	if
+		res.axis == "hint"
+		and res.target:is_instance(require "flies.flies.char_to_any")
+	then
+		res.target = require "flies.flies.char_to_2"
 	end
-	cb(res)
+
+	local target = res.target
+	target:ask(function()
+		local count = tonumber(count_str)
+		if count then res.count = count end
+		if res.axis == "hint" then
+			local pos = windows.get_cursor()
+			local targets = target:get_hints(pos, opts)
+			if targets[1] then
+				return require("flies.utils.hint").hint(targets, function(match_)
+					res.match = match_
+					return cb(res)
+				end)
+			else
+				return
+			end
+		end
+		cb(res)
+	end)
 end
 
 return M

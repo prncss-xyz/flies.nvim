@@ -6,7 +6,7 @@ local M = require("flies.utils.objects"):new {}
 
 local windows = require "flies.utils.windows"
 local buffers = require "flies.utils.buffers"
-local query = require "flies.utils.query"
+local ask = require "flies.utils.ask"
 local selection = require "flies.flies.selection"
 
 ---@param name string
@@ -42,7 +42,7 @@ local function op(self, mode, pre)
 end
 
 function M:normal(opts, override)
-	query.query_obj(opts, override, false, function(opts)
+	ask.ask(opts, override, false, function(opts)
 		if not opts then return end
 		local pre = self:pre()
 		if not pre then return end

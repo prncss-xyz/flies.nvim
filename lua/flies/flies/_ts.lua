@@ -2,6 +2,7 @@
 ---@field names string[]
 ---@field no_tree _Fly
 ---@field ctx_pre boolean?
+---@field use_context boolean?
 local M = require("flies.flies._fly"):new {}
 
 M.nested = true
@@ -29,10 +30,10 @@ end
 ---@param self _Ts
 ---@param bufnr integer
 ---@param match match
+---@param context integer[][]
 ---@return integer[][]?, wiseness?
-local function get_around(self, bufnr, match, matches)
+local function get_around(self, bufnr, match, context, matches)
 	local as, ae
-	local context = match.context
 	if not context then return nil, nil end
 	local match_s, match_e = unpack(match.outer)
 	for _, match_ in ipairs(matches) do
@@ -63,6 +64,26 @@ local function get_around(self, bufnr, match, matches)
 	return range, buffers.get_wiseness(bufnr, range, self.lonely_wiseness_around)
 end
 
+--- find closest matching context around pos
+---@param pos integer[]
+---@param matches match[]
+---@param many boolean
+---@return integer[][]?
+local function find_context(pos, matches, many)
+	local best, pre
+	local cmp = lists.sort_axis("upward", "context")
+	for _, match in ipairs(matches) do
+		if lists.relative_pos(pos, match.context) == "upward" then
+			if not many or pre and vim.deep_equal(match.context, pre.context) then
+				if not best or cmp(match, best) then best = match end
+			else
+				pre = match
+			end
+		end
+	end
+	if best then return best.context end
+end
+
 ---@param axis axis
 local function iter_axis(axis)
 	---@param self _Ts
@@ -78,13 +99,18 @@ local function iter_axis(axis)
 			end
 			return iterators.null()
 		end
+		local context
+		if self.use_context then context = find_context(pos, matches, false) end
 		local matches_filtered = vim.tbl_filter(
 			function(match) return lists.relative_pos(pos, match.outer) == axis end,
 			matches
 		)
 		table.sort(matches_filtered, lists.sort_axis(axis))
-		for _, match in ipairs(matches_filtered) do
-			match.around, match.around_wiseness = get_around(self, bufnr, match, matches)
+		if context then
+			for _, match in ipairs(matches_filtered) do
+				match.around, match.around_wiseness =
+					get_around(self, bufnr, match, context, matches)
+			end
 		end
 		return iterators.from_list_single(matches_filtered)
 	end
