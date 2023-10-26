@@ -249,9 +249,6 @@ end
 ---@return match?
 function M:find_upwards(bufnr, pos, opts)
 	if self.iterate_upwards then
-		if opts.count == 1 then
-			return iterators.last()(self:iterate_upwards(bufnr, pos, pos, opts))
-		end
 		return iterators.nth(opts.count or 1)(
 			self:iterate_upwards(bufnr, pos, pos, opts)
 		)
@@ -274,11 +271,20 @@ end
 ---@param pos integer[]
 ---@param opts opts
 ---@return match?
+function M:find_top(bufnr, pos, opts)
+	if self.iterate_forwards then
+		return iterators.last()(self:iterate_upwards(bufnr, pos, pos, opts))
+	end
+end
+
+---@param bufnr integer
+---@param pos integer[]
+---@param opts opts
+---@return match?
 function M:find_first(bufnr, pos, opts)
-	opts.axis = "forward"
 	if self.iterate_forwards then
 		return iterators.nth(opts.count or 1)(
-			self:iterate_forwards(bufnr, { 1, 0 }, pos, opts)
+			self:iterate_forwards(bufnr, { 0, 0 }, pos, opts)
 		)
 	end
 end
@@ -288,7 +294,11 @@ end
 ---@param opts opts
 ---@return match?
 function M:find_last(bufnr, pos, opts)
-	opts.axis = "backward"
+	if true then
+		--TODO:
+		print "TODO"
+		return
+	end
 	if self.iterate_backwards then
 		return iterators.nth(opts.count or 1)(
 			self:iterate_backwards(
@@ -358,6 +368,17 @@ end
 ---@param pos integer[][]
 ---@return applied_opts?
 function M:with_opts(opts, pos)
+	if opts.count == 0 then
+		if opts.axis == "upward" or (opts.axis == "best" and self.nested == true) then
+			opts.axis = "top"
+		elseif opts.axis == "backward" then
+			opts.axis = "last"
+			opts.count = 1
+		else
+			opts.axis = "first"
+			opts.count = 1
+		end
+	end
 	local match
 	if opts.axis == "best" then
 		match = self:find_best(0, pos, opts)
@@ -369,12 +390,14 @@ function M:with_opts(opts, pos)
 		match = self:find_first(0, pos, opts)
 	elseif opts.axis == "backward" then
 		match = self:find_backwards(0, pos, opts)
+	elseif opts.axis == "top" then
+		match = self:find_top(0, pos, opts)
 	elseif opts.axis == "last" then
 		match = self:find_last(0, pos, opts)
 	elseif opts.axis == "hint" then
 		match = opts.match
-    -- HACK: this works fine but is hackish
-    opts.axis = "forward"
+		-- HACK: this works fine but is hackish
+		opts.axis = "forward"
 	else
 		error(string.format("unknown axis: %s", opts.axis))
 	end
@@ -419,21 +442,25 @@ end
 ---@param pos integer[][]
 ---@return integer[]?
 local function get_point(self, opts, pos)
-	if opts.axis == "best" then
+	if opts.count == nil and opts.axis == "best" then
 		opts.axis = "upward"
-		local res = get_point_(self, opts, pos)
-		if res == nil then
-			opts.axis = opts.move == "right" and "backward" or "forward"
-			return get_point(self, opts, pos)
+		opts.count = 1
+		--TODO: use iterator
+		while true do
+			local res = get_point_(self, opts, pos)
+			if res == nil then
+				opts.axis = opts.move == "right" and "forward" or "backward"
+				opts.count = 1
+				break
+			end
+			if
+				opts.move == "right" and (lists.cmp(pos, res) < 0)
+				or opts.move == "left" and (lists.cmp(pos, res) > 0)
+			then
+				return res
+			end
+			opts.count = opts.count + 1
 		end
-		if
-			opts.move == "right" and (lists.cmp(pos, res) >= 0)
-			or opts.move == "left" and (lists.cmp(pos, res) <= 0)
-		then
-			opts.count = 2
-			return get_point_(self, opts, pos)
-		end
-		return res
 	end
 	return get_point_(self, opts, pos)
 end
@@ -463,7 +490,6 @@ function M:move(opts)
 					vs = res
 					buffers.select2({ ve, vs }, wiseness)
 				else
-					-- ok
 					ve = res
 					buffers.select2({ vs, ve }, wiseness)
 				end

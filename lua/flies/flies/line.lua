@@ -23,7 +23,6 @@ local function get_line(bufnr, row)
 		outer = inner,
 		inner = inner,
 	}
-
 end
 
 local function iter(bufnr, fwd, incl, pos)
