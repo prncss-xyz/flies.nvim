@@ -465,6 +465,8 @@ local function get_point(self, opts, pos)
 	return get_point_(self, opts, pos)
 end
 
+function M:post_move(opts) end
+
 --- move cursor
 ---@param opts opts
 function M:move(opts)
@@ -503,6 +505,7 @@ function M:move(opts)
 	assert(mode == "n")
 	local pos_
 	windows.set_cursor(res)
+	self:post_move(opts)
 end
 
 --- search and select

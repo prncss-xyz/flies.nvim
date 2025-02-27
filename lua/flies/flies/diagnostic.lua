@@ -38,4 +38,8 @@ M.iterate_upwards = iter_axis "upward"
 M.iterate_forwards = iter_axis "forward"
 M.iterate_backwards = iter_axis "backward"
 
+function M:post_move(opts)
+	vim.defer_fn(function() vim.diagnostic.open_float() end, 0)
+end
+
 return M

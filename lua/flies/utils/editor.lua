@@ -30,6 +30,17 @@ function M.get_vim_lang(bufnr, range)
 	return vim.api.nvim_buf_get_option(bufnr, "filetype")
 end
 
+function M.get_vim_langs(bufnr, range)
+	local lang = M.get_vim_lang(bufnr, range)
+	if lang then
+		local langs = require("flies").config.ts.extends[lang] or { lang }
+		local res = { unpack(langs) }
+		table.insert(res, "default")
+		return res
+	end
+	return { "default" }
+end
+
 function M.get_lang_at_cursor()
 	local cursor = require("flies.utils.windows").get_cursor()
 	return M.get_vim_lang(0, { cursor, cursor })

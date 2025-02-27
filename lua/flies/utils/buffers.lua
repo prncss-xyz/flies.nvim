@@ -174,6 +174,7 @@ end
 ---@param bufnr integer buffer's number or 0 for current
 ---@param edits table a list of triplets {start, end_, new_text}
 function M.edit(bufnr, edits)
+	if bufnr == 0 then bufnr = vim.api.nvim_get_current_buf() end
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")
 end
 
@@ -354,6 +355,24 @@ function M.snip_capture(name)
 		function(_, snip) return snip.captures[name] end,
 		{}
 	)
+end
+
+--- find snippet of sname snip mathing any langs
+---@param langs string[]
+---@param name string
+local function get_snippet(name, langs)
+	for _, lang in ipairs(langs) do
+		local s = name[lang]
+		if s then return s end
+	end
+end
+
+--- finds snippet a snippet matching name and langs from configuration
+---@param name string
+---@param range integer[][]
+function M.snip_find(name, range)
+	local langs = require("flies.utils.editor").get_vim_langs(0, range)
+	return get_snippet(name, langs)
 end
 
 function M.select2(range, wiseness)

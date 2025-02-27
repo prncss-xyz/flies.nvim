@@ -53,7 +53,6 @@ M["function"] = [[
   ;; query
   (method_definition body: (_)@inner.inside) @outer
   (function_declaration body: (_)@inner.inside) @outer
-  (function body: (_)@inner.inside) @outer
   (arrow_function body: (statement_block)@inner.inside) @outer
   (arrow_function body: [
     (undefined)

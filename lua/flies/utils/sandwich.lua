@@ -12,7 +12,7 @@ function M.sandwich(self, params, add, remove)
 		local char = params.pre
 		local fly_config = self:get_config("wrap", char, params.target)
 		if fly_config.snip then
-			local lang = vim.api.nvim_buf_get_option(0, "filetype") -- FIXME: detect language with treesitter
+			local lang = vim.bo.filetype
 			local langs = require("flies").config.ts.extends[lang] or { lang }
 			local snip
 			for _, lang_ in ipairs(langs) do
