@@ -21,6 +21,7 @@ function M.move(mode, opts, override)
 		then
 			opts.move = "opposite"
 		end
+		target:register(opts)
 		target:move(opts)
 	end)
 end

@@ -338,15 +338,27 @@ function M.subs(bufnr, outer, inner, wiseness, left_text, right_text, tab_text)
 	M.edit(bufnr, edits)
 end
 
--- cf. "lua/luasnip/init.lua"
 function M.snip_replace(snippet, range, captures)
 	local from, to_ = unpack(range)
-	require("luasnip").snip_expand(snippet, {
+	local luasnip = require "luasnip"
+	luasnip.snip_expand(luasnip.snippet("", snippet), {
 		clear_region = {
 			from = { from[1] - 1, from[2] - 1 },
 			to = { to_[1] - 1, to_[2] },
 		},
 		expand_params = { captures = captures },
+	})
+end
+
+function M.snip_replace2(snippet, range, str)
+	local from, to_ = unpack(range)
+	local luasnip = require "luasnip"
+	luasnip.snip_expand(luasnip.snippet(str, snippet), {
+		clear_region = {
+			from = { from[1] - 1, from[2] - 1 },
+			to = { to_[1] - 1, to_[2] },
+		},
+		expand_params = { captures = {} },
 	})
 end
 

@@ -470,7 +470,6 @@ function M:post_move(opts) end
 --- move cursor
 ---@param opts opts
 function M:move(opts)
-	self:register(opts)
 	local pos = windows.get_cursor()
 	local params
 	local res = get_point(self, opts, pos)

@@ -18,7 +18,7 @@ function M.sandwich(self, params, add, remove)
 			for _, lang_ in ipairs(langs) do
 				snip = snip or fly_config.snip[lang_]
 			end
-			snip = snip or fly_config.snip["default"]
+			snip = snip or fly_config.snip["all"]
 			if not snip then return end
 			local contents =
 				buffers.get_contents(0, remove and match.inner or params.range)

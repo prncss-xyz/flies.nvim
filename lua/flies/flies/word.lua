@@ -2,6 +2,7 @@
 local M = require("flies.flies._subline"):new {}
 
 M.solid = true
+M.name = "Word"
 
 --[[
 To generate the pattern, run the following script:

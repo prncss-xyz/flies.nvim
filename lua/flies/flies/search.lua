@@ -32,16 +32,14 @@ function M:move(opts)
 		target = self,
 	}
 	if opts.axis == "hint" then
-		local pattern = vim.fn.getreg("/", nil, nil)
-		require("hop").hint_patterns({}, pattern)
 	elseif
 		opts.axis == "best"
 		or opts.axis == "upward"
 		or opts.axis == "forward"
 	then
-		vim.cmd " normal! n"
+    M.search(true)
 	elseif opts.axis == "backward" then
-		vim.cmd "normal! N"
+    M.search(false)
 	end
 end
 
