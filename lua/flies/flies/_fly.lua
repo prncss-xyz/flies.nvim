@@ -201,16 +201,13 @@ function M:get_hints(pos, opts)
 		-- which would imply to hint the rightmost part of the object
 		for match in self:iterate_forwards(0, { start, 0 }, pos, opts) do
 			if match[domain][1][1] >= end_ then break end
-			local will_take = true
 			local match_range = match[domain]
-			if match_range then
-				if skipped_range then
-					if vim.deep_equal(match_range, skipped_range) then will_take = false end
-				end
-				if will_take then
-					matches[i] = match
-					i = i + 1
-				end
+			if
+				match_range
+				and (not skipped_range or (not vim.deep_equal(match_range, skipped_range)))
+			then
+				matches[i] = match
+				i = i + 1
 			end
 		end
 	end

@@ -1,9 +1,6 @@
 local M = {}
 
-local editor = require "flies.utils.editor"
 local windows = require "flies.utils.windows"
-local esc = editor.t "<esc>"
-local async = require "plenary.async"
 
 local value_to_type = {
 	inner = "domain",
@@ -42,13 +39,10 @@ function M.ask(opts, override, is_move, cb)
 	local count_str = ""
 	local cumul = ""
 	local to_match = ""
-	while not res.target do
-		local char = vim.fn.nr2char(vim.fn.getchar())
-		if char == esc then return end
+	for char in require("flies.utils.asker").asker() do
 		cumul = cumul .. char
 		if override[cumul] then
-			res = vim.tbl_extend("force", defaults, opts)
-			override[cumul](res)
+			override[cumul](vim.tbl_extend("force", defaults, opts))
 			return
 		end
 		if char:match "%d" then
@@ -64,29 +58,28 @@ function M.ask(opts, override, is_move, cb)
 					local type_ = value_to_type[value] or "target"
 					if type_ == "direction" then type_ = is_move and "move" or "domain" end
 					res[type_] = value
+					if type_ == "target" then break end
 				end
 			elseif char:match "%p" then
 				res.target = require("flies.flies._char_to"):new {
 					patterns = { require("flies.utils").pattern_escape(char, false) },
 				}
+				break
 			end
 		end
 	end
-
 	if
 		res.axis == "hint"
 		and res.target:is_instance(require "flies.flies.char_to_any")
 	then
 		res.target = require "flies.flies.char_to_2"
 	end
-
-	local target = res.target
-	target:ask(function()
-		local count = tonumber(count_str)
-		if count then res.count = count end
+	local count = tonumber(count_str)
+	if count then res.count = count end
+	res.target:ask(function()
 		if res.axis == "hint" then
 			local pos = windows.get_cursor()
-			local targets = target:get_hints(pos, opts)
+			local targets = res.target:get_hints(pos, opts)
 			if targets[1] then
 				return require("flies.utils.hint").hint(targets, function(match_)
 					res.match = match_

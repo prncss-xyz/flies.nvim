@@ -7,23 +7,22 @@ M.around_char_pattern = false
 ---type string?
 local pattern
 
-local function match(self, line, init)
-	return line:find(pattern, init)
-end
+local function match(self, line, init) return line:find(pattern, init) end
 
 M.patterns = { match }
 
+local function reducer(acc, char)
+	if char == "\r" then return "success", acc end
+	acc = acc .. char
+	if acc:len() == 2 then return "success", acc end
+	return "pending", acc
+end
+
 function M:ask(cb)
-	local esc = require("flies.utils.editor").t "<esc>"
-	local res = ""
-	while true do
-		local char = vim.fn.nr2char(vim.fn.getchar())
-		if char == esc then return end
-		res = res .. char
-		if char == "\r" or res:len() == 2 then
-			pattern = require("flies.utils").pattern_escape(res, true)
-			return cb()
-		end
+	local res = require("flies.utils.asker").process("", reducer)
+	if res then
+		pattern = require("flies.utils").pattern_escape(res, true)
+		return cb()
 	end
 end
 

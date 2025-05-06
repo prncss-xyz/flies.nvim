@@ -4,6 +4,8 @@ local M = {}
 ---@param str string
 function M.t(str) return vim.api.nvim_replace_termcodes(str, true, true, true) end
 
+M.esc = M.t "<esc>"
+
 --- feed vim-style espace character sequence
 ---@param keys string
 ---@param remap boolean
