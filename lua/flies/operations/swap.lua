@@ -1,13 +1,12 @@
 ---@class Swap: _Operator
 local M = require("flies.operations._operator"):new {}
 
-local buffers = require "flies.utils.buffers"
-local editor = require "flies.utils.editor"
-local lists = require "flies.utils.lists"
-
 local opts_
 
 function M:run(params)
+	local buffers = require "flies.utils.buffers"
+	local editor = require "flies.utils.editor"
+	local lists = require "flies.utils.lists"
 	local domain = params.opts.domain
 	local obj1 = params.target:find_best(0, params.pos, opts_)
 	if not obj1 then return end

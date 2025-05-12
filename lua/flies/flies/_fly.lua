@@ -17,17 +17,13 @@ M.lookahead = 200
 
 ---@alias match {outer: integer[][], inner: integer[][], context: integer[][]?, around: integer[][]?, around_wiseness: wiseness, hint_hide_start: boolean?, hint_hide_end: boolean?}
 
-local buffers = require "flies.utils.buffers"
-local windows = require "flies.utils.windows"
-local iterators = require "flies.utils.iterators"
-local lists = require "flies.utils.lists"
-
 --- get wiseness of given match
 ---@param bufnr number
 ---@param match match
 ---@param domain domain
 ---@return integer[][], wiseness
 function M:get_wiseness(bufnr, match, domain)
+	local buffers = require "flies.utils.buffers"
 	---type integer[][]
 	local range = match[domain]
 	local lonely_wiseness = domain == "inner" and self.lonely_wiseness_inner
@@ -41,6 +37,7 @@ end
 ---@param e integer[]
 ---@return integer[], integer[]
 local function around_charwise(self, bufnr, s, e)
+	local buffers = require "flies.utils.buffers"
 	local line = buffers.get_line(bufnr, e[1])
 	local e_
 	-- post
@@ -62,6 +59,7 @@ end
 ---@param e integer[]
 ---@return integer[]?
 local function around_post_linewise(self, bufnr, e)
+	local buffers = require "flies.utils.buffers"
 	local eob = buffers.get_eob(bufnr)
 	local row, col
 	local row_ = e[1]
@@ -86,6 +84,7 @@ end
 ---@param s integer[]
 ---@return integer[]?
 local function around_pre_linewise(self, bufnr, s)
+	local buffers = require "flies.utils.buffers"
 	local row, col
 	local row_ = s[1]
 	if row_ == 1 then return end
@@ -129,6 +128,8 @@ end
 ---@param match match
 ---@return integer[][]?, wiseness?
 function M:right(bufnr, cursor, match)
+	local buffers = require "flies.utils.buffers"
+	local lists = require "flies.utils.lists"
 	local inner, wiseness = self:get_wiseness(bufnr, match, "inner")
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
@@ -142,6 +143,8 @@ end
 ---@param match match
 ---@return integer[][]?, wiseness?
 function M:left(bufnr, cursor, match)
+	local buffers = require "flies.utils.buffers"
+	local lists = require "flies.utils.lists"
 	local inner, wiseness = self:get_wiseness(bufnr, match, "inner")
 	local s, e = unpack(inner)
 	local rp = lists.relative_pos(cursor, inner)
@@ -162,6 +165,9 @@ function M:ask(cb) return cb() end
 ---@param opts opts
 ---@return {s?: integer[], e?: integer[], match: match}[]
 function M:get_hints(pos, opts)
+	local windows = require "flies.utils.windows"
+	local iterators = require "flies.utils.iterators"
+	local lists = require "flies.utils.lists"
 	local domain = "outer"
 	if
 		opts.domain == "inner"
@@ -245,6 +251,7 @@ end
 ---@param opts opts
 ---@return match?
 function M:find_upwards(bufnr, pos, opts)
+	local iterators = require "flies.utils.iterators"
 	if self.iterate_upwards then
 		return iterators.nth(opts.count or 1)(
 			self:iterate_upwards(bufnr, pos, pos, opts)
@@ -257,6 +264,7 @@ end
 ---@param opts opts
 ---@return match?
 function M:find_backwards(bufnr, pos, opts)
+	local iterators = require "flies.utils.iterators"
 	if self.iterate_backwards then
 		return iterators.nth(opts.count or 1)(
 			self:iterate_backwards(bufnr, pos, pos, opts)
@@ -269,6 +277,7 @@ end
 ---@param opts opts
 ---@return match?
 function M:find_top(bufnr, pos, opts)
+	local iterators = require "flies.utils.iterators"
 	if self.iterate_forwards then
 		return iterators.last()(self:iterate_upwards(bufnr, pos, pos, opts))
 	end
@@ -279,6 +288,7 @@ end
 ---@param opts opts
 ---@return match?
 function M:find_first(bufnr, pos, opts)
+	local iterators = require "flies.utils.iterators"
 	if self.iterate_forwards then
 		return iterators.nth(opts.count or 1)(
 			self:iterate_forwards(bufnr, { 0, 0 }, pos, opts)
@@ -291,6 +301,7 @@ end
 ---@param opts opts
 ---@return match?
 function M:find_last(bufnr, pos, opts)
+	local iterators = require "flies.utils.iterators"
 	if true then
 		--TODO:
 		print "TODO"
@@ -313,6 +324,7 @@ end
 ---@param opts opts
 ---@return match?
 function M:find_forwards(bufnr, pos, opts)
+	local iterators = require "flies.utils.iterators"
 	if self.iterate_forwards then
 		return iterators.nth(opts.count or 1)(
 			self:iterate_forwards(bufnr, pos, pos, opts)
@@ -426,6 +438,7 @@ end
 ---@param pos integer[][]
 ---@return integer[]?
 local function get_point_(self, opts, pos)
+	local lists = require "flies.utils.lists"
 	local params = self:with_opts(opts, pos)
 	if not params then return end
 	local s, e = unpack(params.range)
@@ -439,6 +452,7 @@ end
 ---@param pos integer[][]
 ---@return integer[]?
 local function get_point(self, opts, pos)
+	local lists = require "flies.utils.lists"
 	if opts.count == nil and opts.axis == "best" then
 		opts.axis = "upward"
 		opts.count = 1
@@ -467,6 +481,8 @@ function M:post_move(opts) end
 --- move cursor
 ---@param opts opts
 function M:move(opts)
+	local buffers = require "flies.utils.buffers"
+	local windows = require "flies.utils.windows"
 	local pos = windows.get_cursor()
 	local params
 	local res = get_point(self, opts, pos)
@@ -508,6 +524,8 @@ end
 ---@param opts opts
 ---@return nil
 function M:select(opts)
+	local buffers = require "flies.utils.buffers"
+	local windows = require "flies.utils.windows"
 	local pos = windows.get_cursor()
 	local params = self:with_opts(opts, pos)
 	if not params then return end

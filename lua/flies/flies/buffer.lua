@@ -1,8 +1,6 @@
 ---@class Buffer: _Fly
 local M = require("flies.flies._fly"):new {}
 
-local windows = require "flies.utils.windows"
-
 M.solid = true
 
 local iterators = require "flies.utils.iterators"
@@ -40,6 +38,7 @@ end
 
 ---@param opts opts
 function M:move(opts)
+	local windows = require "flies.utils.windows"
 	local eob = buffers.get_eob(0)
 	local row
 	if opts.axis == "forward" then

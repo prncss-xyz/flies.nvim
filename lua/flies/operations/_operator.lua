@@ -4,11 +4,6 @@ local M = require("flies.utils.objects"):new {}
 
 ---@alias param table
 
-local windows = require "flies.utils.windows"
-local buffers = require "flies.utils.buffers"
-local ask = require "flies.utils.ask"
-local selection = require "flies.flies.selection"
-
 ---@param name string
 ---@param char string
 ---@param target _Fly?
@@ -25,6 +20,7 @@ function M:pre() return true end
 ---@param self _Operator
 ---@param mode mode
 local function op(self, mode, pre)
+	local buffers = require "flies.utils.buffers"
 	local params = require("flies")._params
 	if not params then return end
 	if not params.range then
@@ -42,6 +38,8 @@ local function op(self, mode, pre)
 end
 
 function M:normal(opts, override)
+	local buffers = require "flies.utils.buffers"
+	local ask = require "flies.utils.ask"
 	ask.ask(opts, override, false, function(opts)
 		if not opts then return end
 		local pre = self:pre()
@@ -60,6 +58,9 @@ function M:normal(opts, override)
 end
 
 function M:visual(opts)
+	local windows = require "flies.utils.windows"
+	local buffers = require "flies.utils.buffers"
+	local selection = require "flies.flies.selection"
 	local pre = self:pre()
 	if not pre then return end
 	local count = vim.v.count
@@ -79,6 +80,7 @@ M.default_opts = {}
 M.allowed_modes = "n"
 
 function M:call(opts, override)
+	local buffers = require "flies.utils.buffers"
 	local opts_ = vim.tbl_extend("force", self.default_opts, opts or {})
 	local mode = buffers.get_mode()
 	if mode == "n" and self.allowed_modes:find "n" then

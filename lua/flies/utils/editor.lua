@@ -48,4 +48,17 @@ function M.get_lang_at_cursor()
 	return M.get_vim_lang(0, { cursor, cursor })
 end
 
+function M.get_lang_snip(fly_config)
+	if fly_config.snip then
+		local lang = vim.bo.filetype
+		local langs = require("flies").config.ts.extends[lang] or { lang }
+		local snip
+		for _, lang_ in ipairs(langs) do
+			snip = snip or fly_config.snip[lang_]
+		end
+		snip = snip or fly_config.snip["all"]
+		return snip
+	end
+end
+
 return M

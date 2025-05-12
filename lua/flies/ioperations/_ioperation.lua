@@ -3,13 +3,12 @@
 ---@field op_func fun(self: _IOperation, match: Object)
 local M = require("flies.utils.objects"):new {}
 
-local buffers = require "flies.utils.buffers"
-local windows = require "flies.utils.windows"
-
 local match
 local count
 
 function M:select()
+	local buffers = require "flies.utils.buffers"
+	local windows = require "flies.utils.windows"
 	local pos = windows.get_cursor()
 	match = self.target:find_best(0, pos, {})
 	if not match then return end
@@ -17,6 +16,7 @@ function M:select()
 end
 
 function M:exec()
+	local buffers = require "flies.utils.buffers"
 	count = vim.v.count
 	if count == 0 then count = nil end
 	require("flies")._op_func = function()

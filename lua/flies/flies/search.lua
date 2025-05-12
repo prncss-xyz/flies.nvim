@@ -1,9 +1,6 @@
 ---@class Search: _Fly
 local M = require("flies.flies._fly"):new {}
 
-local editor = require "flies.utils.editor"
-local move_again = require "flies.actions.move_again"
-
 M.solid = true
 
 function M:select(opts)
@@ -37,9 +34,9 @@ function M:move(opts)
 		or opts.axis == "upward"
 		or opts.axis == "forward"
 	then
-    M.search(true)
+		M.search(true)
 	elseif opts.axis == "backward" then
-    M.search(false)
+		M.search(false)
 	end
 end
 
@@ -55,6 +52,7 @@ local function search_n(forward)
 end
 
 function M.set_search(fwd)
+	local move_again = require "flies.actions.move_again"
 	search_forward = fwd
 	move_again.register(
 		function() search_n(false) end,
@@ -63,6 +61,7 @@ function M.set_search(fwd)
 end
 
 function M.search(fwd)
+	local editor = require "flies.utils.editor"
 	M.set_search(fwd)
 	vim.api.nvim_feedkeys(editor.t(fwd and "/" or "?"), "n", false)
 end

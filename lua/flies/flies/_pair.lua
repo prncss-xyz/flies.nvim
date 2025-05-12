@@ -12,11 +12,6 @@ M.solid = false
 ---@param n any
 function M.validator(i, m, j, n) return i == j and m == n end
 
-local buffers = require "flies.utils.buffers"
-local lists = require "flies.utils.lists"
-local iterators = require "flies.utils.iterators"
-local subline = require "flies.utils.subline"
-
 ---@param self _Pair
 local function process_pair_patterns(self)
 	local patterns = {}
@@ -80,6 +75,9 @@ end
 ---@param up boolean wether to yield closing patterns when there is not finding an open pattern, including reference position
 ---@param lat boolean wether to yield matched pairs, ordered is searching direction, excluding reference position
 local function np_co(self, patterns, bufnr, fwd, pos, up, lat)
+	local buffers = require "flies.utils.buffers"
+	local lists = require "flies.utils.lists"
+	local subline = require "flies.utils.subline"
 	local sgn = fwd and 1 or -1
 	---an opening pattern that we are currently finding
 	local finding
@@ -198,6 +196,7 @@ end
 ---@param bufnr number
 ---@param pos integer[]
 function M:iterate_upwards(bufnr, pos)
+	local iterators = require "flies.utils.iterators"
 	local patterns = process_pair_patterns(self)
 	return iterators.zip_match(function(right, left)
 		if self.validator(left.i, left.m, right.i - #self.left_patterns, right.m) then

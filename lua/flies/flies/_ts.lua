@@ -9,16 +9,12 @@ M.nested = true
 
 M.lonely_wiseness_around = "V"
 
-local lists = require "flies.utils.lists"
-local ts = require "flies.utils.ts"
-local iterators = require "flies.utils.iterators"
-local buffers = require "flies.utils.buffers"
-
 ---@param bufnr number
 ---@param match match
 ---@param domain domain
 ---@return integer[][], wiseness
 function M:get_wiseness(bufnr, match, domain)
+	local buffers = require "flies.utils.buffers"
 	local range = match[domain]
 	local lonely_wiseness = domain == "inner" and self.lonely_wiseness_inner
 		or self.lonely_wiseness_outer
@@ -33,6 +29,8 @@ end
 ---@param context integer[][]
 ---@return integer[][]?, wiseness?
 local function get_around(self, bufnr, match, context, matches)
+	local lists = require "flies.utils.lists"
+	local buffers = require "flies.utils.buffers"
 	local as, ae
 	if not context then return nil, nil end
 	local match_s, match_e = unpack(match.outer)
@@ -70,6 +68,7 @@ end
 ---@param many boolean
 ---@return integer[][]?
 local function find_context(pos, matches, many)
+	local lists = require "flies.utils.lists"
 	local best, pre
 	local cmp = lists.sort_axis("upward", "context")
 	for _, match in ipairs(matches) do
@@ -91,6 +90,9 @@ local function iter_axis(axis)
 	---@param pos integer[][]
 	---@param ref integer[][]
 	return function(self, bufnr, pos, ref)
+		local lists = require "flies.utils.lists"
+		local ts = require "flies.utils.ts"
+		local iterators = require "flies.utils.iterators"
 		local matches = ts.query_from_name(bufnr, self.names)
 		if matches == nil then
 			if self.no_tree then

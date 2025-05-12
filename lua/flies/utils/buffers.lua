@@ -172,7 +172,7 @@ end
 ---concurently apply edits operations to a buffer
 ---(this means you don't have to worry about how an operation changes the coordonates needed to perform the next one)
 ---@param bufnr integer buffer's number or 0 for current
----@param edits table a list of triplets {start, end_, new_text}
+---@param edits table a list of pairs { {start, end_}, new_text}
 function M.edit(bufnr, edits)
 	if bufnr == 0 then bufnr = vim.api.nvim_get_current_buf() end
 	vim.lsp.util.apply_text_edits(vim.tbl_map(get_lsp_edit, edits), bufnr, "utf-8")

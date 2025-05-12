@@ -1,4 +1,5 @@
 local M = {}
+-- https://neovim.io/doc/user/treesitter.html#_vim.treesitter
 
 local ts_utils = require "nvim-treesitter.ts_utils"
 local parsers = require "nvim-treesitter.parsers"
@@ -12,20 +13,23 @@ local function get_range_node(burnr, range)
 	return srow, scol, erow, ecol
 end
 
+local function unpack4(r)
+	if #r == 2 then return r[1], 0, r[2], 0 end
+	local off_1 = #r == 6 and 1 or 0
+	return r[1], r[2], r[3 + off_1], r[4 + off_1]
+end
+
+local function get_range(n)
+	if type(n) == "table" then
+		dd(unpack4(n))
+		return unpack4(n)
+	else
+		return n:range(false)
+	end
+end
+
 local function get_node_range_(bufnr, node)
-	local srow, scol, erow, ecol = node:range()
-	local s, e
-	if scol == buffers.get_line(bufnr, srow + 1):len() then
-		s = { srow + 2, buffers.get_bol(buffers.get_line(bufnr, srow + 2)) }
-	else
-		s = { srow + 1, scol + 1 }
-	end
-	if ecol == 0 then
-		e = { erow, buffers.get_eol(buffers.get_line(bufnr, erow)) }
-	else
-		e = { erow + 1, ecol }
-	end
-	return s, e
+	return vim.treesitter.get_node_range(node)
 end
 
 --- Get a compatible vim range (1 index based) from a TS node range.

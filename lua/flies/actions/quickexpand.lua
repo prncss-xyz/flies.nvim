@@ -15,15 +15,29 @@ local function reducer(conf, char)
 end
 
 function M.exec()
+	local editor = require "flies.utils.editor"
+	local buffers = require "flies.utils.buffers"
+	local windows = require "flies.utils.windows"
 	local res = require("flies.utils.asker").process(
 		require("flies").config.op.wrap.chars,
 		reducer
 	)
-	if res == nil then return end
-	local snip = res.snip.all
+	if not res then return end
+	local snip = editor.get_lang_snip(res)
 	if snip then
 		local luasnip = require "luasnip"
 		luasnip.snip_expand(luasnip.snippet("", snip))
+		return
+	end
+	if res.left or res.right then
+		local left, right = res.left or "", res.right or ""
+		local cursor = windows.get_cursor()
+		local range = { cursor, { cursor[1], cursor[2] - 1 } }
+		local wiseness = "v"
+		local outer, inner = range, range
+		buffers.subs(0, outer, inner, wiseness, left, right, editor.get_indent())
+		windows.set_cursor { cursor[1], cursor[2] + #left }
+		return
 	end
 end
 

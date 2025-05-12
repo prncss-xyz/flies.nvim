@@ -1,8 +1,6 @@
 ---@class OpenClose: _IOperation
 local M = require("flies.ioperations._ioperation"):new {}
 
-local buffers = require "flies.utils.buffers"
-
 ---@param match table
 local function filter(match)
 	if match.protect then return nil end
@@ -16,6 +14,7 @@ M.target = require("flies.flies._ts"):new {
 
 ---@param match_ table
 function M:op_func(match_)
+	local buffers = require "flies.utils.buffers"
 	if not match_ then return end
 	if match_.tag_open then
 		local row, col = unpack(match_.outer[2])

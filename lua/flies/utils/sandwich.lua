@@ -11,15 +11,8 @@ function M.sandwich(self, params, add, remove)
 	if add then
 		local char = params.pre
 		local fly_config = self:get_config("wrap", char, params.target)
-		if fly_config.snip then
-			local lang = vim.bo.filetype
-			local langs = require("flies").config.ts.extends[lang] or { lang }
-			local snip
-			for _, lang_ in ipairs(langs) do
-				snip = snip or fly_config.snip[lang_]
-			end
-			snip = snip or fly_config.snip["all"]
-			if not snip then return end
+		local snip = editor.get_lang_snip(fly_config)
+		if snip then
 			local contents =
 				buffers.get_contents(0, remove and match.inner or params.range)
 			buffers.snip_replace(snip, range, {
@@ -27,9 +20,9 @@ function M.sandwich(self, params, add, remove)
 			})
 			return
 		end
-		if fly_config.left then
-			left = fly_config.left
-			right = fly_config.right
+		if fly_config.left or fly_config.right then
+			left = fly_config.left or ""
+			right = fly_config.right or ""
 		elseif char:match "%p" then
 			left = char
 			right = char

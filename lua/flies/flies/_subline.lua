@@ -2,11 +2,6 @@
 ---@field patterns sublinePattern[]
 local M = require("flies.flies._fly"):new {}
 
-local buffers = require "flies.utils.buffers"
-local lists = require "flies.utils.lists"
-local iterators = require "flies.utils.iterators"
-local subline = require "flies.utils.subline"
-
 ---@param bufnr integer
 ---@param row integer
 ---@param i integer
@@ -17,6 +12,9 @@ local subline = require "flies.utils.subline"
 function M:map(bufnr, row, i, s, e, m) return s, e end
 
 function M:iterate_upwards(bufnr, pos)
+	local buffers = require "flies.utils.buffers"
+	local iterators = require "flies.utils.iterators"
+	local subline = require "flies.utils.subline"
 	local row, col = unpack(pos)
 	local line = buffers.get_line(bufnr, row)
 	for _, match in ipairs(subline.get_matches(self, self.patterns, line)) do
@@ -45,8 +43,13 @@ end
 ---@param fwd boolean
 ---@param pos integer[]
 local function np_co(self, bufnr, fwd, pos)
+	local buffers = require "flies.utils.buffers"
+	local lists = require "flies.utils.lists"
+	local subline = require "flies.utils.subline"
 	for row, line in buffers.get_lines(bufnr, fwd, pos[1], self.lookahead) do
-		for _, match in lists.bipairs(fwd, subline.get_matches(self, self.patterns, line)) do
+		for _, match in
+			lists.bipairs(fwd, subline.get_matches(self, self.patterns, line))
+		do
 			local i, s, e, capture = unpack(match)
 			local outer = { { row, s }, { row, e } }
 			if lists.relative_pos(pos, outer) == (fwd and "forward" or "backward") then

@@ -1,19 +1,18 @@
 local M = {}
 
-local editor = require "flies.utils.editor"
-
 local rep = {
 	prev = function(_) end,
 	next = function(_) end,
 }
 
 function M.recompose(prev, next_, fwd)
+	local editor = require "flies.utils.editor"
 	if type(prev) == "string" then prev = editor.feedkeys(prev) end
 	if type(next_) == "string" then next_ = editor.feedkeys(next_) end
 	local fp = function()
 		M.register(prev, next_)
 		prev()
-  end
+	end
 	local fn = function()
 		M.register(prev, next_)
 		next_()
@@ -22,6 +21,7 @@ function M.recompose(prev, next_, fwd)
 end
 
 function M.recompose2(prev, next_, fwd)
+	local editor = require "flies.utils.editor"
 	if type(prev) == "string" then prev = editor.feedkeys(prev) end
 	if type(next_) == "string" then next_ = editor.feedkeys(next_) end
 	if fwd then
