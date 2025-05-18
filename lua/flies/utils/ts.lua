@@ -1,67 +1,33 @@
 local M = {}
 -- https://neovim.io/doc/user/treesitter.html#_vim.treesitter
 
-local ts_utils = require "nvim-treesitter.ts_utils"
 local parsers = require "nvim-treesitter.parsers"
 local buffers = require "flies.utils.buffers"
-local lists = require "flies.utils.lists"
 
-local function get_range_node(burnr, range)
+local function range_to_node(range)
 	local s, e = unpack(range)
 	local srow, scol = s[1] - 1, s[2] - 1
 	local erow, ecol = e[1] - 1, e[2]
 	return srow, scol, erow, ecol
 end
 
-local function unpack4(r)
-	if #r == 2 then return r[1], 0, r[2], 0 end
-	local off_1 = #r == 6 and 1 or 0
-	return r[1], r[2], r[3 + off_1], r[4 + off_1]
-end
-
-local function get_range(n)
-	if type(n) == "table" then
-		dd(unpack4(n))
-		return unpack4(n)
-	else
-		return n:range(false)
-	end
-end
-
-local function get_node_range_(bufnr, node)
-	return vim.treesitter.get_node_range(node)
-end
-
 --- Get a compatible vim range (1 index based) from a TS node range.
---
 -- TS nodes start with 0 and the end col is ending exclusive.
 -- They also treat a EOF/EOL char as a char ending in the first
 -- col of the next row.
 --- get vim range from ts node
----@param bufnr integer
----@param node unknown
----@param inside boolean
----@return integer[], integer[]
-local function get_node_range(bufnr, node, inside)
-	local s, e = get_node_range_(bufnr, node)
+local function node_to_range(node, inside)
+	local scol, srow, ecol, erow
 	if inside then
 		local count = node:child_count()
-		for i = 0, count - 1 do
-			local s_, _ = get_node_range_(bufnr, node:child(i))
-			if lists.cmp(s_, s) > 0 then
-				s = s_
-				break
-			end
-		end
-		for i = count - 1, 0, -1 do
-			local _, e_ = get_node_range_(bufnr, node:child(i))
-			if lists.cmp(e_, e) < 0 then
-				e = e_
-				break
-			end
-		end
+		scol, srow =
+			vim.treesitter.get_node_range(count >= 1 and node:child(1) or node)
+		_, _, ecol, erow =
+			vim.treesitter.get_node_range(count >= 2 and node:child(count - 2) or node)
+	else
+		scol, srow, ecol, erow = vim.treesitter.get_node_range(node)
 	end
-	return s, e
+	return { { scol + 1, srow + 1 }, { ecol + 1, erow } }
 end
 
 --- process nodes range according to modifiers
@@ -113,12 +79,6 @@ local function query_from_name(lang, name)
 	return vim.treesitter.query.parse(lang, query_str)
 end
 
-local function extend_query(name, query_by_lang)
-	for lang, query in query_by_lang do
-		-- TODO:
-	end
-end
-
 ---return all matches from registered queries under name from specified buffer; returns nil if treesitter not supported on buffer
 ---@param bufnr number
 ---@param names table|string
@@ -133,10 +93,12 @@ function M.query_from_name(bufnr, names)
 			local cquery = query_from_name(lang, name)
 			for pattern, ts_match, metadata in cquery:iter_matches(tree:root(), bufnr) do
 				local match = { pattern = pattern, metadata = metadata }
-				for id, node in pairs(ts_match) do
+				for id, nodes in pairs(ts_match) do
 					local capture_name = cquery.captures[id]
-					match[capture_name] =
-						{ get_node_range(bufnr, node, vim.endswith(capture_name, ".inside")) }
+					for _, node in ipairs(nodes) do
+						match[capture_name] =
+							node_to_range(node, vim.endswith(capture_name, ".inside"))
+					end
 				end
 				table.insert(matches, spice_match(bufnr, match))
 			end
@@ -160,7 +122,7 @@ end
 function M.get_ts_lang(bufnr, range)
 	local tree = parsers.get_parser(bufnr)
 	if not tree then return end
-	tree = contains(tree, { get_range_node(bufnr, range) })
+	tree = contains(tree, { range_to_node(range) })
 	return tree:lang()
 end
 
