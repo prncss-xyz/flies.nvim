@@ -25,8 +25,7 @@ function M.exec()
 	if not res then return end
 	local snip = editor.get_lang_snip(res)
 	if snip then
-		local luasnip = require "luasnip"
-		luasnip.snip_expand(luasnip.snippet("", snip))
+    buffers.snip_replace(snip)
 		return
 	end
 	if res.left or res.right then

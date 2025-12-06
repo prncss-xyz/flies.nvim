@@ -338,28 +338,27 @@ function M.subs(bufnr, outer, inner, wiseness, left_text, right_text, tab_text)
 	M.edit(bufnr, edits)
 end
 
+local snippet_cache = {}
 function M.snip_replace(snippet, range, captures)
-	local from, to_ = unpack(range)
 	local luasnip = require "luasnip"
-	luasnip.snip_expand(luasnip.snippet("", snippet), {
-		clear_region = {
+	local cached = snippet_cache[snippet]
+	if not cached then
+		cached = luasnip.snippet("", snippet)
+		snippet_cache[snippet] = cached
+	end
+	local opts
+	if range then
+		local from, to_ = unpack(range)
+		local clear_region = {
 			from = { from[1] - 1, from[2] - 1 },
 			to = { to_[1] - 1, to_[2] },
-		},
-		expand_params = { captures = captures },
-	})
-end
-
-function M.snip_replace2(snippet, range, str)
-	local from, to_ = unpack(range)
-	local luasnip = require "luasnip"
-	luasnip.snip_expand(luasnip.snippet(str, snippet), {
-		clear_region = {
-			from = { from[1] - 1, from[2] - 1 },
-			to = { to_[1] - 1, to_[2] },
-		},
-		expand_params = { captures = {} },
-	})
+		}
+		opts = {
+			clear_region = clear_region,
+			expand_params = { captures = captures },
+		}
+	end
+	luasnip.snip_expand(cached, opts)
 end
 
 function M.snip_capture(name)
