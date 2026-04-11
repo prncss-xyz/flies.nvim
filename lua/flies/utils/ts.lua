@@ -1,8 +1,13 @@
 local M = {}
 -- https://neovim.io/doc/user/treesitter.html#_vim.treesitter
 
-local parsers = require "nvim-treesitter.parsers"
 local buffers = require "flies.utils.buffers"
+
+local function get_parser(bufnr)
+	local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+	if not ok then return nil end
+	return parser
+end
 
 local function range_to_node(range)
 	local s, e = unpack(range)
@@ -84,7 +89,7 @@ end
 ---@param names table|string
 function M.query_from_name(bufnr, names)
 	if type(names) == "string" then names = { names } end
-	local parser = parsers.get_parser(bufnr)
+	local parser = get_parser(bufnr)
 	if not parser then return end
 	local matches = {}
 	parser:for_each_tree(function(tree, lang_tree)
@@ -120,7 +125,7 @@ end
 ---@param bufnr integer
 ---@param range integer[][]
 function M.get_ts_lang(bufnr, range)
-	local tree = parsers.get_parser(bufnr)
+	local tree = get_parser(bufnr)
 	if not tree then return end
 	tree = contains(tree, { range_to_node(range) })
 	return tree:lang()
