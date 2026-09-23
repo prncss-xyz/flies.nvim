@@ -39,35 +39,38 @@ function M.ask(opts, override, is_move, cb)
 	local count_str = ""
 	local cumul = ""
 	local to_match = ""
-	for char in require("flies.utils.asker").asker() do
-		cumul = cumul .. char
-		if override[cumul] then
-			override[cumul](vim.tbl_extend("force", defaults, opts))
-			return
-		end
-		if char:match "%d" then
-			count_str = count_str .. char
-		else
-			to_match = to_match .. char
-			local value = mappings[to_match]
-			if value then
-				to_match = ""
-				if value == "toggle" then
-					res.domain = res.domain == "inner" and "outer" or "inner"
-				else
-					local type_ = value_to_type[value] or "target"
-					if type_ == "direction" then type_ = is_move and "move" or "domain" end
-					res[type_] = value
-					if type_ == "target" then break end
+	if not res.target then
+		for char in require("flies.utils.asker").asker() do
+			cumul = cumul .. char
+			if override[cumul] then
+				override[cumul](vim.tbl_extend("force", defaults, opts))
+				return
+			end
+			if char:match "%d" then
+				count_str = count_str .. char
+			else
+				to_match = to_match .. char
+				local value = mappings[to_match]
+				if value then
+					to_match = ""
+					if value == "toggle" then
+						res.domain = res.domain == "inner" and "outer" or "inner"
+					else
+						local type_ = value_to_type[value] or "target"
+						if type_ == "direction" then type_ = is_move and "move" or "domain" end
+						res[type_] = value
+						if type_ == "target" then break end
+					end
+				elseif char:match "%p" then
+					res.target = require("flies.flies._char_to"):new {
+						patterns = { require("flies.utils").pattern_escape(char, false) },
+					}
+					break
 				end
-			elseif char:match "%p" then
-				res.target = require("flies.flies._char_to"):new {
-					patterns = { require("flies.utils").pattern_escape(char, false) },
-				}
-				break
 			end
 		end
 	end
+	if not res.target then return end
 	if
 		res.axis == "hint"
 		and res.target:is_instance(require "flies.flies.char_to_any")
