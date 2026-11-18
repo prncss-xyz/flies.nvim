@@ -1,7 +1,9 @@
----@class Brackets: _Pair
-local M = require("flies.flies._pair"):new {}
+---@class Brackets: _Subline
+local M = require("flies.flies._subline"):new {}
 
-M.left_patterns = { "%(", "%[", "{" }
-M.right_patterns = { "%)", "%]", "}" }
+M.nested = true
+M.patterns = { "%b()", "%b[]", "%b{}" }
+
+function M:map(_, _, _, s, e) return s + 1, e - 1 end
 
 return M

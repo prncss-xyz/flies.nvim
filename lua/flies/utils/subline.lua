@@ -3,6 +3,7 @@ local M = {}
 ---@alias sublinePattern string|fun(self: _Fly, line: string, init: integer)
 ---@alias sublineMatch {[1]: integer, [2]: integer, [3]: integer, [4]: any}
 
+--- matches are sorted by start column; when `self.nested`, they may overlap
 ---@param patterns sublinePattern[]
 ---@param line string
 ---@return sublineMatch[]
@@ -44,7 +45,7 @@ function M.get_matches(self, patterns, line)
 		end
 		if not i then return matches end
 		table.insert(matches, res[i])
-		init = res[i][3] + 1
+		init = (self.nested and res[i][2] or res[i][3]) + 1
 	end
 end
 

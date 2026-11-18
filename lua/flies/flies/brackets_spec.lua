@@ -8,48 +8,47 @@ local function r(a, b)
 	}
 end
 
+local function outer(match) return match and match.outer end
+
 describe("brackets", function()
-	describe("find brackets", function()
-		it("should find forward", function()
-			local text = [[ [{(.)}] ]]
-			tests.set_buf(text)
-			assert.are.same(r(2, 8), M:find_forwards(0, 1, { 1, 1 }).outer)
-			assert.are.same(r(3, 7), M:find_forwards(0, 2, { 1, 1 }).outer)
-			assert.are.same(r(4, 6), M:find_forwards(0, 3, { 1, 1 }).outer)
-			assert.is_nil(M:find_forwards(0, 4, { 1, 1 }))
-		end)
-		it("should find backward", function()
-			local text = [[ [{(.)}] ]]
-			tests.set_buf(text)
-			assert.are.same(r(2, 8), M:find_backwards(0, 1, { 1, 9 }).outer)
-			assert.are.same(r(3, 7), M:find_backwards(0, 2, { 1, 9 }).outer)
-			assert.are.same(r(4, 6), M:find_backwards(0, 3, { 1, 9 }).outer)
-			assert.is_nil(M:find_forwards(0, 4, { 1, 9 }))
-		end)
-		it("should find upward", function()
-			local text = [[ [{(.)}] ]]
-			tests.set_buf(text)
-			assert.are.same(r(4, 6), M:find_upwards(0, 1, { 1, 5 }).outer)
-			assert.are.same(r(3, 7), M:find_upwards(0, 2, { 1, 5 }).outer)
-			assert.are.same(r(2, 8), M:find_upwards(0, 3, { 1, 5 }).outer)
-			assert.is_nil(M:find_forwards(0, 4, { 1, 5 }))
-			assert.are.same(r(4, 6), M:find_upwards(0, 1, { 1, 4 }).outer)
-			assert.are.same(r(4, 6), M:find_upwards(0, 1, { 1, 6 }).outer)
-		end)
-		it("should cope with uneven braces", function()
-			local text = [[ [{(.) ] ]]
-			tests.set_buf(text)
-			assert.is_nil(M:find_forwards(0, 1, { 1, 1 }))
-			assert.are.same(r(4, 6), M:find_upwards(0, 1, { 1, 5 }).outer)
-			assert.are.same(r(2, 8), M:find_upwards(0, 2, { 1, 5 }).outer)
-			assert.is_nil(M:find_forwards(0, 3, { 1, 5 }))
-			text = [[ [ (.)}] ]]
-			tests.set_buf(text)
-			assert.are.same(r(2, 8), M:find_forwards(0, 1, { 1, 1 }).outer)
-			assert.are.same(r(4, 6), M:find_forwards(0, 2, { 1, 1 }).outer)
-			assert.is_nil(M:find_forwards(0, 3, { 1, 1 }))
-			assert.are.same(r(4, 6), M:find_upwards(0, 1, { 1, 5 }).outer)
-			assert.is_nil(M:find_forwards(0, 2, { 1, 5 }))
-		end)
+	it("should find forward", function()
+		tests.set_buf [[ [{(.)}] ]]
+		local pos = { 1, 1 }
+		assert.are.same(r(2, 8), outer(M:find_forwards(0, pos, { count = 1 })))
+		assert.are.same(r(3, 7), outer(M:find_forwards(0, pos, { count = 2 })))
+		assert.are.same(r(4, 6), outer(M:find_forwards(0, pos, { count = 3 })))
+		assert.is_nil(M:find_forwards(0, pos, { count = 4 }))
+	end)
+	it("should find backward", function()
+		tests.set_buf [[ [{(.)}] ]]
+		local pos = { 1, 9 }
+		assert.are.same(r(2, 8), outer(M:find_backwards(0, pos, { count = 1 })))
+		assert.are.same(r(3, 7), outer(M:find_backwards(0, pos, { count = 2 })))
+		assert.are.same(r(4, 6), outer(M:find_backwards(0, pos, { count = 3 })))
+		assert.is_nil(M:find_backwards(0, pos, { count = 4 }))
+	end)
+	it("should find upward", function()
+		tests.set_buf [[ [{(.)}] ]]
+		local pos = { 1, 5 }
+		assert.are.same(r(4, 6), outer(M:find_upwards(0, pos, { count = 1 })))
+		assert.are.same(r(3, 7), outer(M:find_upwards(0, pos, { count = 2 })))
+		assert.are.same(r(2, 8), outer(M:find_upwards(0, pos, { count = 3 })))
+		assert.is_nil(M:find_upwards(0, pos, { count = 4 }))
+		assert.are.same(r(4, 6), outer(M:find_upwards(0, { 1, 4 }, { count = 1 })))
+		assert.are.same(r(4, 6), outer(M:find_upwards(0, { 1, 6 }, { count = 1 })))
+	end)
+	it("should find inner", function()
+		tests.set_buf [[ (ab) ]]
+		assert.are.same(r(3, 4), M:find_upwards(0, { 1, 3 }, { count = 1 }).inner)
+	end)
+	it("should cope with uneven brackets", function()
+		tests.set_buf [[ [{(.) ] ]]
+		assert.are.same(r(4, 6), outer(M:find_upwards(0, { 1, 5 }, { count = 1 })))
+		assert.are.same(r(2, 8), outer(M:find_upwards(0, { 1, 5 }, { count = 2 })))
+		assert.is_nil(M:find_upwards(0, { 1, 5 }, { count = 3 }))
+		tests.set_buf [[ [ (.)}] ]]
+		assert.are.same(r(2, 8), outer(M:find_forwards(0, { 1, 1 }, { count = 1 })))
+		assert.are.same(r(4, 6), outer(M:find_forwards(0, { 1, 1 }, { count = 2 })))
+		assert.is_nil(M:find_forwards(0, { 1, 1 }, { count = 3 }))
 	end)
 end)

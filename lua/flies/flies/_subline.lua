@@ -17,25 +17,23 @@ function M:iterate_upwards(bufnr, pos)
 	local subline = require "flies.utils.subline"
 	local row, col = unpack(pos)
 	local line = buffers.get_line(bufnr, row)
+	local res = {}
 	for _, match in ipairs(subline.get_matches(self, self.patterns, line)) do
 		local i, s, e, capture = unpack(match)
-		if s <= col and col <= e then
+		if col < s then break end
+		if col <= e then
 			local isc, iec = self:map(bufnr, row, i, s, e, capture)
 			if isc then
-				return iterators.unit {
+				table.insert(res, 1, {
 					index = i,
 					capture = capture,
 					outer = { { row, s }, { row, e } },
 					inner = { { row, isc }, { row, iec } },
-				}
-			else
-				break
+				})
 			end
-		elseif col < e then
-			break
 		end
 	end
-	return iterators.null()
+	return iterators.from_list_single(res)
 end
 
 ---@param self _Subline
@@ -47,13 +45,18 @@ local function np_co(self, bufnr, fwd, pos)
 	local lists = require "flies.utils.lists"
 	local subline = require "flies.utils.subline"
 	for row, line in buffers.get_lines(bufnr, fwd, pos[1], self.lookahead) do
-		for _, match in
-			lists.bipairs(fwd, subline.get_matches(self, self.patterns, line))
-		do
+		local matches = subline.get_matches(self, self.patterns, line)
+		if self.nested and not fwd then
+			table.sort(
+				matches,
+				function(a, b) return a[3] < b[3] or (a[3] == b[3] and a[2] > b[2]) end
+			)
+		end
+		for _, match in lists.bipairs(fwd, matches) do
 			local i, s, e, capture = unpack(match)
 			local outer = { { row, s }, { row, e } }
 			if lists.relative_pos(pos, outer) == (fwd and "forward" or "backward") then
-				local isc, iec = self:map(bufnr, row, i, s, e)
+				local isc, iec = self:map(bufnr, row, i, s, e, capture)
 				if isc then
 					coroutine.yield {
 						index = i,
