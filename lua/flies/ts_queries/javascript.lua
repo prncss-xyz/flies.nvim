@@ -110,4 +110,25 @@ M.open_close = [[
   (arrow_function body: (statement_block ((_)? @protect (return_statement (_) @arrow_close)) ) @outer)
 ]]
 
+M.delimiter = [[
+  ;; query
+  (template_substitution "${" @inner.before "}" @inner.after) @outer
+  (object "{" @inner.before "}" @inner.after) @outer
+  (statement_block "{" @inner.before "}" @inner.after) @outer
+  (class_body "{" @inner.before "}" @inner.after) @outer
+  (switch_body "{" @inner.before "}" @inner.after) @outer
+  (named_imports "{" @inner.before "}" @inner.after) @outer
+  (export_clause "{" @inner.before "}" @inner.after) @outer
+  (object_pattern "{" @inner.before "}" @inner.after) @outer
+  (arguments "(" @inner.before ")" @inner.after) @outer
+  (formal_parameters "(" @inner.before ")" @inner.after) @outer
+  (parenthesized_expression "(" @inner.before ")" @inner.after) @outer
+  (for_statement "(" @inner.before ")" @inner.after) @outer
+  (for_in_statement "(" @inner.before ")" @inner.after) @outer
+  (computed_property_name "[" @inner.before "]" @inner.after) @outer
+  (subscript_expression "[" @inner.before "]" @inner.after) @outer
+  (array "[" @inner.before "]" @inner.after) @outer
+  (array_pattern "[" @inner.before "]" @inner.after) @outer
+]]
+
 return M

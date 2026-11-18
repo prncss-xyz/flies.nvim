@@ -66,4 +66,14 @@ M.string = [[
   (string) @outer @inner.inside
 ]]
 
+M.delimiter = [[
+  ;; query
+  (arguments "(" @inner.before ")" @inner.after) @outer
+  (parameters "(" @inner.before ")" @inner.after) @outer
+  (parenthesized_expression "(" @inner.before ")" @inner.after) @outer
+  (table_constructor "{" @inner.before "}" @inner.after) @outer
+  (bracket_index_expression "[" @inner.before "]" @inner.after) @outer
+  (field "[" @inner.before "]" @inner.after) @outer
+]]
+
 return M

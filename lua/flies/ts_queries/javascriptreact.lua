@@ -21,4 +21,11 @@ M.open_close = [[
   (jsx_element (jsx_opening_element . (_) @tag_close (_)*) @element (_)* @protect (jsx_closing_element) ) @outer
 ]]
 
+M.delimiter = [[
+  ;; query
+  (jsx_element open_tag: (_) @inner.before close_tag: (_) @inner.after) @outer
+  (jsx_self_closing_element "<" @inner.before "/>" @inner.after) @outer
+  (jsx_expression "{" @inner.before "}" @inner.after) @outer
+]]
+
 return M
