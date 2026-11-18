@@ -229,7 +229,7 @@ function M:get_hints(pos, opts)
 	local hints = {}
 	local max_hints = require("flies").config.hints.max
 	if max_hints == true then
-		max_hints = init + #require("flies").config.hint_keys - 1 - 1
+		max_hints = init + #require("flies").config.hints.keys - 1
 	end
 	for i, match in ipairs(matches) do
 		if max_hints and i > max_hints then break end
