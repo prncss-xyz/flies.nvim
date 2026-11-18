@@ -97,7 +97,11 @@ local function iter_axis(axis)
 		if matches == nil then
 			if self.no_tree then
 				--TODO: make static
-				return self.no_tree[string.format("iterate_%ss", axis)](self, bufnr, pos)
+				return self.no_tree[string.format("iterate_%ss", axis)](
+					self.no_tree,
+					bufnr,
+					pos
+				)
 			end
 			return iterators.null()
 		end

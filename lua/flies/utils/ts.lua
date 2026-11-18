@@ -81,6 +81,7 @@ local function query_from_name(lang, name)
 			query_str = query_str .. query_str_
 		end
 	end
+	if query_str == "" then return end
 	return vim.treesitter.query.parse(lang, query_str)
 end
 
@@ -92,23 +93,28 @@ function M.query_from_name(bufnr, names)
 	local parser = get_parser(bufnr)
 	if not parser then return end
 	local matches = {}
+	local found = false
 	parser:for_each_tree(function(tree, lang_tree)
 		local lang = lang_tree:lang()
 		for _, name in ipairs(names) do
 			local cquery = query_from_name(lang, name)
-			for pattern, ts_match, metadata in cquery:iter_matches(tree:root(), bufnr) do
-				local match = { pattern = pattern, metadata = metadata }
-				for id, nodes in pairs(ts_match) do
-					local capture_name = cquery.captures[id]
-					for _, node in ipairs(nodes) do
-						match[capture_name] =
-							node_to_range(node, vim.endswith(capture_name, ".inside"))
+			if cquery then
+				found = true
+				for pattern, ts_match, metadata in cquery:iter_matches(tree:root(), bufnr) do
+					local match = { pattern = pattern, metadata = metadata }
+					for id, nodes in pairs(ts_match) do
+						local capture_name = cquery.captures[id]
+						for _, node in ipairs(nodes) do
+							match[capture_name] =
+								node_to_range(node, vim.endswith(capture_name, ".inside"))
+						end
 					end
+					table.insert(matches, spice_match(bufnr, match))
 				end
-				table.insert(matches, spice_match(bufnr, match))
 			end
 		end
 	end)
+	if not found then return end
 	return matches
 end
 
